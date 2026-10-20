@@ -336,4 +336,5 @@
    - **Dead Code & Redundant Calls Deleted**: Deleted dead Streamlit prototype `app.py` (-268 lines), removed redundant `fetchSavedPreferences()` from [`static/app.js`](file:///c:/Users/susha/Documents/General/hinglish_subtitles/static/app.js) (-16 lines), and purged unused `models_dir` from [`launch_config.json`](file:///c:/Users/susha/Documents/General/hinglish_subtitles/launch_config.json).
    - **Log Rotation**: `console_bus.py` rotates `logs/app.log` to `app.log.old` when it exceeds 2 MB at startup.
    - **Docs & Test Suite**: Corrected CLI model options in `README.md`, added 3 failure/cache unit tests in `tests/test_video_burner.py`.
-   - **Test Suite**: **55/55 tests passing** in 9.68s. Git commits `d4ac5a6`, `0ba64c1`, and `d92f828`.
+   - **Pinned Dependencies**: Added [`requirements.txt`](file:///c:/Users/susha/Documents/General/hinglish_subtitles/requirements.txt) with 18 pinned packages (FastAPI, PyWebView, Faster-Whisper, Aksharamukha, Librosa, Scikit-learn, CUDA 12 DLLs, Pytest, etc.).
+   - **Test Suite**: **55/55 tests passing** in 9.68s. Git commits `d4ac5a6`, `0ba64c1`, `d92f828`, and `16ff60d`.
