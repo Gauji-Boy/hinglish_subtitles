@@ -14,8 +14,8 @@ Supports:
 - **100% Offline & Free**: Powered by local `faster-whisper` and `aksharamukha`. Zero cloud costs or API keys.
 - **Zero Hallucination / No LLM Required**: Deterministic phonetic mapping guarantees speech-to-text timing and synchronization never drift.
 - **Smart Loanword & Schwa Normalization**: Automatically normalizes tech loanwords (`video`, `subscribe`, `channel`, `comment`, `like`) and deletes Sanskrit-style trailing schwas (`hama` → `hum`, `bata` → `baat`).
-- **Supports All Model Sizes**: `tiny`, `base`, `small`, `medium`, and **`large-v3`**.
-- **Two Ways to Use**: Modern Streamlit Web UI or direct command-line interface.
+- **Supports All Model Sizes**: `small`, `medium`, **`large-v3-turbo`**, and **`large-v3`**.
+- **Two Ways to Use**: Modern desktop app or direct command-line interface.
 
 ---
 
@@ -51,7 +51,7 @@ python hinglish_engine.py input_video.mp4
 python hinglish_engine.py input_video.mp4 -m large-v3 -d cuda
 
 # Force CPU execution (safe mode)
-python hinglish_engine.py input_video.mp4 -d cpu -m base
+python hinglish_engine.py input_video.mp4 -d cpu -m small
 ```
 
 #### CLI Flags:
@@ -60,7 +60,7 @@ python hinglish_engine.py input_video.mp4 -d cpu -m base
 | `video_path` | Input video file path | Any video format | Required |
 | `-o, --output` | Output `.srt` file path | Path string | `<video_name>_hinglish.srt` |
 | `-d, --device` | Acceleration device | `auto`, `cuda`, `cpu` | `auto` |
-| `-m, --model` | Whisper model size | `tiny`, `base`, `small`, `medium`, `large-v3` | `base` |
+| `-m, --model` | Whisper model size | `small`, `medium`, `large-v3-turbo`, `large-v3` | `small` |
 | `-l, --lang` | Language mode | `mixed`, `hi`, `en`, `auto` | `mixed` |
 | `-c, --compute` | Precision type | `float16`, `int8_float16`, `int8` | Auto |
 
@@ -69,7 +69,7 @@ python hinglish_engine.py input_video.mp4 -d cpu -m base
 ## 📁 Project Structure
 ```
 hinglish_subtitles/
-│── app.py                  # Streamlit Web UI (GPU-aware)
+│── server.py               # FastAPI server + desktop window (pywebview)
 │── hinglish_engine.py      # Core ffmpeg + faster-whisper (CUDA/CPU) + SRT pipeline
 │── transliteration.py      # Devanagari to conversational Hinglish transliteration engine
 │── run_app.bat             # 1-click Windows launcher

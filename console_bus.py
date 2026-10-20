@@ -50,6 +50,13 @@ class ConsoleBus:
         self._loop: Optional[asyncio.AbstractEventLoop] = None
         self._log_file = None
 
+        # Keep one previous log; stop app.log from growing without bound.
+        try:
+            if os.path.getsize(LOG_FILE_PATH) > 2 * 1024 * 1024:
+                os.replace(LOG_FILE_PATH, LOG_FILE_PATH + ".old")
+        except OSError:
+            pass
+
         try:
             self._log_file = open(LOG_FILE_PATH, "a", encoding="utf-8", buffering=1)
         except Exception:

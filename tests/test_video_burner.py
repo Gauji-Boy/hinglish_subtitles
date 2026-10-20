@@ -3,6 +3,7 @@ test_video_burner.py - Automated tests for FFmpeg video burning engine and serve
 """
 
 import os
+import subprocess
 import pytest
 from video_burner import get_available_h264_encoder, burn_subtitles_to_video
 from karaoke_ass import generate_karaoke_ass
@@ -84,3 +85,58 @@ Dialogue: 0,0:00:00.00,0:00:02.00,Default,,0,0,0,,{\\k50}Hello {\\k50}World
     assert "video/mp4" in res.headers["content-type"]
     assert "traffic_subtitled.mp4" in res.headers["content-disposition"]
     assert len(res.content) > 100000
+
+
+def test_encoder_probe_runs_once(monkeypatch):
+    import video_burner as vb
+
+    calls = []
+
+    class Ok:
+        returncode = 0
+
+    def fake_run(cmd, **kwargs):
+        calls.append(cmd)
+        return Ok()
+
+    monkeypatch.setattr(vb, "_CACHED_ENCODER", None)
+    monkeypatch.setattr(vb.subprocess, "run", fake_run)
+
+    first = vb.get_available_h264_encoder()
+    second = vb.get_available_h264_encoder()
+
+    assert first == second
+    assert len(calls) == 1
+
+
+def test_burn_timeout_reports_error(monkeypatch, tmp_path):
+    import video_burner as vb
+
+    video = tmp_path / "in.mp4"
+    video.write_bytes(b"not a video")
+    sub = tmp_path / "in.srt"
+    sub.write_text("1\n00:00:00,000 --> 00:00:01,000\nhi\n", encoding="utf-8")
+
+    monkeypatch.setattr(vb, "_CACHED_ENCODER", ("libx264", ["-c:v", "libx264"]))
+
+    def timeout(*args, **kwargs):
+        raise subprocess.TimeoutExpired(cmd="ffmpeg", timeout=1)
+
+    monkeypatch.setattr(vb.subprocess, "run", timeout)
+
+    res = vb.burn_subtitles_to_video(str(video), str(sub), str(tmp_path / "out.mp4"), timeout_sec=1)
+    assert res["success"] is False
+    assert "timed out" in res["error"].lower()
+
+
+def test_burn_bad_video_reports_ffmpeg_error(tmp_path):
+    import video_burner as vb
+
+    video = tmp_path / "in.mp4"
+    video.write_bytes(b"not a video")
+    sub = tmp_path / "in.srt"
+    sub.write_text("1\n00:00:00,000 --> 00:00:01,000\nhi\n", encoding="utf-8")
+
+    res = vb.burn_subtitles_to_video(str(video), str(sub), str(tmp_path / "out.mp4"), timeout_sec=30)
+    assert res["success"] is False
+    assert "FFmpeg error" in res["error"]

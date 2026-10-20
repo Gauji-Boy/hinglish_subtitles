@@ -214,22 +214,6 @@ async function initApp() {
 
   await fetchModelStatuses();
   await fetchLaunchConfig();
-  await fetchSavedPreferences();
-}
-
-async function fetchSavedPreferences() {
-  try {
-    const res = await fetch("/api/config/preferences");
-    if (res.ok) {
-      const prefs = await res.json();
-      if (prefs.selected_language) applyLanguageSelection(prefs.selected_language, false);
-      if (prefs.selected_model) applyModelSelection(prefs.selected_model, false);
-      if (prefs.selected_device) applyDeviceSelection(prefs.selected_device, false);
-      if (prefs.selected_pacing) applyPacingSelection(prefs.selected_pacing, false);
-    }
-  } catch (err) {
-    console.warn("Could not load backend preferences:", err);
-  }
 }
 
 

@@ -49,6 +49,7 @@ from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Request, Res
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.background import BackgroundTask
 from hinglish_engine import generate_subtitles, get_hardware_info, get_models_status, is_model_cached
 from faster_whisper.utils import download_model
 
@@ -127,8 +128,6 @@ def api_set_launch_mode(silent_launch: bool = Form(...)):
                 except Exception:
                     pass
             data["silent_launch"] = silent_launch
-            if "models_dir" not in data:
-                data["models_dir"] = DEFAULT_MODELS_DIR
             _write_config(data)
         return {"status": "success", "silent_launch": silent_launch}
     except Exception as e:
@@ -234,6 +233,21 @@ def api_download_file(req: SubtitleDownloadRequest):
 
 TEMP_MEDIA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "temp_media")
 os.makedirs(TEMP_MEDIA_DIR, exist_ok=True)
+
+
+def cleanup_old_temp_media(max_age_days: int = 7) -> None:
+    """Delete URL-imported clips older than max_age_days; they are preview-only."""
+    cutoff = time.time() - max_age_days * 86400
+    for name in os.listdir(TEMP_MEDIA_DIR):
+        path = os.path.join(TEMP_MEDIA_DIR, name)
+        try:
+            if os.path.isfile(path) and os.path.getmtime(path) < cutoff:
+                os.remove(path)
+        except OSError:
+            pass
+
+
+cleanup_old_temp_media()
 
 
 class UrlImportRequest(BaseModel):
@@ -408,8 +422,6 @@ def save_preferences_dict(prefs: Dict[str, Any]) -> Dict[str, Any]:
         for k, v in prefs.items():
             if v is not None:
                 data[k] = v
-        if "models_dir" not in data:
-            data["models_dir"] = DEFAULT_MODELS_DIR
         _write_config(data)
     return data
 
@@ -485,11 +497,12 @@ def api_burn_video(
     if not suffix.startswith("."):
         suffix = f".{suffix}"
 
-    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as work_dir:
-        temp_vid_path = os.path.join(work_dir, f"input{suffix}")
-        temp_sub_path = os.path.join(work_dir, f"sub.{format_type}")
-        temp_out_path = os.path.join(work_dir, "burned.mp4")
+    work_dir = tempfile.mkdtemp(prefix="hburn_")
+    temp_vid_path = os.path.join(work_dir, f"input{suffix}")
+    temp_sub_path = os.path.join(work_dir, f"sub.{format_type}")
+    temp_out_path = os.path.join(work_dir, "burned.mp4")
 
+    try:
         with open(temp_vid_path, "wb") as f:
             shutil.copyfileobj(video.file, f)
         with open(temp_sub_path, "w", encoding="utf-8") as f:
@@ -502,14 +515,16 @@ def api_burn_video(
         base_name = os.path.splitext(video.filename or "video")[0]
         download_name = f"{base_name}_subtitled.mp4"
 
-        with open(temp_out_path, "rb") as f:
-            content = f.read()
-
-        return Response(
-            content=content,
+        # Stream from disk; delete the work dir only after the download finishes.
+        return FileResponse(
+            temp_out_path,
             media_type="video/mp4",
-            headers={"Content-Disposition": f'attachment; filename="{download_name}"'}
+            filename=download_name,
+            background=BackgroundTask(shutil.rmtree, work_dir, ignore_errors=True),
         )
+    except Exception:
+        shutil.rmtree(work_dir, ignore_errors=True)
+        raise
 
 
 @app.get("/api/models")
@@ -608,7 +623,8 @@ def read_root():
         "selected_language": "mixed",
         "selected_device": "auto",
         "selected_pacing": "short",
-        "silent_launch": True
+        "silent_launch": True,
+        "enable_diarization": False
     }
     if os.path.isfile(CONFIG_PATH):
         try:

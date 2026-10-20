@@ -10,12 +10,20 @@ import tempfile
 import shutil
 from typing import Optional, Dict, Any, Tuple
 
+_NO_WINDOW = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
+_CACHED_ENCODER: Optional[Tuple[str, list]] = None
+
 
 def get_available_h264_encoder() -> Tuple[str, list]:
     """
     Finds the best operational H.264 encoder in FFmpeg on Windows.
     Prefers Windows MediaFoundation hardware encoder (h264_mf), then fallback.
+    Probes once per process: encoders do not change while the app is open.
     """
+    global _CACHED_ENCODER
+    if _CACHED_ENCODER is not None:
+        return _CACHED_ENCODER
+
     candidates = [
         ("h264_mf", ["-c:v", "h264_mf", "-b:v", "3M"]),
         ("libx264", ["-c:v", "libx264", "-preset", "ultrafast", "-crf", "22"])
@@ -26,12 +34,17 @@ def get_available_h264_encoder() -> Tuple[str, list]:
                 "ffmpeg", "-y", "-f", "lavfi", "-i", "color=c=black:s=64x64:d=0.05",
                 "-c:v", enc, "-f", "mp4", "nul"
             ]
-            res = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=3)
+            res = subprocess.run(
+                cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                timeout=3, creationflags=_NO_WINDOW
+            )
             if res.returncode == 0:
-                return enc, args
+                _CACHED_ENCODER = (enc, args)
+                return _CACHED_ENCODER
         except Exception:
             pass
-    return "h264_mf", ["-c:v", "h264_mf", "-b:v", "3M"]
+    _CACHED_ENCODER = ("h264_mf", ["-c:v", "h264_mf", "-b:v", "3M"])
+    return _CACHED_ENCODER
 
 
 def burn_subtitles_to_video(
@@ -85,7 +98,8 @@ def burn_subtitles_to_video(
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
-                timeout=timeout_sec
+                timeout=timeout_sec,
+                creationflags=_NO_WINDOW
             )
 
             if proc.returncode != 0:

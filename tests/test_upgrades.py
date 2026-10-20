@@ -387,13 +387,7 @@ class TestCustomPlayerControlsAndUI:
         assert 'data-model="sravaani-1.0"' in html
         assert 'data-model="sensevoice-small"' in html
 
-        # 3. Models directory configured in launch_config.json
-        with open("launch_config.json", "r", encoding="utf-8") as f:
-            cfg = json.load(f)
-        assert "models_dir" in cfg
-        assert "D:" in cfg["models_dir"]
-
-        # 4. Model status works and sees cached models from D:
+        # 3. Model status works and sees cached models from D:
         status = get_models_status()
         assert "base" not in status
         assert "tiny" not in status

@@ -127,7 +127,6 @@
 | **Web UI Template** | [`static/index.html`](file:///c:/Users/susha/Documents/General/hinglish_subtitles/static/index.html) | Neo-Brutalist dashboard: language ribbon, hardware & pacing pills, drag-and-drop dropzone, adaptive video/audio stage, live caption overlay, subtitle inspector drawer. |
 | **Component Styles** | [`static/components.css`](file:///c:/Users/susha/Documents/General/hinglish_subtitles/static/components.css) | Adaptive viewer (`.video-portrait`, `.video-landscape`, `.media-audio`), animated equalizer bars (`.audio-equalizer-bars`), on-video reel caption overlay (`.video-caption-overlay`). |
 | **Client Controller** | [`static/app.js`](file:///c:/Users/susha/Documents/General/hinglish_subtitles/static/app.js) | Drag-and-drop handler, orientation & media detector, live timestamp caption sync engine (`timeupdate`), caption mode switcher (`HINGLISH`/`ORIGINAL`/`OFF`), live drawer sync. |
-| **Streamlit Interface** | [`app.py`](file:///c:/Users/susha/Documents/General/hinglish_subtitles/app.py) | Alternative Streamlit app supporting both video and audio. |
 | **Launcher** | [`run_app.bat`](file:///c:/Users/susha/Documents/General/hinglish_subtitles/run_app.bat) | Starts standalone window (`python server.py`). |
 
 ---
@@ -232,7 +231,7 @@
 20. **Synchronous Server-Side Preference Injection & Anti-Caching**:
    - **Root Cause of Model Resetting Bug**:
      1. `index.html` had hardcoded `class="pill active"` on `medium`.
-     2. In WebView2/pywebview, static assets like `app.js` were aggressively cached without version busting, meaning frontend changes to `fetchSavedPreferences()` were skipped on reload.
+     2. In WebView2/pywebview, static assets like `app.js` were aggressively cached without version busting, meaning frontend changes to the saved-preferences fetch were skipped on reload.
      3. An async network race condition occurred in `initApp()`: `fetchModelStatuses()` was awaited before `fetchSavedPreferences()`, causing `updateModelStatusUI()` to execute with default `selectedModel = "medium"` and flash the Medium model.
      4. `pywebview` process termination left orphaned daemon processes on port 8501, causing subsequent launches to bind to port 8502 where origin-partitioned `localStorage` was empty.
    - **Fix Implemented**:
