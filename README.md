@@ -21,6 +21,8 @@ Supports:
 
 ## 🚀 Quickstart
 
+**Prerequisites:** Python 3.13, FFmpeg on `PATH`, then `pip install -r requirements.txt`.
+
 ### 1. Launch the Standalone Desktop Application
 Double-click `run_app.bat` or run:
 ```bash
