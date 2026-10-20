@@ -247,7 +247,23 @@ def cleanup_old_temp_media(max_age_days: int = 7) -> None:
             pass
 
 
+def cleanup_orphan_burn_dirs(max_age_days: int = 1) -> None:
+    """Remove burn work dirs left behind by a crash or a closed window."""
+    tmp = tempfile.gettempdir()
+    cutoff = time.time() - max_age_days * 86400
+    for name in os.listdir(tmp):
+        if not name.startswith("hburn_"):
+            continue
+        path = os.path.join(tmp, name)
+        try:
+            if os.path.isdir(path) and os.path.getmtime(path) < cutoff:
+                shutil.rmtree(path, ignore_errors=True)
+        except OSError:
+            pass
+
+
 cleanup_old_temp_media()
+cleanup_orphan_burn_dirs()
 
 
 class UrlImportRequest(BaseModel):
