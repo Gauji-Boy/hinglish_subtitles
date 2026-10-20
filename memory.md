@@ -326,3 +326,14 @@
    - Added UI toggle in the Settings Drawer and rendered `#Speaker N` badges on cards in [`static/app.js`](file:///c:/Users/susha/Documents/General/hinglish_subtitles/static/app.js) and [`static/components.css`](file:///c:/Users/susha/Documents/General/hinglish_subtitles/static/components.css).
    - 5 dedicated unit tests in `tests/test_diarization.py`.
    - Regression suite: **51/51 tests passing**.
+
+29. **Ponytail Code Audit & Lean Hardening (11 Findings Applied)**:
+   - **Burned MP4 RAM Spike Fixed**: [`server.py`](file:///c:/Users/susha/Documents/General/hinglish_subtitles/server.py) returns `FileResponse` streamed from disk with `BackgroundTask` deleting the temporary working directory after client download completes, eliminating full `f.read()` heap allocations.
+   - **FFmpeg Console Window Flashing Fixed**: Added `creationflags=_NO_WINDOW` (`CREATE_NO_WINDOW`) to all `subprocess.run` calls in [`video_burner.py`](file:///c:/Users/susha/Documents/General/hinglish_subtitles/video_burner.py).
+   - **Diarization Configuration Sync**: `"enable_diarization"` added to default `prefs` and injected into `window.__INITIAL_CONFIG__` in `read_root()`.
+   - **Storage Hygiene Sweeps**: Added startup sweeps in `server.py` cleaning `temp_media/` clips older than 7 days and sweeping orphaned `hburn_*` directories left by aborted sessions.
+   - **Encoder Capability Cached**: Probe runs once per process and caches in `_CACHED_ENCODER`.
+   - **Dead Code & Redundant Calls Deleted**: Deleted dead Streamlit prototype `app.py` (-268 lines), removed redundant `fetchSavedPreferences()` from [`static/app.js`](file:///c:/Users/susha/Documents/General/hinglish_subtitles/static/app.js) (-16 lines), and purged unused `models_dir` from [`launch_config.json`](file:///c:/Users/susha/Documents/General/hinglish_subtitles/launch_config.json).
+   - **Log Rotation**: `console_bus.py` rotates `logs/app.log` to `app.log.old` when it exceeds 2 MB at startup.
+   - **Docs & Test Suite**: Corrected CLI model options in `README.md`, added 3 failure/cache unit tests in `tests/test_video_burner.py`.
+   - **Test Suite**: **55/55 tests passing** in 9.68s. Git commits `d4ac5a6`, `0ba64c1`, and `d92f828`.
