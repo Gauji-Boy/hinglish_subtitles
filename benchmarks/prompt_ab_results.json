@@ -1,0 +1,150 @@
+{
+  "Genius Ad": {
+    "A (Current: hotwords empty)": {
+      "1": {
+        "segments": 1,
+        "words_count": 61,
+        "latin_tokens": 12,
+        "loanwords_recovered": 0,
+        "total_english": 12,
+        "latin_fraction_pct": 100.0,
+        "avg_compression_ratio": 2.0460992907801416,
+        "repeated_3grams": 0,
+        "full_text": "कैसे एक ad ने detol को डूपते हुए बचा लिया। देखो market में savelon आती है। और detol के disadvantage जब भी हम detol लगाते हैं वो थोड़ा सा लगता है। और यही पे savelon ने इसका फाइदा उठाते हुए एक marketing किया और उसने बोला कि जादा असर बीना जलन। और ये ad इतना चला कि detol के sales को"
+      },
+      "2": {
+        "segments": 2,
+        "words_count": 58,
+        "latin_tokens": 0,
+        "loanwords_recovered": 0,
+        "total_english": 0,
+        "latin_fraction_pct": 0.0,
+        "avg_compression_ratio": 1.8863636363636362,
+        "repeated_3grams": 0,
+        "full_text": "ड्रॉप कर दिया अब डिटॉल वाले सोच रहे थे क्या करे क्या करे फिर उसने एक फेमस लाइन उठाया जब बच्पन में हमारे माबाप क्या बोल रहे थे जो जितना करवा है वो इतना अच्छा होती है और इसी लाइन को डिटॉल ने पकड़ लिया और मार्केटिंग बि पिट से डिटॉल को अपने इंडस्ट्री का किंग बना दिया"
+      }
+    },
+    "B (Style in hotwords)": {
+      "1": {
+        "segments": 1,
+        "words_count": 63,
+        "latin_tokens": 13,
+        "loanwords_recovered": 0,
+        "total_english": 13,
+        "latin_fraction_pct": 100.0,
+        "avg_compression_ratio": 2.0311418685121105,
+        "repeated_3grams": 0,
+        "full_text": "कैसे एक ad ने detol को डूपते हुए बचा लिया। देखो market में Sablon आती है। और detol के disadvantage जब भी हम detol लगाते हैं वो थोड़ा सा लगता है। और यही पे Sablon ने इसका फायदा उठाते हुए एक marketing किया और उसने बोला कि जादा असर बीना जलन। और ये ad इतना चला कि detol के sales को drop कर"
+      },
+      "2": {
+        "segments": 2,
+        "words_count": 73,
+        "latin_tokens": 7,
+        "loanwords_recovered": 0,
+        "total_english": 7,
+        "latin_fraction_pct": 100.0,
+        "avg_compression_ratio": 1.8759881422924902,
+        "repeated_3grams": 0,
+        "full_text": "दिया, अब डिटॉल वाले सोच रहे थे, क्या करे, क्या करे, फिर उसने एक famous line उठाया, जब बच्पन में हमारे माबाप क्या बोल रहे थे, जो जितना करवा है, वो इतना अच्छा होती है, और इसी line को डिटॉल ने पकड़ लिया, और marketing, billboard, ad, campaign, हर जगा ये चिपका दिय उसमें लिखा था जलेगा तो चलेगा और ये एड ने फिर से डिटॉल को अपने इंडस्ट्री का किंग बना दिया"
+      }
+    },
+    "C (Short style in hotwords)": {
+      "1": {
+        "segments": 1,
+        "words_count": 61,
+        "latin_tokens": 12,
+        "loanwords_recovered": 0,
+        "total_english": 12,
+        "latin_fraction_pct": 100.0,
+        "avg_compression_ratio": 2.0460992907801416,
+        "repeated_3grams": 0,
+        "full_text": "कैसे एक ad ने detol को डूपते हुए बचा लिया। देखो market में savelon आती है। और detol के disadvantage जब भी हम detol लगाते हैं वो थोड़ा सा लगता है। और यही पे savelon ने इसका फाइदा उठाते हुए एक marketing किया और उसने बोला कि जादा असर बीना जलन। और ये ad इतना चला कि detol के sales को"
+      },
+      "2": {
+        "segments": 2,
+        "words_count": 66,
+        "latin_tokens": 8,
+        "loanwords_recovered": 0,
+        "total_english": 8,
+        "latin_fraction_pct": 100.0,
+        "avg_compression_ratio": 1.7189772551446696,
+        "repeated_3grams": 0,
+        "full_text": "drop कर दिया, अब डिटॉल वाले सोच रहे थे, क्या करे, क्या करे, फिर उसने एक famous line उठाया, जब बच्पन में हमारे माबाप क्या बोल रहे थे, जो जितना करवा है, वो इतना अच्छा होती है, और इसी line को डिटॉल ने पकट लिया, और marketing, billboard, ad, campaign, हर जगा ये चिपका दि ने फिर से डिटॉल को अपने इंडस्ट्री का किंग बना दिया"
+      }
+    }
+  },
+  "Traffic": {
+    "A (Current: hotwords empty)": {
+      "1": {
+        "segments": 1,
+        "words_count": 59,
+        "latin_tokens": 4,
+        "loanwords_recovered": 1,
+        "total_english": 5,
+        "latin_fraction_pct": 80.0,
+        "avg_compression_ratio": 1.8979591836734695,
+        "repeated_3grams": 0,
+        "full_text": "तुम्हारे लिए traffic पढ़ेशानी है, पर उसी से ये बंदे ने 2,00,000 पलस मंत्री revenue कर रहा है। जब लोग साम को काम से आते थे, तो मुंबई में 20-45 मिनट तक का traffic jam में फच जाता था। जहां उसको भूग लगी थी, पानी चाहिए था, और गेट से बाहर भी ने निकल सकता �"
+      },
+      "2": {
+        "segments": 5,
+        "words_count": 96,
+        "latin_tokens": 0,
+        "loanwords_recovered": 3,
+        "total_english": 3,
+        "latin_fraction_pct": 0.0,
+        "avg_compression_ratio": 2.01355609637695,
+        "repeated_3grams": 0,
+        "full_text": "गाड़ी के इसी प्रॉब्लम को इस बंदे ने सॉल्व किया यहीं से ट्रैफिक वड़ा पाव का स्टार्ट हुआ तो इसने स्मार्टली पैकेज किया उसमें एक वड़ा पाव एक वाटर बोटल और एक टीसू पेपर सब को एक अच्छे से पैकेजिंग करके 20 रुपया में � बेशता था शुरू में तो कोई नहीं खड़िता था क्योंकि वही हाईजीन वगेरा सबका कमी के तार है बट अवर दे टाइम इसका मेहनत ने रंग लाया और आज दो लाग प्लस का मंतली रेवेन्यू कर रहा है देखो इंदिया में टैलेंट की कमी नहीं है कमी है तो एक्जीक्यूशन की"
+      }
+    },
+    "B (Style in hotwords)": {
+      "1": {
+        "segments": 1,
+        "words_count": 59,
+        "latin_tokens": 4,
+        "loanwords_recovered": 1,
+        "total_english": 5,
+        "latin_fraction_pct": 80.0,
+        "avg_compression_ratio": 1.9375,
+        "repeated_3grams": 0,
+        "full_text": "तुम्हारे लिए traffic पढ़ेशानी है, पर उसी से ये बंदे ने 2,00,000 पलस मंत्री revenue कर रहा है। जब लोग साम को काम से आते थे, तो मुंबई में 20-45 मिनट तक का traffic jam में फस जाता था। जहां उसको भूख लगी थी, पानी चाहिए था, और गेट से बाहर भी ने निकल सकता ग"
+      },
+      "2": {
+        "segments": 2,
+        "words_count": 65,
+        "latin_tokens": 21,
+        "loanwords_recovered": 0,
+        "total_english": 21,
+        "latin_fraction_pct": 100.0,
+        "avg_compression_ratio": 1.9126297577854672,
+        "repeated_3grams": 7,
+        "full_text": "smartly package किया, उसमें एक वड़ा पाव, एक वाटर बोटल और एक टीसू पेपर, सबको एक अच्छे से पैकेजिंग करके 20 रुपया में बेशता था, सुरू में तो कोई नहीं खड़िता था, क्योंकि वही हाईजीन वगेरा सबका कमी केता रहा है, but over the time इसका मेहनत ने रंग ल I'm not going to lie, I'm not going to lie, I'm not going to lie."
+      }
+    },
+    "C (Short style in hotwords)": {
+      "1": {
+        "segments": 1,
+        "words_count": 59,
+        "latin_tokens": 4,
+        "loanwords_recovered": 1,
+        "total_english": 5,
+        "latin_fraction_pct": 80.0,
+        "avg_compression_ratio": 1.901023890784983,
+        "repeated_3grams": 0,
+        "full_text": "तुम्हारे लिए traffic पढ़ेशानी है, पर उसी से ये बंदे ने 2,00,00 पलस मंत्री revenue कर रहा है। जब लोग साम को काम से आते थे, तो मुंबई में 20-45 मिनट तक का traffic jam में फच जाता था। जहां उसको भूग लगी थी, पानी चाहिए था, और गेट से बाहर भी ने निकल सकता �"
+      },
+      "2": {
+        "segments": 3,
+        "words_count": 95,
+        "latin_tokens": 2,
+        "loanwords_recovered": 3,
+        "total_english": 5,
+        "latin_fraction_pct": 40.0,
+        "avg_compression_ratio": 1.6758826396880195,
+        "repeated_3grams": 0,
+        "full_text": "इसी प्रॉब्लम को इस बंदे ने सॉल्व किया, यही से ट्रैफिक वड़ा पाव का स्टार्ट हुआ, तो इसने स्मार्टली पैकेज किया, उसमें एक वड़ा पाव, एक वाटर बोटल और एक टीसू पेपर, सब को एक अच्छे से पैकेजिंग करके 20 रुपया में बेजता लगा शुरू में तो कोई नहीं खड़िता था, क्योंकि वही हाईजीन वगेरा सब का कमी किता रहा है, बट अवर दे टाइम इसका मेहनत ने रंग लाया, और आज 2 लाग प्लस का मंतली रेवेन्यू कर रहा है, देखो इंदिया में टैलेंट की कमी नहीं है, कमी है तो एक्� execution game"
+      }
+    }
+  }
+}

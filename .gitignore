@@ -1,0 +1,8 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.webview_cache/
+logs/
+temp_media/
+test_pytest_burn.ass
+test_pytest_burned.mp4

@@ -1,0 +1,1047 @@
+[
+  {
+    "label": "medium/float16/beam5 (baseline)",
+    "model": "medium",
+    "compute_type": "float16",
+    "beam_size": 5,
+    "reel": "The-Genius-Ad-SnapYT.App.mp4",
+    "audio_dur": 58.93225,
+    "model_load_time": 3.5911730999996507,
+    "clocks_start": "2355 MHz, 3105 MHz",
+    "concurrent_apps": "None (Exclusive)",
+    "avg_segments": 12,
+    "total_temperature_fallbacks": 0,
+    "med_audio": 0.12142399999993359,
+    "med_transcribe": 7.959328500000083,
+    "med_post": 0.1878513000001476,
+    "med_total": 8.27209589999984,
+    "speed_ratio": 7.124222290508158,
+    "wer_unverified": 58.3941605839416,
+    "named_token_score": 49.63503649635037,
+    "named_matched": 68,
+    "named_total": 137,
+    "sample_alignments": [
+      [
+        "S",
+        "dettol",
+        "detol"
+      ],
+      [
+        "S",
+        "doobte",
+        "doopate"
+      ],
+      [
+        "S",
+        "bacha",
+        "bachaa"
+      ],
+      [
+        "S",
+        "savlon",
+        "savelon"
+      ],
+      [
+        "S",
+        "aati",
+        "aatee"
+      ]
+    ],
+    "measured_runs": [
+      {
+        "run": 1,
+        "t_audio": 0.12142399999993359,
+        "t_transcribe": 7.924038800000744,
+        "t_post": 0.17857199999980367,
+        "t_total": 8.224034800000481,
+        "seg_count": 12,
+        "fallback_count": 0,
+        "clocks": "2625 MHz, 3105 MHz",
+        "wer": 58.3941605839416,
+        "named_token_score": 49.63503649635037,
+        "named_matched": 68,
+        "named_total": 137
+      },
+      {
+        "run": 2,
+        "t_audio": 0.11743290000049456,
+        "t_transcribe": 7.964998699999342,
+        "t_post": 0.189664300000004,
+        "t_total": 8.27209589999984,
+        "seg_count": 12,
+        "fallback_count": 0,
+        "clocks": "2625 MHz, 3105 MHz",
+        "wer": 58.3941605839416,
+        "named_token_score": 49.63503649635037,
+        "named_matched": 68,
+        "named_total": 137
+      },
+      {
+        "run": 3,
+        "t_audio": 0.12570419999974547,
+        "t_transcribe": 7.959328500000083,
+        "t_post": 0.1878513000001476,
+        "t_total": 8.272883999999976,
+        "seg_count": 12,
+        "fallback_count": 0,
+        "clocks": "2625 MHz, 3105 MHz",
+        "wer": 58.3941605839416,
+        "named_token_score": 49.63503649635037,
+        "named_matched": 68,
+        "named_total": 137
+      }
+    ],
+    "reel_friendly_name": "Genius Ad (Dettol vs Savlon)",
+    "process_wall_time": 49.677112102508545
+  },
+  {
+    "label": "medium/float16/beam5 (baseline)",
+    "model": "medium",
+    "compute_type": "float16",
+    "beam_size": 5,
+    "reel": "He-Turned-Traffic-SnapYT.App.mp4",
+    "audio_dur": 58.0963125,
+    "model_load_time": 3.3468818000001193,
+    "clocks_start": "2355 MHz, 3105 MHz",
+    "concurrent_apps": "None (Exclusive)",
+    "avg_segments": 13,
+    "total_temperature_fallbacks": 0,
+    "med_audio": 0.13316290000057052,
+    "med_transcribe": 9.198206999999456,
+    "med_post": 0.19572880000032455,
+    "med_total": 9.528163199999653,
+    "speed_ratio": 6.0973255055079365,
+    "wer_unverified": 48.34437086092716,
+    "named_token_score": 62.328767123287676,
+    "named_matched": 91,
+    "named_total": 146,
+    "sample_alignments": [
+      [
+        "S",
+        "tumhare",
+        "tumahaare"
+      ],
+      [
+        "S",
+        "pareshani",
+        "parheshaanee"
+      ],
+      [
+        "D",
+        "par",
+        ""
+      ],
+      [
+        "S",
+        "usi",
+        "percy"
+      ],
+      [
+        "D",
+        "bande",
+        ""
+      ]
+    ],
+    "measured_runs": [
+      {
+        "run": 1,
+        "t_audio": 0.13566919999993843,
+        "t_transcribe": 9.198206999999456,
+        "t_post": 0.19428700000025856,
+        "t_total": 9.528163199999653,
+        "seg_count": 13,
+        "fallback_count": 0,
+        "clocks": "2610 MHz, 3105 MHz",
+        "wer": 48.34437086092716,
+        "named_token_score": 62.328767123287676,
+        "named_matched": 91,
+        "named_total": 146
+      },
+      {
+        "run": 2,
+        "t_audio": 0.13316290000057052,
+        "t_transcribe": 9.137852800000474,
+        "t_post": 0.19572880000032455,
+        "t_total": 9.466744500001369,
+        "seg_count": 13,
+        "fallback_count": 0,
+        "clocks": "2610 MHz, 3105 MHz",
+        "wer": 48.34437086092716,
+        "named_token_score": 62.328767123287676,
+        "named_matched": 91,
+        "named_total": 146
+      },
+      {
+        "run": 3,
+        "t_audio": 0.11837269999978162,
+        "t_transcribe": 9.452451899999687,
+        "t_post": 0.19647859999986395,
+        "t_total": 9.767303199999333,
+        "seg_count": 13,
+        "fallback_count": 0,
+        "clocks": "2610 MHz, 3105 MHz",
+        "wer": 48.34437086092716,
+        "named_token_score": 62.328767123287676,
+        "named_matched": 91,
+        "named_total": 146
+      }
+    ],
+    "reel_friendly_name": "Traffic (Vada Pav)",
+    "process_wall_time": 54.93099522590637
+  },
+  {
+    "label": "medium/int8_float16/beam2",
+    "model": "medium",
+    "compute_type": "int8_float16",
+    "beam_size": 2,
+    "reel": "The-Genius-Ad-SnapYT.App.mp4",
+    "audio_dur": 58.93225,
+    "model_load_time": 4.274580500000411,
+    "clocks_start": "2355 MHz, 3105 MHz",
+    "concurrent_apps": "None (Exclusive)",
+    "avg_segments": 12,
+    "total_temperature_fallbacks": 0,
+    "med_audio": 0.12090769999940676,
+    "med_transcribe": 7.292792799999916,
+    "med_post": 0.17634840000027907,
+    "med_total": 7.59250129999964,
+    "speed_ratio": 7.7619018649365,
+    "wer_unverified": 56.934306569343065,
+    "named_token_score": 51.09489051094891,
+    "named_matched": 70,
+    "named_total": 137,
+    "sample_alignments": [
+      [
+        "S",
+        "dettol",
+        "detol"
+      ],
+      [
+        "S",
+        "doobte",
+        "doopate"
+      ],
+      [
+        "S",
+        "bacha",
+        "bachaa"
+      ],
+      [
+        "S",
+        "savlon",
+        "sablon"
+      ],
+      [
+        "S",
+        "aati",
+        "aatee"
+      ]
+    ],
+    "measured_runs": [
+      {
+        "run": 1,
+        "t_audio": 0.11956569999983913,
+        "t_transcribe": 7.259317900000497,
+        "t_post": 0.17634840000027907,
+        "t_total": 7.555232000000615,
+        "seg_count": 12,
+        "fallback_count": 0,
+        "clocks": "2610 MHz, 3105 MHz",
+        "wer": 56.934306569343065,
+        "named_token_score": 51.09489051094891,
+        "named_matched": 70,
+        "named_total": 137
+      },
+      {
+        "run": 2,
+        "t_audio": 0.12402519999977812,
+        "t_transcribe": 7.292792799999916,
+        "t_post": 0.17568329999994603,
+        "t_total": 7.59250129999964,
+        "seg_count": 12,
+        "fallback_count": 0,
+        "clocks": "2610 MHz, 3105 MHz",
+        "wer": 56.934306569343065,
+        "named_token_score": 51.09489051094891,
+        "named_matched": 70,
+        "named_total": 137
+      },
+      {
+        "run": 3,
+        "t_audio": 0.12090769999940676,
+        "t_transcribe": 7.34891510000034,
+        "t_post": 0.1939013999999588,
+        "t_total": 7.663724199999706,
+        "seg_count": 12,
+        "fallback_count": 0,
+        "clocks": "2610 MHz, 3105 MHz",
+        "wer": 56.934306569343065,
+        "named_token_score": 51.09489051094891,
+        "named_matched": 70,
+        "named_total": 137
+      }
+    ],
+    "reel_friendly_name": "Genius Ad (Dettol vs Savlon)",
+    "process_wall_time": 48.170153856277466
+  },
+  {
+    "label": "medium/int8_float16/beam2",
+    "model": "medium",
+    "compute_type": "int8_float16",
+    "beam_size": 2,
+    "reel": "He-Turned-Traffic-SnapYT.App.mp4",
+    "audio_dur": 58.0963125,
+    "model_load_time": 4.614046900000176,
+    "clocks_start": "2355 MHz, 3105 MHz",
+    "concurrent_apps": "None (Exclusive)",
+    "avg_segments": 14,
+    "total_temperature_fallbacks": 0,
+    "med_audio": 0.13009110000075452,
+    "med_transcribe": 21.362054600000192,
+    "med_post": 0.16785410000011325,
+    "med_total": 21.655138300000544,
+    "speed_ratio": 2.6827957270537746,
+    "wer_unverified": 63.576158940397356,
+    "named_token_score": 51.369863013698634,
+    "named_matched": 75,
+    "named_total": 146,
+    "sample_alignments": [
+      [
+        "S",
+        "tumhare",
+        "tumahaare"
+      ],
+      [
+        "D",
+        "pareshani",
+        ""
+      ],
+      [
+        "S",
+        "hai",
+        "parheshaanee"
+      ],
+      [
+        "S",
+        "par",
+        "hain"
+      ],
+      [
+        "S",
+        "usi",
+        "percy"
+      ]
+    ],
+    "measured_runs": [
+      {
+        "run": 1,
+        "t_audio": 0.12283750000005966,
+        "t_transcribe": 21.362054600000192,
+        "t_post": 0.17024620000029245,
+        "t_total": 21.655138300000544,
+        "seg_count": 14,
+        "fallback_count": 0,
+        "clocks": "2610 MHz, 3105 MHz",
+        "wer": 63.576158940397356,
+        "named_token_score": 51.369863013698634,
+        "named_matched": 75,
+        "named_total": 146
+      },
+      {
+        "run": 2,
+        "t_audio": 0.1426913000004788,
+        "t_transcribe": 19.62465929999962,
+        "t_post": 0.16785410000011325,
+        "t_total": 19.935204700000213,
+        "seg_count": 14,
+        "fallback_count": 0,
+        "clocks": "2610 MHz, 3105 MHz",
+        "wer": 63.576158940397356,
+        "named_token_score": 51.369863013698634,
+        "named_matched": 75,
+        "named_total": 146
+      },
+      {
+        "run": 3,
+        "t_audio": 0.13009110000075452,
+        "t_transcribe": 21.75309449999986,
+        "t_post": 0.1622245999997176,
+        "t_total": 22.045410200000333,
+        "seg_count": 14,
+        "fallback_count": 0,
+        "clocks": "2610 MHz, 3105 MHz",
+        "wer": 63.576158940397356,
+        "named_token_score": 51.369863013698634,
+        "named_matched": 75,
+        "named_total": 146
+      }
+    ],
+    "reel_friendly_name": "Traffic (Vada Pav)",
+    "process_wall_time": 116.73737835884094
+  },
+  {
+    "label": "small/float16/beam2",
+    "model": "small",
+    "compute_type": "float16",
+    "beam_size": 2,
+    "reel": "The-Genius-Ad-SnapYT.App.mp4",
+    "audio_dur": 58.93225,
+    "model_load_time": 2.1393490999998903,
+    "clocks_start": "2355 MHz, 3105 MHz",
+    "concurrent_apps": "None (Exclusive)",
+    "avg_segments": 9.666666666666666,
+    "total_temperature_fallbacks": 5,
+    "med_audio": 0.11748519999946438,
+    "med_transcribe": 8.070272099999784,
+    "med_post": 0.18682470000021567,
+    "med_total": 8.380297599999722,
+    "speed_ratio": 7.032238330056675,
+    "wer_unverified": 66.42335766423358,
+    "named_token_score": 43.79562043795621,
+    "named_matched": 60,
+    "named_total": 137,
+    "sample_alignments": [
+      [
+        "S",
+        "ad",
+        "aad"
+      ],
+      [
+        "S",
+        "dettol",
+        "detail"
+      ],
+      [
+        "S",
+        "doobte",
+        "doopate"
+      ],
+      [
+        "S",
+        "bacha",
+        "basin"
+      ],
+      [
+        "D",
+        "dekho",
+        ""
+      ]
+    ],
+    "measured_runs": [
+      {
+        "run": 1,
+        "t_audio": 0.11743870000009338,
+        "t_transcribe": 8.070272099999784,
+        "t_post": 0.19258679999984452,
+        "t_total": 8.380297599999722,
+        "seg_count": 11,
+        "fallback_count": 2,
+        "clocks": "2610 MHz, 3105 MHz",
+        "wer": 65.69343065693431,
+        "named_token_score": 43.79562043795621,
+        "named_matched": 60,
+        "named_total": 137
+      },
+      {
+        "run": 2,
+        "t_audio": 0.11748519999946438,
+        "t_transcribe": 8.064215100000183,
+        "t_post": 0.18682470000021567,
+        "t_total": 8.368524999999863,
+        "seg_count": 11,
+        "fallback_count": 2,
+        "clocks": "2610 MHz, 3105 MHz",
+        "wer": 66.42335766423358,
+        "named_token_score": 44.52554744525548,
+        "named_matched": 61,
+        "named_total": 137
+      },
+      {
+        "run": 3,
+        "t_audio": 0.11785699999927601,
+        "t_transcribe": 15.92816219999986,
+        "t_post": 0.16972269999951095,
+        "t_total": 16.215741899998648,
+        "seg_count": 7,
+        "fallback_count": 1,
+        "clocks": "2610 MHz, 3105 MHz",
+        "wer": 79.56204379562044,
+        "named_token_score": 40.87591240875913,
+        "named_matched": 56,
+        "named_total": 137
+      }
+    ],
+    "reel_friendly_name": "Genius Ad (Dettol vs Savlon)",
+    "process_wall_time": 58.72740173339844
+  },
+  {
+    "label": "small/float16/beam2",
+    "model": "small",
+    "compute_type": "float16",
+    "beam_size": 2,
+    "reel": "He-Turned-Traffic-SnapYT.App.mp4",
+    "audio_dur": 58.0963125,
+    "model_load_time": 1.8844311000002563,
+    "clocks_start": "2355 MHz, 3105 MHz",
+    "concurrent_apps": "None (Exclusive)",
+    "avg_segments": 13.333333333333334,
+    "total_temperature_fallbacks": 13,
+    "med_audio": 0.11543500000061613,
+    "med_transcribe": 8.090951600000153,
+    "med_post": 0.21726480000052106,
+    "med_total": 8.41408010000032,
+    "speed_ratio": 6.904654080961007,
+    "wer_unverified": 52.980132450331126,
+    "named_token_score": 65.75342465753424,
+    "named_matched": 96,
+    "named_total": 146,
+    "sample_alignments": [
+      [
+        "S",
+        "par",
+        "aur"
+      ],
+      [
+        "D",
+        "yeh",
+        ""
+      ],
+      [
+        "S",
+        "bande",
+        "ye"
+      ],
+      [
+        "S",
+        "ne",
+        "abandon"
+      ],
+      [
+        "S",
+        "raha",
+        "rahaa"
+      ]
+    ],
+    "measured_runs": [
+      {
+        "run": 1,
+        "t_audio": 0.11543500000061613,
+        "t_transcribe": 8.44118030000027,
+        "t_post": 0.23033610000038607,
+        "t_total": 8.786951400001271,
+        "seg_count": 14,
+        "fallback_count": 5,
+        "clocks": "2610 MHz, 3105 MHz",
+        "wer": 52.317880794701985,
+        "named_token_score": 65.75342465753424,
+        "named_matched": 96,
+        "named_total": 146
+      },
+      {
+        "run": 2,
+        "t_audio": 0.11356510000041453,
+        "t_transcribe": 8.090951600000153,
+        "t_post": 0.2095633999997517,
+        "t_total": 8.41408010000032,
+        "seg_count": 12,
+        "fallback_count": 3,
+        "clocks": "2610 MHz, 3105 MHz",
+        "wer": 52.980132450331126,
+        "named_token_score": 65.06849315068493,
+        "named_matched": 95,
+        "named_total": 146
+      },
+      {
+        "run": 3,
+        "t_audio": 0.12156020000020362,
+        "t_transcribe": 7.043357400000787,
+        "t_post": 0.21726480000052106,
+        "t_total": 7.382182400001511,
+        "seg_count": 14,
+        "fallback_count": 5,
+        "clocks": "2610 MHz, 3105 MHz",
+        "wer": 53.64238410596026,
+        "named_token_score": 66.43835616438356,
+        "named_matched": 97,
+        "named_total": 146
+      }
+    ],
+    "reel_friendly_name": "Traffic (Vada Pav)",
+    "process_wall_time": 46.33038592338562
+  },
+  {
+    "label": "medium/float16/beam2",
+    "model": "medium",
+    "compute_type": "float16",
+    "beam_size": 2,
+    "reel": "The-Genius-Ad-SnapYT.App.mp4",
+    "audio_dur": 58.93225,
+    "model_load_time": 3.3742945999993026,
+    "clocks_start": "1365 MHz, 3105 MHz",
+    "concurrent_apps": "None (Exclusive)",
+    "avg_segments": 11,
+    "total_temperature_fallbacks": 0,
+    "med_audio": 0.12026999999943655,
+    "med_transcribe": 8.391721799999686,
+    "med_post": 0.19087499999932334,
+    "med_total": 8.700704799999585,
+    "speed_ratio": 6.773273126103855,
+    "wer_unverified": 62.77372262773723,
+    "named_token_score": 46.715328467153284,
+    "named_matched": 64,
+    "named_total": 137,
+    "sample_alignments": [
+      [
+        "S",
+        "dettol",
+        "detol"
+      ],
+      [
+        "S",
+        "doobte",
+        "doopate"
+      ],
+      [
+        "S",
+        "bacha",
+        "bachaa"
+      ],
+      [
+        "S",
+        "savlon",
+        "sablon"
+      ],
+      [
+        "S",
+        "aati",
+        "aatee"
+      ]
+    ],
+    "measured_runs": [
+      {
+        "run": 1,
+        "t_audio": 0.12868109999999433,
+        "t_transcribe": 8.383175400000255,
+        "t_post": 0.18595000000004802,
+        "t_total": 8.697806500000297,
+        "seg_count": 11,
+        "fallback_count": 0,
+        "clocks": "2610 MHz, 3105 MHz",
+        "wer": 62.77372262773723,
+        "named_token_score": 46.715328467153284,
+        "named_matched": 64,
+        "named_total": 137
+      },
+      {
+        "run": 2,
+        "t_audio": 0.12026999999943655,
+        "t_transcribe": 8.467530899999474,
+        "t_post": 0.191412200000741,
+        "t_total": 8.779213099999652,
+        "seg_count": 11,
+        "fallback_count": 0,
+        "clocks": "2610 MHz, 3105 MHz",
+        "wer": 62.77372262773723,
+        "named_token_score": 46.715328467153284,
+        "named_matched": 64,
+        "named_total": 137
+      },
+      {
+        "run": 3,
+        "t_audio": 0.11810800000057498,
+        "t_transcribe": 8.391721799999686,
+        "t_post": 0.19087499999932334,
+        "t_total": 8.700704799999585,
+        "seg_count": 11,
+        "fallback_count": 0,
+        "clocks": "2610 MHz, 3105 MHz",
+        "wer": 62.77372262773723,
+        "named_token_score": 46.715328467153284,
+        "named_matched": 64,
+        "named_total": 137
+      }
+    ],
+    "reel_friendly_name": "Genius Ad (Dettol vs Savlon)",
+    "process_wall_time": 52.902106523513794
+  },
+  {
+    "label": "medium/float16/beam2",
+    "model": "medium",
+    "compute_type": "float16",
+    "beam_size": 2,
+    "reel": "He-Turned-Traffic-SnapYT.App.mp4",
+    "audio_dur": 58.0963125,
+    "model_load_time": 3.3050537999997687,
+    "clocks_start": "1365 MHz, 3105 MHz",
+    "concurrent_apps": "None (Exclusive)",
+    "avg_segments": 12,
+    "total_temperature_fallbacks": 0,
+    "med_audio": 0.11500390000037441,
+    "med_transcribe": 8.522049199999856,
+    "med_post": 0.19720950000009907,
+    "med_total": 8.830262000000403,
+    "speed_ratio": 6.579228623114167,
+    "wer_unverified": 48.34437086092716,
+    "named_token_score": 62.328767123287676,
+    "named_matched": 91,
+    "named_total": 146,
+    "sample_alignments": [
+      [
+        "S",
+        "tumhare",
+        "tumahaare"
+      ],
+      [
+        "S",
+        "pareshani",
+        "parheshaanee"
+      ],
+      [
+        "D",
+        "par",
+        ""
+      ],
+      [
+        "S",
+        "usi",
+        "percy"
+      ],
+      [
+        "D",
+        "bande",
+        ""
+      ]
+    ],
+    "measured_runs": [
+      {
+        "run": 1,
+        "t_audio": 0.1206211999997322,
+        "t_transcribe": 8.682708500000444,
+        "t_post": 0.19720950000009907,
+        "t_total": 9.000539200000276,
+        "seg_count": 12,
+        "fallback_count": 0,
+        "clocks": "2610 MHz, 3105 MHz",
+        "wer": 48.34437086092716,
+        "named_token_score": 62.328767123287676,
+        "named_matched": 91,
+        "named_total": 146
+      },
+      {
+        "run": 2,
+        "t_audio": 0.11500390000037441,
+        "t_transcribe": 8.522049199999856,
+        "t_post": 0.19320890000017243,
+        "t_total": 8.830262000000403,
+        "seg_count": 12,
+        "fallback_count": 0,
+        "clocks": "2610 MHz, 3105 MHz",
+        "wer": 48.34437086092716,
+        "named_token_score": 62.328767123287676,
+        "named_matched": 91,
+        "named_total": 146
+      },
+      {
+        "run": 3,
+        "t_audio": 0.11072169999988546,
+        "t_transcribe": 8.468136000000413,
+        "t_post": 0.21547040000041306,
+        "t_total": 8.794328100000712,
+        "seg_count": 12,
+        "fallback_count": 0,
+        "clocks": "2610 MHz, 3105 MHz",
+        "wer": 48.34437086092716,
+        "named_token_score": 62.328767123287676,
+        "named_matched": 91,
+        "named_total": 146
+      }
+    ],
+    "reel_friendly_name": "Traffic (Vada Pav)",
+    "process_wall_time": 54.46608781814575
+  },
+  {
+    "label": "large-v3-turbo/float16/beam2",
+    "model": "large-v3-turbo",
+    "compute_type": "float16",
+    "beam_size": 2,
+    "reel": "The-Genius-Ad-SnapYT.App.mp4",
+    "audio_dur": 58.93225,
+    "model_load_time": 4.14224589999958,
+    "clocks_start": "2355 MHz, 3105 MHz",
+    "concurrent_apps": "None (Exclusive)",
+    "avg_segments": 3,
+    "total_temperature_fallbacks": 0,
+    "med_audio": 0.11921350000011444,
+    "med_transcribe": 2.3757306999996217,
+    "med_post": 0.15394759999981034,
+    "med_total": 2.6488917999995465,
+    "speed_ratio": 22.24788872086436,
+    "wer_unverified": 59.12408759124088,
+    "named_token_score": 49.63503649635037,
+    "named_matched": 68,
+    "named_total": 137,
+    "sample_alignments": [
+      [
+        "S",
+        "dettol",
+        "detol"
+      ],
+      [
+        "S",
+        "doobte",
+        "doopate"
+      ],
+      [
+        "S",
+        "bacha",
+        "bachaa"
+      ],
+      [
+        "S",
+        "liya",
+        "liyaa"
+      ],
+      [
+        "S",
+        "savlon",
+        "savelon"
+      ]
+    ],
+    "measured_runs": [
+      {
+        "run": 1,
+        "t_audio": 0.12463430000025255,
+        "t_transcribe": 2.3654467999995177,
+        "t_post": 0.16552450000017416,
+        "t_total": 2.6556055999999444,
+        "seg_count": 3,
+        "fallback_count": 0,
+        "clocks": "2610 MHz, 3105 MHz",
+        "wer": 59.12408759124088,
+        "named_token_score": 49.63503649635037,
+        "named_matched": 68,
+        "named_total": 137
+      },
+      {
+        "run": 2,
+        "t_audio": 0.11921350000011444,
+        "t_transcribe": 2.3757306999996217,
+        "t_post": 0.15394759999981034,
+        "t_total": 2.6488917999995465,
+        "seg_count": 3,
+        "fallback_count": 0,
+        "clocks": "2610 MHz, 3105 MHz",
+        "wer": 59.12408759124088,
+        "named_token_score": 49.63503649635037,
+        "named_matched": 68,
+        "named_total": 137
+      },
+      {
+        "run": 3,
+        "t_audio": 0.11336070000015752,
+        "t_transcribe": 2.378919099999621,
+        "t_post": 0.15127240000038,
+        "t_total": 2.6435522000001583,
+        "seg_count": 3,
+        "fallback_count": 0,
+        "clocks": "2610 MHz, 3105 MHz",
+        "wer": 59.12408759124088,
+        "named_token_score": 49.63503649635037,
+        "named_matched": 68,
+        "named_total": 137
+      }
+    ],
+    "reel_friendly_name": "Genius Ad (Dettol vs Savlon)",
+    "process_wall_time": 24.527562618255615
+  },
+  {
+    "label": "large-v3-turbo/float16/beam2",
+    "model": "large-v3-turbo",
+    "compute_type": "float16",
+    "beam_size": 2,
+    "reel": "He-Turned-Traffic-SnapYT.App.mp4",
+    "audio_dur": 58.0963125,
+    "model_load_time": 3.5027421000004324,
+    "clocks_start": "2355 MHz, 3105 MHz",
+    "concurrent_apps": "None (Exclusive)",
+    "avg_segments": 5,
+    "total_temperature_fallbacks": 0,
+    "med_audio": 0.11920769999960612,
+    "med_transcribe": 2.749166100000366,
+    "med_post": 0.154014300000199,
+    "med_total": 3.020348699999886,
+    "speed_ratio": 19.23496863127168,
+    "wer_unverified": 60.264900662251655,
+    "named_token_score": 54.109589041095894,
+    "named_matched": 79,
+    "named_total": 146,
+    "sample_alignments": [
+      [
+        "S",
+        "pareshani",
+        "parheshaanee"
+      ],
+      [
+        "D",
+        "par",
+        ""
+      ],
+      [
+        "S",
+        "usi",
+        "percy"
+      ],
+      [
+        "S",
+        "yeh",
+        "ye"
+      ],
+      [
+        "S",
+        "bande",
+        "abandon"
+      ]
+    ],
+    "measured_runs": [
+      {
+        "run": 1,
+        "t_audio": 0.11716829999932088,
+        "t_transcribe": 2.749166100000366,
+        "t_post": 0.154014300000199,
+        "t_total": 3.020348699999886,
+        "seg_count": 5,
+        "fallback_count": 0,
+        "clocks": "2610 MHz, 3105 MHz",
+        "wer": 60.264900662251655,
+        "named_token_score": 54.109589041095894,
+        "named_matched": 79,
+        "named_total": 146
+      },
+      {
+        "run": 2,
+        "t_audio": 0.11920769999960612,
+        "t_transcribe": 2.7370921000001545,
+        "t_post": 0.15286919999925885,
+        "t_total": 3.0091689999990194,
+        "seg_count": 5,
+        "fallback_count": 0,
+        "clocks": "2610 MHz, 3105 MHz",
+        "wer": 60.264900662251655,
+        "named_token_score": 54.109589041095894,
+        "named_matched": 79,
+        "named_total": 146
+      },
+      {
+        "run": 3,
+        "t_audio": 0.12725469999986672,
+        "t_transcribe": 2.751319500000136,
+        "t_post": 0.1559995000006893,
+        "t_total": 3.034573700000692,
+        "seg_count": 5,
+        "fallback_count": 0,
+        "clocks": "2595 MHz, 3105 MHz",
+        "wer": 60.264900662251655,
+        "named_token_score": 54.109589041095894,
+        "named_matched": 79,
+        "named_total": 146
+      }
+    ],
+    "reel_friendly_name": "Traffic (Vada Pav)",
+    "process_wall_time": 23.78802251815796
+  },
+  {
+    "label": "medium/float16/beam1 (reconciliation)",
+    "model": "medium",
+    "compute_type": "float16",
+    "beam_size": 1,
+    "reel": "The-Genius-Ad-SnapYT.App.mp4",
+    "audio_dur": 58.93225,
+    "model_load_time": 3.946404600000278,
+    "clocks_start": "2355 MHz, 3105 MHz",
+    "concurrent_apps": "None (Exclusive)",
+    "avg_segments": 11,
+    "total_temperature_fallbacks": 0,
+    "med_audio": 0.11863570000059553,
+    "med_transcribe": 6.4396999000000505,
+    "med_post": 0.17178489999969315,
+    "med_total": 6.730120500000339,
+    "speed_ratio": 8.75649254719838,
+    "wer_unverified": 59.12408759124088,
+    "named_token_score": 48.175182481751825,
+    "named_matched": 66,
+    "named_total": 137,
+    "sample_alignments": [
+      [
+        "S",
+        "dettol",
+        "dtol"
+      ],
+      [
+        "S",
+        "doobte",
+        "doopate"
+      ],
+      [
+        "S",
+        "bacha",
+        "bachaa"
+      ],
+      [
+        "S",
+        "savlon",
+        "savelon"
+      ],
+      [
+        "S",
+        "aati",
+        "aatee"
+      ]
+    ],
+    "measured_runs": [
+      {
+        "run": 1,
+        "t_audio": 0.11863570000059553,
+        "t_transcribe": 6.4396999000000505,
+        "t_post": 0.17178489999969315,
+        "t_total": 6.730120500000339,
+        "seg_count": 11,
+        "fallback_count": 0,
+        "clocks": "2595 MHz, 3105 MHz",
+        "wer": 59.12408759124088,
+        "named_token_score": 48.175182481751825,
+        "named_matched": 66,
+        "named_total": 137
+      },
+      {
+        "run": 2,
+        "t_audio": 0.14106670000001031,
+        "t_transcribe": 6.390004599999884,
+        "t_post": 0.1613286000001608,
+        "t_total": 6.692399900000055,
+        "seg_count": 11,
+        "fallback_count": 0,
+        "clocks": "2610 MHz, 3105 MHz",
+        "wer": 59.12408759124088,
+        "named_token_score": 48.175182481751825,
+        "named_matched": 66,
+        "named_total": 137
+      },
+      {
+        "run": 3,
+        "t_audio": 0.11860320000050706,
+        "t_transcribe": 6.457557700000507,
+        "t_post": 0.17581909999989875,
+        "t_total": 6.751980000000913,
+        "seg_count": 11,
+        "fallback_count": 0,
+        "clocks": "2610 MHz, 3105 MHz",
+        "wer": 59.12408759124088,
+        "named_token_score": 48.175182481751825,
+        "named_matched": 66,
+        "named_total": 137
+      }
+    ],
+    "reel_friendly_name": "Genius Ad (Dettol vs Savlon)",
+    "process_wall_time": 42.730345010757446
+  }
+]

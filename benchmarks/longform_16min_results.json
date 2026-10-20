@@ -1,0 +1,28 @@
+{
+  "large-v3-turbo": {
+    "model": "large-v3-turbo",
+    "compute": "float16",
+    "audio_duration_sec": 965.6,
+    "audio_extract_sec": 1.15,
+    "model_load_sec": 10.35,
+    "transcribe_sec": 67.63,
+    "post_process_sec": 1.44,
+    "total_wall_sec": 80.57,
+    "speed_factor": 14.3,
+    "peak_vram_mb": 3912.0,
+    "cards_generated": 428
+  },
+  "medium": {
+    "model": "medium",
+    "compute": "float16",
+    "audio_duration_sec": 965.6,
+    "audio_extract_sec": 1.19,
+    "model_load_sec": 7.99,
+    "transcribe_sec": 1105.31,
+    "post_process_sec": 13.78,
+    "total_wall_sec": 1128.27,
+    "speed_factor": 0.9,
+    "peak_vram_mb": 5818.0,
+    "cards_generated": 256
+  }
+}

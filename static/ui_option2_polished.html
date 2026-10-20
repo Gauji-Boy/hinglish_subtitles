@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="industrial-hybrid">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Option 2: Micro-Polished UI - Hinglish Subtitle Generator</title>
+  <link rel="stylesheet" href="tokens.css">
+  <link rel="stylesheet" href="components.css">
+  <style>
+    /* Demo Control Bar */
+    .demo-bar {
+      background: #0f131d;
+      border-bottom: 2px solid #282c3c;
+      padding: 10px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: #94a3b8;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+    }
+    .demo-tag {
+      background: #4ade80;
+      color: #000;
+      font-weight: 800;
+      padding: 2px 8px;
+      margin-right: 8px;
+      text-transform: uppercase;
+    }
+    .demo-interactive-btn {
+      background: #1e2433;
+      border: 1px solid #38bdf8;
+      color: #38bdf8;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      cursor: pointer;
+      margin-left: 12px;
+      transition: all 0.15s ease;
+    }
+    .demo-interactive-btn:hover {
+      background: #38bdf8;
+      color: #000;
+    }
+    .demo-nav a {
+      color: #facc15;
+      text-decoration: none;
+      margin-left: 14px;
+      font-weight: 700;
+    }
+    .demo-nav a:hover {
+      text-decoration: underline;
+      color: #fff;
+    }
+    nav {
+      top: 41px !important;
+    }
+
+    /* Polish 1: Hero Meta Row (Single Balanced Line) */
+    .hero-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin-top: 18px;
+    }
+    .hero-meta .meta-pill {
+      font-size: 11px;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+    }
+    .hero-meta .meta-pill.gpu-pill {
+      border-color: rgba(250, 204, 21, 0.4);
+      background: rgba(250, 204, 21, 0.06);
+      color: #fef08a;
+    }
+    .hero-meta .meta-pill.hallucination-pill {
+      border-color: rgba(74, 222, 128, 0.3);
+      color: #86efac;
+      background: rgba(74, 222, 128, 0.05);
+    }
+
+    /* Polish 2: Controls Card Vertical Alignment & Grounding */
+    .controls-card.polished {
+      align-items: stretch; /* Stretches both columns equally */
+    }
+    .controls-card.polished .controls-left-col {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      height: 100%;
+    }
+    .controls-card.polished .topic-hint-group {
+      margin-top: auto; /* Pushes topic hint flush to bottom baseline */
+      padding-top: 14px;
+    }
+
+    /* Polish 3: Smart Execution Action Bar & Empty State */
+    .action-bar-polished {
+      max-width: 1400px;
+      margin: 0 auto 30px;
+      padding: 0 36px;
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .btn-primary.is-standby {
+      background: #141722;
+      border: 1px dashed rgba(255, 255, 255, 0.2);
+      color: #64748b;
+      box-shadow: none;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+    .btn-primary.is-standby svg {
+      opacity: 0.4;
+    }
+    .action-status-chip {
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      color: #94a3b8;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #11131a;
+      border: 1px solid #282c3c;
+      padding: 6px 12px;
+      border-radius: var(--border-radius);
+    }
+    .action-status-chip .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #eab308;
+    }
+    .action-status-chip.ready .dot {
+      background: #4ade80;
+      box-shadow: 0 0 8px #4ade80;
+    }
+
+    /* Simulated File preview box in dropzone */
+    .file-simulated-badge {
+      display: none;
+      background: #161924;
+      border: 2px solid #38bdf8;
+      padding: 12px 18px;
+      margin-top: 14px;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      max-width: 580px;
+      box-shadow: 4px 4px 0 #000;
+    }
+    .file-simulated-badge.visible {
+      display: flex;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Demo Context Bar with Interactive Testing Controls -->
+  <div class="demo-bar">
+    <div>
+      <span class="demo-tag">OPTION 2: MICRO-POLISHED</span>
+      <span>Single-line meta pills &bull; Grounded column baseline &bull; Smart disabled/active CTA</span>
+      <button class="demo-interactive-btn" id="simulateUploadBtn">&#x1F4C1; Test: Simulate File Upload (Click Me)</button>
+    </div>
+    <div class="demo-nav">
+      <a href="ui_option1_current.html">&larr; Switch to Option 1 (As-Is)</a>
+      <a href="ui_comparison_viewer.html">Split Comparison View &rarr;</a>
+    </div>
+  </div>
+
+  <!-- Top Sticky Navigation Bar -->
+  <nav>
+    <div class="nav-inner">
+      <div class="brand">
+        <span>ANTIGRAVITY</span>
+        <span class="badge hot">V2.5 HYBRID</span>
+        <span class="badge">HINGLISH ENGINE</span>
+      </div>
+      
+      <div class="nav-right">
+        <button id="toggleConsoleBtn" class="console-nav-btn" title="Toggle System Console & Telemetry">
+          <span class="console-dot"></span>
+          <span style="font-family: var(--font-mono); font-size: 11px; font-weight: 800; letter-spacing: 0.05em;">TERMINAL</span>
+          <span class="console-count-badge">1</span>
+        </button>
+        <select id="themeSelect" class="theme-select" title="Switch Theme">
+          <option value="industrial-hybrid" selected>Theme: Industrial Hybrid</option>
+          <option value="sleek-bento">Theme: Sleek Bento Cyber (New)</option>
+          <option value="cyberpunk-neon">Theme: Cyberpunk Neon</option>
+          <option value="minimalist-light">Theme: Minimalist Light</option>
+        </select>
+        <div class="nav-kbd"><kbd>/</kbd> search</div>
+        <div class="nav-kbd"><kbd>Esc</kbd> close</div>
+        <span class="badge gpu">🚀 GPU: RTX 4050 6GB (CUDA FLOAT16)</span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Section: Compact, Balanced Meta Row -->
+  <section class="hero">
+    <div>
+      <h1>Hinglish subtitles.<br>One <mark>terminal</mark>.</h1>
+      <p>Precision AI engineering skills covering hardware-accelerated speech-to-text, neural phonetic transliteration, and code-mixed Hinglish subtitles.</p>
+      
+      <!-- Polished: Compact Hardware string fits all 3 pills cleanly on ONE line without wrapping -->
+      <div class="hero-meta">
+        <span class="meta-pill gpu-pill">⚡ RTX 4050 6GB (CUDA fp16)</span>
+        <span class="meta-pill">🤖 Whisper: Large-v3 (Studio)</span>
+        <span class="meta-pill hallucination-pill">🎯 0% LLM Hallucinations</span>
+      </div>
+    </div>
+
+    <!-- Quick Spoken Language Selector Ribbon -->
+    <div class="ribbon" id="languageRibbon">
+      <button class="tile" data-lang="mixed" style="--c: var(--yellow);">
+        <div class="glyph">
+          <svg viewBox="0 0 24 24"><path d="M12 2v20M2 12h20M4.93 4.93l14.14 14.14M4.93 19.07L19.07 4.93"/></svg>
+        </div>
+        Mixed Hinglish
+        <small>Hindi + English</small>
+      </button>
+
+      <button class="tile" data-lang="hi" style="--c: var(--cyan);">
+        <div class="glyph">
+          <svg viewBox="0 0 24 24"><path d="M4 7h16M12 7v13M9 20h6"/></svg>
+        </div>
+        Pure Hindi
+        <small>Devanagari</small>
+      </button>
+
+      <button class="tile active" data-lang="en" style="--c: var(--green);">
+        <div class="glyph">
+          <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        </div>
+        English
+        <small>Latin Text</small>
+      </button>
+
+      <button class="tile" data-lang="auto" style="--c: var(--purple);">
+        <div class="glyph">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+        </div>
+        Auto-Detect
+        <small>Dynamic Scan</small>
+      </button>
+    </div>
+  </section>
+
+  <!-- Hardware & Model Configuration Bar: Optically Grounded & Balanced Columns -->
+  <section class="controls-wrap">
+    <div class="controls-card polished">
+      <!-- Left Column: Hardware + Topic Hints (Flush to Bottom) -->
+      <div class="controls-left-col">
+        <div>
+          <div class="control-group">
+            <div class="control-group-title">
+              <span>⚡ ACCELERATION HARDWARE</span>
+            </div>
+            <div class="pills">
+              <button class="pill" type="button">AUTO (GPU PREFERRED)</button>
+              <button class="pill active" type="button">NVIDIA GPU (CUDA)</button>
+              <button class="pill" type="button">CPU (SAFE MODE)</button>
+            </div>
+          </div>
+
+          <div class="control-group" style="margin-top: 18px;">
+            <div class="control-group-title">
+              <span>⏱️ CAPTION PACING & FORMAT</span>
+            </div>
+            <div class="pills">
+              <button type="button" class="pill active">📱 SHORT-FORM (REELS / SHORTS)</button>
+              <button type="button" class="pill">📺 LONG-FORM (YOUTUBE / 16:9)</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Topic Hints sits neatly anchored along the bottom baseline -->
+        <div class="control-group topic-hint-group">
+          <div class="control-group-title">
+            <span>🎯 TOPIC / BRAND HINTS (OPTIONAL)</span>
+          </div>
+          <div>
+            <input type="text" class="topic-hint-input" placeholder="Paste caption or brand names (e.g. Dettol vs Savlon, #VadaPav, #Marketing)">
+          </div>
+          <div class="hint-helper-text">
+            Feeds into Whisper hotwords & brand snapping so brand names and niche jargon are never misheard.
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Whisper Model Size + Cache Status -->
+      <div class="controls-right-col">
+        <div class="control-group">
+          <div class="control-group-title">
+            <span>🧠 SPEECH RECOGNITION (ASR) MODEL</span>
+          </div>
+          <div class="pills">
+            <button class="pill" type="button">SMALL (FAST) &#x2713;</button>
+            <button class="pill" type="button">MEDIUM (RECOMMENDED) &#x2713;</button>
+            <button class="pill" type="button">LARGE-V3-TURBO (&#9889; ~3S) &#x2713;</button>
+            <button class="pill active" type="button">LARGE-V3 (STUDIO) &#x2713;</button>
+            <button class="pill" type="button">INDICCONFORMER (AI4BHARAT 600M) &#x2713;</button>
+            <button class="pill" type="button">SRAVAANI 1.0 (ARTPARK-IISC) &#x2713;</button>
+            <button class="pill" type="button">SENSEVOICE-SMALL (EXPERIMENTAL / NON-HINDI) &#x2713;</button>
+          </div>
+          <div class="model-status-bar" style="margin-top: 16px;">
+            <span>&#x2713; CACHED ON DISK: LARGE-V3 (3.0 GB) is downloaded and ready for immediate offline inference.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Video / Audio Upload Dropzone -->
+  <section class="upload-container">
+    <div class="dropzone" id="dropzone">
+      <div class="dropzone-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+      </div>
+      <div class="dropzone-title">DRAG & DROP VIDEO OR AUDIO FILE HERE</div>
+      <div class="dropzone-hint">Supports MP4, MOV, MKV, WEBM, AVI &bull; MP3, WAV, M4A, AAC, FLAC, OGG (Click or drop)</div>
+      
+      <!-- Simulated File Upload Chip -->
+      <div class="file-simulated-badge" id="simulatedFileBadge">
+        <div style="text-align: left;">
+          <div style="font-weight: 800; font-family: var(--font-mono); font-size: 13px; color: #fff;">&#x1F3AC; The-Genius-Ad-SnapYT.App.mp4</div>
+          <div style="font-size: 11px; color: #38bdf8; font-family: var(--font-mono); margin-top: 2px;">14.2 MB &bull; 00:54 Duration &bull; 1080p Video</div>
+        </div>
+        <span class="badge" style="background: #000; border-color: #38bdf8; color: #38bdf8;">READY</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Execution Action Bar: Smart Empty vs Armed States -->
+  <section class="action-bar-polished">
+    <button class="btn-primary is-standby" id="generateBtn">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+      <span id="generateBtnText">GENERATE HINGLISH SUBTITLES (STANDBY)</span>
+    </button>
+    <div class="action-status-chip" id="actionStatusChip">
+      <span class="dot"></span>
+      <span id="actionStatusText">Waiting for video or audio file to be dropped above...</span>
+    </div>
+  </section>
+
+  <script>
+    const themeSelect = document.getElementById("themeSelect");
+    themeSelect.addEventListener("change", (e) => {
+      document.documentElement.dataset.theme = e.target.value;
+    });
+
+    // Pill click feedback
+    document.querySelectorAll(".pill, .tile").forEach(btn => {
+      btn.addEventListener("click", function() {
+        const parent = this.parentElement;
+        if (parent && (parent.classList.contains("pills") || parent.id === "languageRibbon")) {
+          parent.querySelectorAll(".pill, .tile").forEach(b => b.classList.remove("active"));
+          this.classList.add("active");
+        }
+      });
+    });
+
+    // Interactive Demo Toggle: Empty vs File Loaded
+    const simulateBtn = document.getElementById("simulateUploadBtn");
+    const fileBadge = document.getElementById("simulatedFileBadge");
+    const genBtn = document.getElementById("generateBtn");
+    const genBtnText = document.getElementById("generateBtnText");
+    const actionChip = document.getElementById("actionStatusChip");
+    const actionText = document.getElementById("actionStatusText");
+    let isFileLoaded = false;
+
+    simulateBtn.addEventListener("click", () => {
+      isFileLoaded = !isFileLoaded;
+      if (isFileLoaded) {
+        fileBadge.classList.add("visible");
+        genBtn.classList.remove("is-standby");
+        genBtnText.textContent = "GENERATE HINGLISH SUBTITLES";
+        actionChip.classList.add("ready");
+        actionText.textContent = "File staged & verified. Ready for GPU acceleration (Large-v3 Studio).";
+        simulateBtn.textContent = "🔄 Reset Demo to Empty State";
+        simulateBtn.style.borderColor = "#facc15";
+        simulateBtn.style.color = "#facc15";
+      } else {
+        fileBadge.classList.remove("visible");
+        genBtn.classList.add("is-standby");
+        genBtnText.textContent = "GENERATE HINGLISH SUBTITLES (STANDBY)";
+        actionChip.classList.remove("ready");
+        actionText.textContent = "Waiting for video or audio file to be dropped above...";
+        simulateBtn.textContent = "📁 Test: Simulate File Upload (Click Me)";
+        simulateBtn.style.borderColor = "#38bdf8";
+        simulateBtn.style.color = "#38bdf8";
+      }
+    });
+  </script>
+</body>
+</html>

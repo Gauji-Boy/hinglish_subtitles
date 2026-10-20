@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="industrial-hybrid">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Option 1: Current UI (As-Is) - Hinglish Subtitle Generator</title>
+  <link rel="stylesheet" href="tokens.css">
+  <link rel="stylesheet" href="components.css">
+  <style>
+    /* Demo Banner */
+    .demo-bar {
+      background: #11141e;
+      border-bottom: 2px solid #282c3c;
+      padding: 10px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: #94a3b8;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .demo-tag {
+      background: #facc15;
+      color: #000;
+      font-weight: 800;
+      padding: 2px 8px;
+      margin-right: 8px;
+      text-transform: uppercase;
+    }
+    .demo-nav a {
+      color: #38bdf8;
+      text-decoration: none;
+      margin-left: 14px;
+      font-weight: 700;
+    }
+    .demo-nav a:hover {
+      text-decoration: underline;
+      color: #fff;
+    }
+    nav {
+      top: 37px !important;
+    }
+    /* Explicitly reproduce the current un-styled disabled state */
+    .action-bar .btn-primary:disabled {
+      background: var(--yellow);
+      border: 2px solid #000000;
+      color: #000000;
+      box-shadow: var(--shadow-btn);
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Demo Context Bar -->
+  <div class="demo-bar">
+    <div>
+      <span class="demo-tag">OPTION 1: CURRENT AS-IS</span>
+      <span>Baseline UI reproducing your current interface (Long GPU string wrapping, constant active button, hanging column)</span>
+    </div>
+    <div class="demo-nav">
+      <a href="ui_option2_polished.html">Switch to Option 2 (Polished) &rarr;</a>
+      <a href="ui_comparison_viewer.html">Split Comparison View &rarr;</a>
+    </div>
+  </div>
+
+  <!-- Top Sticky Navigation Bar -->
+  <nav>
+    <div class="nav-inner">
+      <div class="brand">
+        <span>ANTIGRAVITY</span>
+        <span class="badge hot">V2.5 HYBRID</span>
+        <span class="badge">HINGLISH ENGINE</span>
+      </div>
+      
+      <div class="nav-right">
+        <button id="toggleConsoleBtn" class="console-nav-btn" title="Toggle System Console & Telemetry">
+          <span class="console-dot"></span>
+          <span style="font-family: var(--font-mono); font-size: 11px; font-weight: 800; letter-spacing: 0.05em;">TERMINAL</span>
+          <span class="console-count-badge">1</span>
+        </button>
+        <select id="themeSelect" class="theme-select" title="Switch Theme">
+          <option value="industrial-hybrid" selected>Theme: Industrial Hybrid</option>
+          <option value="sleek-bento">Theme: Sleek Bento Cyber (New)</option>
+          <option value="cyberpunk-neon">Theme: Cyberpunk Neon</option>
+          <option value="minimalist-light">Theme: Minimalist Light</option>
+        </select>
+        <div class="nav-kbd"><kbd>/</kbd> search</div>
+        <div class="nav-kbd"><kbd>Esc</kbd> close</div>
+        <span class="badge gpu">🚀 GPU: NVIDIA GEFORCE RTX 4050 LAPTOP GPU, 6141 MIB</span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Section with Title and Mode Ribbon -->
+  <section class="hero">
+    <div>
+      <h1>Hinglish subtitles.<br>One <mark>terminal</mark>.</h1>
+      <p>Precision AI engineering skills covering hardware-accelerated speech-to-text, neural phonetic transliteration, and code-mixed Hinglish subtitles.</p>
+      
+      <!-- Current: Full GPU string wraps the 3rd pill onto line 2 -->
+      <div class="hero-meta">
+        <span class="meta-pill" style="border-color: #facc1544;">⚡ Hardware: NVIDIA GeForce RTX 4050 Laptop GPU, 6141 MiB (CUDA Float16)</span>
+        <span class="meta-pill">🤖 Whisper: Large-v3 (Studio)</span>
+        <span class="meta-pill" style="color: #f43f5e;">🎯 0% LLM Hallucinations</span>
+      </div>
+    </div>
+
+    <!-- Quick Spoken Language Selector Ribbon -->
+    <div class="ribbon" id="languageRibbon">
+      <button class="tile" data-lang="mixed" style="--c: var(--yellow);">
+        <div class="glyph">
+          <svg viewBox="0 0 24 24"><path d="M12 2v20M2 12h20M4.93 4.93l14.14 14.14M4.93 19.07L19.07 4.93"/></svg>
+        </div>
+        Mixed Hinglish
+        <small>Hindi + English</small>
+      </button>
+
+      <button class="tile" data-lang="hi" style="--c: var(--cyan);">
+        <div class="glyph">
+          <svg viewBox="0 0 24 24"><path d="M4 7h16M12 7v13M9 20h6"/></svg>
+        </div>
+        Pure Hindi
+        <small>Devanagari</small>
+      </button>
+
+      <button class="tile active" data-lang="en" style="--c: var(--green);">
+        <div class="glyph">
+          <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        </div>
+        English
+        <small>Latin Text</small>
+      </button>
+
+      <button class="tile" data-lang="auto" style="--c: var(--purple);">
+        <div class="glyph">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+        </div>
+        Auto-Detect
+        <small>Dynamic Scan</small>
+      </button>
+    </div>
+  </section>
+
+  <!-- Hardware & Model Configuration Bar -->
+  <section class="controls-wrap">
+    <div class="controls-card" style="align-items: start;">
+      <!-- Left Column: Hardware + Topic Hints -->
+      <div class="controls-left-col">
+        <div class="control-group">
+          <div class="control-group-title">
+            <span>⚡ ACCELERATION HARDWARE</span>
+          </div>
+          <div class="pills">
+            <button class="pill" type="button">AUTO (GPU PREFERRED)</button>
+            <button class="pill active" type="button">NVIDIA GPU (CUDA)</button>
+            <button class="pill" type="button">CPU (SAFE MODE)</button>
+          </div>
+        </div>
+
+        <div class="control-group" style="margin-top: 18px;">
+          <div class="control-group-title">
+            <span>⏱️ CAPTION PACING & FORMAT</span>
+          </div>
+          <div class="pills">
+            <button type="button" class="pill active">📱 SHORT-FORM (REELS / SHORTS)</button>
+            <button type="button" class="pill">📺 LONG-FORM (YOUTUBE / 16:9)</button>
+          </div>
+        </div>
+
+        <div class="control-group" style="margin-top: 18px;">
+          <div class="control-group-title">
+            <span>🎯 TOPIC / BRAND HINTS (OPTIONAL)</span>
+          </div>
+          <div>
+            <input type="text" class="topic-hint-input" placeholder="Paste caption or brand names (e.g. Dettol vs Savlon, #VadaPav, #Marketing)">
+          </div>
+          <div class="hint-helper-text">
+            Feeds into Whisper hotwords & brand snapping so brand names and niche jargon are never misheard.
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Whisper Model Size + Cache Status -->
+      <div class="controls-right-col">
+        <div class="control-group">
+          <div class="control-group-title">
+            <span>🧠 SPEECH RECOGNITION (ASR) MODEL</span>
+          </div>
+          <div class="pills">
+            <button class="pill" type="button">SMALL (FAST) &#x2713;</button>
+            <button class="pill" type="button">MEDIUM (RECOMMENDED) &#x2713;</button>
+            <button class="pill" type="button">LARGE-V3-TURBO (&#9889; ~3S) &#x2713;</button>
+            <button class="pill active" type="button">LARGE-V3 (STUDIO) &#x2713;</button>
+            <button class="pill" type="button">INDICCONFORMER (AI4BHARAT 600M) &#x2713;</button>
+            <button class="pill" type="button">SRAVAANI 1.0 (ARTPARK-IISC) &#x2713;</button>
+            <button class="pill" type="button">SENSEVOICE-SMALL (EXPERIMENTAL / NON-HINDI) &#x2713;</button>
+          </div>
+          <div class="model-status-bar" style="margin-top: 16px;">
+            <span>&#x2713; CACHED ON DISK: LARGE-V3 (3.0 GB) is downloaded and ready for immediate offline inference.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Video / Audio Upload Dropzone -->
+  <section class="upload-container">
+    <div class="dropzone" id="dropzone">
+      <div class="dropzone-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+      </div>
+      <div class="dropzone-title">DRAG & DROP VIDEO OR AUDIO FILE HERE</div>
+      <div class="dropzone-hint">Supports MP4, MOV, MKV, WEBM, AVI &bull; MP3, WAV, M4A, AAC, FLAC, OGG (Click or drop)</div>
+    </div>
+  </section>
+
+  <!-- Execution Action Bar: Current UI (Bright yellow button always enabled even without a file) -->
+  <section class="action-bar">
+    <button class="btn-primary" id="generateBtn">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+      GENERATE HINGLISH SUBTITLES
+    </button>
+  </section>
+
+  <script>
+    const themeSelect = document.getElementById("themeSelect");
+    themeSelect.addEventListener("change", (e) => {
+      document.documentElement.dataset.theme = e.target.value;
+    });
+
+    // Pill click feedback
+    document.querySelectorAll(".pill, .tile").forEach(btn => {
+      btn.addEventListener("click", function() {
+        const parent = this.parentElement;
+        if (parent && (parent.classList.contains("pills") || parent.id === "languageRibbon")) {
+          parent.querySelectorAll(".pill, .tile").forEach(b => b.classList.remove("active"));
+          this.classList.add("active");
+        }
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scrollbar Design System Preview — Neo-Brutalist Industrial</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">
+  <style>
+    /* --------------------------------------------------------------------------
+       TOKENS & BASE RESET
+       -------------------------------------------------------------------------- */
+    :root {
+      --bg: #0c0d10;
+      --card-bg: #11131a;
+      --panel-bg: #08090d;
+      --border-color: #282c3c;
+      --border: 2px solid var(--border-color);
+      --yellow: #facc15;
+      --cyan: #38bdf8;
+      --green: #4ade80;
+      --paper: #f8fafc;
+      --text: #ffffff;
+      --muted: #888888;
+      --font-sans: 'Plus Jakarta Sans', -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      border-radius: 0px !important; /* Strict 0px brutalist discipline */
+    }
+
+    body {
+      background-color: var(--bg);
+      background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+      background-size: 28px 28px;
+      color: var(--text);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      padding: 40px 24px 60px;
+    }
+
+    /* --------------------------------------------------------------------------
+       HEADER & CONTEXT
+       -------------------------------------------------------------------------- */
+    .header-bar {
+      max-width: 1240px;
+      margin: 0 auto 36px;
+      border: var(--border);
+      background: var(--card-bg);
+      padding: 24px 28px;
+      box-shadow: 6px 6px 0 #000000;
+    }
+
+    .badge-ribbon {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 10px;
+      background: #000000;
+      border: 1px solid var(--yellow);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--yellow);
+      letter-spacing: 0.05em;
+      margin-bottom: 12px;
+    }
+
+    .title {
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+      max-width: 820px;
+    }
+
+    /* --------------------------------------------------------------------------
+       PREVIEW GRID
+       -------------------------------------------------------------------------- */
+    .preview-grid {
+      max-width: 1240px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+
+    @media (max-width: 980px) {
+      .preview-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .option-column {
+      background: var(--card-bg);
+      border: var(--border);
+      box-shadow: 5px 5px 0 #000000;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .option-column:hover {
+      box-shadow: 7px 7px 0 var(--column-accent, var(--yellow));
+      transform: translate(-2px, -2px);
+    }
+
+    .option-header {
+      padding: 20px 22px 16px;
+      border-bottom: 2px solid var(--border-color);
+      background: #0e1017;
+    }
+
+    .tag {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      display: inline-block;
+      margin-bottom: 10px;
+      background: #000000;
+      border: 1px solid var(--border-color);
+    }
+
+    .tag.opt1 { color: #cbd5e1; border-color: #475569; }
+    .tag.opt2 { color: var(--yellow); border-color: var(--yellow); }
+    .tag.opt3 { color: var(--cyan); border-color: var(--cyan); }
+
+    .option-title {
+      font-size: 18px;
+      font-weight: 800;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .option-desc {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .specs-strip {
+      display: flex;
+      gap: 12px;
+      padding: 10px 22px;
+      background: #090a0e;
+      border-bottom: 1px solid var(--border-color);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: #94a3b8;
+    }
+
+    .spec-item span {
+      color: #ffffff;
+      font-weight: 700;
+    }
+
+    /* --------------------------------------------------------------------------
+       SCROLLABLE VIEWPORT CONTAINERS
+       -------------------------------------------------------------------------- */
+    .scroll-viewport {
+      height: 480px;
+      overflow-y: scroll;
+      padding: 18px;
+      background: var(--panel-bg);
+    }
+
+    /* Subtitle Card Item (Real App Content Simulation) */
+    .card-item {
+      background: #141722;
+      border: 1px solid #282c3c;
+      padding: 14px 16px;
+      margin-bottom: 12px;
+      box-shadow: 2px 2px 0 #000000;
+      transition: border-color 0.1s ease;
+    }
+
+    .card-item:hover {
+      border-color: #ffffff;
+    }
+
+    .card-meta {
+      display: flex;
+      justify-content: space-between;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--yellow);
+      margin-bottom: 6px;
+    }
+
+    .card-meta .idx {
+      color: #64748b;
+      font-weight: 700;
+    }
+
+    .card-hinglish {
+      font-size: 14px;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 4px;
+      letter-spacing: -0.01em;
+    }
+
+    .card-orig {
+      font-size: 12px;
+      color: #94a3b8;
+    }
+
+    /* --------------------------------------------------------------------------
+       CUSTOM SCROLLBAR STYLES (THE THREE OPTIONS)
+       -------------------------------------------------------------------------- */
+
+    /* === OPTION 1: STEALTH INDUSTRIAL DARK === */
+    .custom-scroll-opt1 {
+      --column-accent: #64748b;
+      scrollbar-width: thin;
+      scrollbar-color: #282c3c #08090d;
+    }
+    .custom-scroll-opt1::-webkit-scrollbar {
+      width: 8px;
+      background: #08090d;
+    }
+    .custom-scroll-opt1::-webkit-scrollbar-track {
+      background: #08090d;
+      border-left: 1px solid #1a1d28;
+    }
+    .custom-scroll-opt1::-webkit-scrollbar-thumb {
+      background: #282c3c;
+      border: 1px solid #151821;
+    }
+    .custom-scroll-opt1::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+      border-color: #ffffff;
+    }
+    .custom-scroll-opt1::-webkit-scrollbar-thumb:active {
+      background: #ffffff;
+    }
+    .custom-scroll-opt1::-webkit-scrollbar-button {
+      display: none;
+    }
+
+    /* === OPTION 2: CYBER-BRUTALIST BRAND ACCENT === */
+    .custom-scroll-opt2 {
+      --column-accent: var(--yellow);
+      scrollbar-width: thin;
+      scrollbar-color: #facc15 #11131a;
+    }
+    .custom-scroll-opt2::-webkit-scrollbar {
+      width: 10px;
+      background: #0c0e14;
+    }
+    .custom-scroll-opt2::-webkit-scrollbar-track {
+      background: #0c0e14;
+      border-left: 2px solid #282c3c;
+    }
+    .custom-scroll-opt2::-webkit-scrollbar-thumb {
+      background: #1e2230;
+      border-left: 3px solid #facc15;
+      box-shadow: inset -1px 0 0 #000000;
+    }
+    .custom-scroll-opt2::-webkit-scrollbar-thumb:hover {
+      background: #facc15;
+      border-left: 3px solid #ffffff;
+      box-shadow: 0 0 8px rgba(250, 204, 21, 0.4);
+    }
+    .custom-scroll-opt2::-webkit-scrollbar-thumb:active {
+      background: #ffffff;
+      border-left: 3px solid #facc15;
+    }
+    .custom-scroll-opt2::-webkit-scrollbar-button {
+      display: none;
+    }
+
+    /* === OPTION 3: RAZOR-THIN TERMINAL RAIL === */
+    .custom-scroll-opt3 {
+      --column-accent: var(--cyan);
+      scrollbar-width: thin;
+      scrollbar-color: #38bdf8 transparent;
+    }
+    .custom-scroll-opt3::-webkit-scrollbar {
+      width: 5px;
+      background: transparent;
+    }
+    .custom-scroll-opt3::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .custom-scroll-opt3::-webkit-scrollbar-thumb {
+      background: rgba(56, 189, 248, 0.35);
+      border: none;
+    }
+    .custom-scroll-opt3::-webkit-scrollbar-thumb:hover {
+      background: var(--cyan);
+      box-shadow: 0 0 6px var(--cyan);
+    }
+    .custom-scroll-opt3::-webkit-scrollbar-thumb:active {
+      background: #ffffff;
+    }
+    .custom-scroll-opt3::-webkit-scrollbar-button {
+      display: none;
+    }
+
+    /* --------------------------------------------------------------------------
+       FOOTER INSTRUCTION
+       -------------------------------------------------------------------------- */
+    .footer-bar {
+      max-width: 1240px;
+      margin: 28px auto 0;
+      padding: 16px 22px;
+      border: 1px dashed #282c3c;
+      background: #090a0e;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .footer-bar strong {
+      color: var(--yellow);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="header-bar">
+    <div class="badge-ribbon">
+      <span>⚙</span> DESIGN SYSTEM SPECIFICATION: SCROLLBAR ARTIFACT
+    </div>
+    <h1 class="title">Industrial Scrollbar Candidates</h1>
+    <p class="subtitle">
+      Eliminates the default 17px Windows OS rounded grey scrollbar in favor of sharp, utilitarian, 0px-radius mechanical styling.
+      Scroll each column below to test thumb dragging, hover reactivity, and visual weight against real subtitle card layouts.
+    </p>
+  </header>
+
+  <!-- 3-WAY COMPARISON GRID -->
+  <main class="preview-grid">
+
+    <!-- OPTION 1 -->
+    <section class="option-column" style="--column-accent: #64748b;">
+      <div class="option-header">
+        <span class="tag opt1">OPTION 01 (RECOMMENDED)</span>
+        <h2 class="option-title">Stealth Industrial</h2>
+        <p class="option-desc">Subtle & non-intrusive. Seamlessly integrates with the dark canvas without diverting attention during video playback.</p>
+      </div>
+      <div class="specs-strip">
+        <div class="spec-item">Width: <span>8px</span></div>
+        <div class="spec-item">Idle: <span>#282c3c</span></div>
+        <div class="spec-item">Hover: <span>#475569</span></div>
+      </div>
+      <div class="scroll-viewport custom-scroll-opt1">
+        <!-- Subtitle Dummy Stream -->
+        <div class="card-item"><div class="card-meta"><span class="idx">#001</span><span>00:00.000 → 00:02.140</span></div><div class="card-hinglish">Dettol ka yeh naya campaign dekha aapne?</div><div class="card-orig">डेटॉल का यह नया कैंपेन देखा आपने?</div></div>
+        <div class="card-item"><div class="card-meta"><span class="idx">#002</span><span>00:02.140 → 00:04.380</span></div><div class="card-hinglish">Hinglish subtitles automatic generate ho rahe hain.</div><div class="card-orig">हिंग्लिश सबटाइटल्स ऑटोमैटिक जनरेट हो रहे हैं।</div></div>
+        <div class="card-item"><div class="card-meta"><span class="idx">#003</span><span>00:04.380 → 00:06.820</span></div><div class="card-hinglish">Zero internet required, 100% offline model.</div><div class="card-orig">जीरो इंटरनेट रिक्वायर्ड, 100% ऑफलाइन मॉडल।</div></div>
+        <div class="card-item"><div class="card-meta"><span class="idx">#004</span><span>00:06.820 → 00:08.950</span></div><div class="card-hinglish">RTX 4050 GPU par 25x real-time inference speed.</div><div class="card-orig">आरतीएक्स 4050 जीपीयू पर 25x रियल-टाइम इंफेरेंस स्पीड।</div></div>
+        <div class="card-item"><div class="card-meta"><span class="idx">#005</span><span>00:08.950 → 00:11.200</span></div><div class="card-hinglish">AI4Bharat IndicConformer aur SraVaani integrated.</div><div class="card-orig">एआई4भारत इंडिक-कन्फॉर्मर और श्रावणी इंटीग्रेटेड।</div></div>
+        <div class="card-item"><div class="card-meta"><span class="idx">#006</span><span>00:11.200 → 00:13.600</span></div><div class="card-hinglish">Semantic DP chunking ensures clean 2-second cards.</div><div class="card-orig">सिमेंटिक डीपी चंकिंग इंश्योर्स क्लीन 2-सेकंड कार्ड्स।</div></div>
+        <div class="card-item"><div class="card-meta"><span class="idx">#007</span><span>00:13.600 → 00:15.900</span></div><div class="card-hinglish">Loanword recovery fixes common English brand terms.</div><div class="card-orig">लोनवर्ड रिकवरी फिक्सेस कॉमन इंग्लिश ब्रांड टर्म्स।</div></div>
+        <div class="card-item"><div class="card-meta"><span class="idx">#008</span><span>00:15.900 → 00:18.250</span></div><div class="card-hinglish">Reels aur Shorts ke liye perfect on-screen framing.</div><div class="card-orig">रील्स और शॉर्ट्स के लिए परफेक्ट ऑन-स्क्रीन फ्रेमिंग।</div></div>
+        <div class="card-item"><div class="card-meta"><span class="idx">#009</span><span>00:18.250 → 00:20.500</span></div><div class="card-hinglish">All files remain securely preserved on D: drive.</div><div class="card-orig">ऑल फाइल्स रिमेन सिक्योरली प्रिजर्व्ड ऑन डी: ड्राइव।</div></div>
+        <div class="card-item"><div class="card-meta"><span class="idx">#010</span><span>00:20.500 → 00:23.000</span></div><div class="card-hinglish">Export anytime to SRT, VTT, or plain text transcript.</div><div class="card-orig">एक्सपोर्ट एनीटाइम टू एसआरटी, वीटीटी, या प्लेन टेक्स्ट ट्रांसक्रिप्ट।</div></div>
+      </div>
+    </section>
+
+    <!-- OPTION 2 -->
+    <section class="option-column" style="--column-accent: var(--yellow);">
+      <div class="option-header">
+        <span class="tag opt2">OPTION 02</span>
+        <h2 class="option-title">Cyber-Brutalist Accent</h2>
+        <p class="option-desc">Signature brand identity. Features an indicator edge in #facc15 yellow with glowing mechanical hover state.</p>
+      </div>
+      <div class="specs-strip">
+        <div class="spec-item">Width: <span>10px</span></div>
+        <div class="spec-item">Edge: <span>#facc15 3px</span></div>
+        <div class="spec-item">Hover: <span>Full Yellow</span></div>
+      </div>
+      <div class="scroll-viewport custom-scroll-opt2">
+        <!-- Subtitle Dummy Stream -->
+        <div class="card-item"><div class="card-meta"><span class="idx">#001</span><span>00:00.000 → 00:02.140</span></div><div class="card-hinglish">Dettol ka yeh naya campaign dekha aapne?</div><div class="card-orig">डेटॉल का यह नया कैंपेन देखा आपने?</div></div>
+        <div class="card-item"><div class="card-meta"><span class="idx">#002</span><span>00:02.140 → 00:04.380</span></div><div class="card-hinglish">Hinglish subtitles automatic generate ho rahe hain.</div><div class="card-orig">हिंग्लिश सबटाइटल्स ऑटोमैटिक जनरेट हो रहे हैं।</div></div>
+        <div class="card-item"><div class="card-meta"><span class="idx">#003</span><span>00:04.380 → 00:06.820</span></div><div class="card-hinglish">Zero internet required, 100% offline model.</div><div class="card-orig">जीरो इंटरनेट रिक्वायर्ड, 100% ऑफलाइन मॉडल।</div></div>
+        <div class="card-item"><div class="card-meta"><span class="idx">#004</span><span>00:06.820 → 00:08.950</span></div><div class="card-hinglish">RTX 4050 GPU par 25x real-time inference speed.</div><div class="card-orig">आरतीएक्स 4050 जीपीयू पर 25x रियल-टाइम इंफेरेंस स्पीड।</div></div>
+        <div class="card-item"><div class="card-meta"><span class="idx">#005</span><span>00:08.950 → 00:11.200</span></div><div class="card-hinglish">AI4Bharat IndicConformer aur SraVaani integrated.</div><div class="card-orig">एआई4भारत इंडिक-कन्फॉर्मर और श्रावणी इंटीग्रेटेड।</div></div>
+        <div class="card-item"><div class="card-meta"><span class="idx">#006</span><span>00:11.200 → 00:13.600</span></div><div class="card-hinglish">Semantic DP chunking ensures clean 2-second cards.</div><div class="card-orig">सिमेंटिक डीपी चंकिंग इंश्योर्स क्लीन 2-सेकंड कार्ड्स।</div></div>
+        <div class="card-item"><div class="card-meta"><span class="idx">#007</span><span>00:13.600 → 00:15.900</span></div><div class="card-hinglish">Loanword recovery fixes common English brand terms.</div><div class="card-orig">लोनवर्ड रिकवरी फिक्सेस कॉमन इंग्लिश ब्रांड टर्म्स।</div></div>
+        <div class="card-item"><div class="card-meta"><span class="idx">#008</span><span>00:15.900 → 00:18.250</span></div><div class="card-hinglish">Reels aur Shorts ke liye perfect on-screen framing.</div><div class="card-orig">रील्स और शॉर्ट्स के लिए परफेक्ट ऑन-स्क्रीन फ्रेमिंग।</div></div>
+        <div class="card-item"><div class="card-meta"><span class="idx">#009</span><span>00:18.250 → 00:20.500</span></div><div class="card-hinglish">All files remain securely preserved on D: drive.</div><div class="card-orig">ऑल फाइल्स रिमेन सिक्योरली प्रिजर्व्ड ऑन डी: ड्राइव।</div></div>
+        <div class="card-item"><div class="card-meta"><span class="idx">#010</span><span>00:20.500 → 00:23.000</span></div><div class="card-hinglish">Export anytime to SRT, VTT, or plain text transcript.</div><div class="card-orig">एक्सपोर्ट एनीटाइम टू एसआरटी, वीटीटी, या प्लेन टेक्स्ट ट्रांसक्रिप्ट।</div></div>
+      </div>
+    </section>
+
+    <!-- OPTION 3 -->
+    <section class="option-column" style="--column-accent: var(--cyan);">
+      <div class="option-header">
+        <span class="tag opt3">OPTION 03</span>
+        <h2 class="option-title">Razor-Thin Rail</h2>
+        <p class="option-desc">Ultra-compact modern developer aesthetic. Completely transparent track with high-contrast cyan indicator on interaction.</p>
+      </div>
+      <div class="specs-strip">
+        <div class="spec-item">Width: <span>5px</span></div>
+        <div class="spec-item">Track: <span>None</span></div>
+        <div class="spec-item">Thumb: <span>#38bdf8 Glow</span></div>
+      </div>
+      <div class="scroll-viewport custom-scroll-opt3">
+        <!-- Subtitle Dummy Stream -->
+        <div class="card-item"><div class="card-meta"><span class="idx">#001</span><span>00:00.000 → 00:02.140</span></div><div class="card-hinglish">Dettol ka yeh naya campaign dekha aapne?</div><div class="card-orig">डेटॉल का यह नया कैंपेन देखा आपने?</div></div>
+        <div class="card-item"><div class="card-meta"><span class="idx">#002</span><span>00:02.140 → 00:04.380</span></div><div class="card-hinglish">Hinglish subtitles automatic generate ho rahe hain.</div><div class="card-orig">हिंग्लिश सबटाइटल्स ऑटोमैटिक जनरेट हो रहे हैं।</div></div>
+        <div class="card-item"><div class="card-meta"><span class="idx">#003</span><span>00:04.380 → 00:06.820</span></div><div class="card-hinglish">Zero internet required, 100% offline model.</div><div class="card-orig">जीरो इंटरनेट रिक्वायर्ड, 100% ऑफलाइन मॉडल।</div></div>
+        <div class="card-item"><div class="card-meta"><span class="idx">#004</span><span>00:06.820 → 00:08.950</span></div><div class="card-hinglish">RTX 4050 GPU par 25x real-time inference speed.</div><div class="card-orig">आरतीएक्स 4050 जीपीयू पर 25x रियल-टाइम इंफेरेंस स्पीड।</div></div>
+        <div class="card-item"><div class="card-meta"><span class="idx">#005</span><span>00:08.950 → 00:11.200</span></div><div class="card-hinglish">AI4Bharat IndicConformer aur SraVaani integrated.</div><div class="card-orig">एआई4भारत इंडिक-कन्फॉर्मर और श्रावणी इंटीग्रेटेड।</div></div>
+        <div class="card-item"><div class="card-meta"><span class="idx">#006</span><span>00:11.200 → 00:13.600</span></div><div class="card-hinglish">Semantic DP chunking ensures clean 2-second cards.</div><div class="card-orig">सिमेंटिक डीपी चंकिंग इंश्योर्स क्लीन 2-सेकंड कार्ड्स।</div></div>
+        <div class="card-item"><div class="card-meta"><span class="idx">#007</span><span>00:13.600 → 00:15.900</span></div><div class="card-hinglish">Loanword recovery fixes common English brand terms.</div><div class="card-orig">लोनवर्ड रिकवरी फिक्सेस कॉमन इंग्लिश ब्रांड टर्म्स।</div></div>
+        <div class="card-item"><div class="card-meta"><span class="idx">#008</span><span>00:15.900 → 00:18.250</span></div><div class="card-hinglish">Reels aur Shorts ke liye perfect on-screen framing.</div><div class="card-orig">रील्स और शॉर्ट्स के लिए परफेक्ट ऑन-स्क्रीन फ्रेमिंग।</div></div>
+        <div class="card-item"><div class="card-meta"><span class="idx">#009</span><span>00:18.250 → 00:20.500</span></div><div class="card-hinglish">All files remain securely preserved on D: drive.</div><div class="card-orig">ऑल फाइल्स रिमेन सिक्योरली प्रिजर्व्ड ऑन डी: ड्राइव।</div></div>
+        <div class="card-item"><div class="card-meta"><span class="idx">#010</span><span>00:20.500 → 00:23.000</span></div><div class="card-hinglish">Export anytime to SRT, VTT, or plain text transcript.</div><div class="card-orig">एक्सपोर्ट एनीटाइम टू एसआरटी, वीटीटी, या प्लेन टेक्स्ट ट्रांसक्रिप्ट।</div></div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="footer-bar">
+    <div>Directly derived from <strong>tokens.css</strong> &bull; Zero border-radius &bull; Hardware-accelerated compositor</div>
+    <div>Ready to apply to <strong>static/tokens.css</strong></div>
+  </footer>
+
+</body>
+</html>

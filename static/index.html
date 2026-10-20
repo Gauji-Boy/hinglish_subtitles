@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="industrial-hybrid">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hinglish Subtitles — Hybrid Pro</title>
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="icon" type="image/svg+xml" href="logo.svg">
+  <link rel="shortcut icon" href="favicon.ico">
+  <link rel="apple-touch-icon" href="favicon.ico">
+  
+  <!-- Typography matching skills_library.html -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="tokens.css?v=3.2">
+  <link rel="stylesheet" href="components.css?v=3.2">
+  <style>
+    /* Mechanical Scrollbar (Stealth Industrial Dark - Option 1) */
+    html {
+      color-scheme: dark;
+    }
+    html[data-theme="minimalist-light"] {
+      color-scheme: light;
+    }
+    html::-webkit-scrollbar,
+    body::-webkit-scrollbar,
+    *::-webkit-scrollbar {
+      width: 8px !important;
+      height: 8px !important;
+      background: #08090d !important;
+    }
+    html[data-theme="minimalist-light"]::-webkit-scrollbar,
+    html[data-theme="minimalist-light"] body::-webkit-scrollbar,
+    html[data-theme="minimalist-light"] *::-webkit-scrollbar {
+      background: #f5f4ef !important;
+    }
+    html::-webkit-scrollbar-track,
+    body::-webkit-scrollbar-track,
+    *::-webkit-scrollbar-track {
+      background: #08090d !important;
+      border-left: 1px solid #1a1d28 !important;
+      border-top: 1px solid #1a1d28 !important;
+    }
+    html[data-theme="minimalist-light"]::-webkit-scrollbar-track,
+    html[data-theme="minimalist-light"] body::-webkit-scrollbar-track,
+    html[data-theme="minimalist-light"] *::-webkit-scrollbar-track {
+      background: #eae7df !important;
+      border-left: 1px solid #d6d3cb !important;
+      border-top: 1px solid #d6d3cb !important;
+    }
+    html::-webkit-scrollbar-thumb,
+    body::-webkit-scrollbar-thumb,
+    *::-webkit-scrollbar-thumb {
+      background: #282c3c !important;
+      border: 1px solid #151821 !important;
+      border-radius: 0px !important;
+    }
+    html[data-theme="minimalist-light"]::-webkit-scrollbar-thumb,
+    html[data-theme="minimalist-light"] body::-webkit-scrollbar-thumb,
+    html[data-theme="minimalist-light"] *::-webkit-scrollbar-thumb {
+      background: #b5b0a4 !important;
+      border: 1px solid #d6d3cb !important;
+    }
+    html::-webkit-scrollbar-thumb:hover,
+    body::-webkit-scrollbar-thumb:hover,
+    *::-webkit-scrollbar-thumb:hover {
+      background: #475569 !important;
+      border-color: #ffffff !important;
+    }
+    html[data-theme="minimalist-light"]::-webkit-scrollbar-thumb:hover,
+    html[data-theme="minimalist-light"] body::-webkit-scrollbar-thumb:hover,
+    html[data-theme="minimalist-light"] *::-webkit-scrollbar-thumb:hover {
+      background: #8c887e !important;
+      border-color: #57534e !important;
+    }
+    html::-webkit-scrollbar-thumb:active,
+    body::-webkit-scrollbar-thumb:active,
+    *::-webkit-scrollbar-thumb:active {
+      background: #ffffff !important;
+    }
+    html[data-theme="minimalist-light"]::-webkit-scrollbar-thumb:active,
+    html[data-theme="minimalist-light"] body::-webkit-scrollbar-thumb:active,
+    html[data-theme="minimalist-light"] *::-webkit-scrollbar-thumb:active {
+      background: #57534e !important;
+    }
+    html::-webkit-scrollbar-corner,
+    body::-webkit-scrollbar-corner,
+    *::-webkit-scrollbar-corner {
+      background: #08090d !important;
+    }
+    html[data-theme="minimalist-light"]::-webkit-scrollbar-corner,
+    html[data-theme="minimalist-light"] body::-webkit-scrollbar-corner,
+    html[data-theme="minimalist-light"] *::-webkit-scrollbar-corner {
+      background: #f5f4ef !important;
+    }
+    html::-webkit-scrollbar-button,
+    body::-webkit-scrollbar-button,
+    *::-webkit-scrollbar-button {
+      display: none !important;
+      width: 0 !important;
+      height: 0 !important;
+    }
+    @supports not selector(::-webkit-scrollbar) {
+      * {
+        scrollbar-width: thin;
+        scrollbar-color: #282c3c #08090d;
+      }
+      html[data-theme="minimalist-light"] * {
+        scrollbar-color: #b5b0a4 #eae7df;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Sticky Navigation Bar -->
+  <nav>
+    <div class="nav-inner">
+      <div class="brand">
+        <svg class="brand-logo" width="22" height="22" viewBox="0 0 24 24" fill="none" aria-label="Hinglish Engine Logo">
+          <rect x="2" y="2" width="20" height="20" rx="4" fill="var(--yellow)" stroke="#000000" stroke-width="2"/>
+          <rect x="4.5" y="5.5" width="15" height="13" rx="2" fill="#0c0d10" stroke="#000000" stroke-width="1.2"/>
+          <rect x="7" y="8.5" width="10" height="2" rx="1" fill="#ffffff"/>
+          <rect x="7" y="12.5" width="6.5" height="2" rx="1" fill="var(--cyan)"/>
+          <circle cx="15.5" cy="13.5" r="1" fill="var(--pink)"/>
+        </svg>
+        <span>ANTIGRAVITY</span>
+        <span class="badge hot" id="appVersion">v2.5</span>
+      </div>
+      
+      <div class="nav-right">
+        <span class="badge gpu" id="hwBadge" style="cursor: pointer;" title="NVIDIA GPU (CUDA Float16) - Click to open Settings">DETECTING GPU...</span>
+        <button id="openSettingsBtn" class="settings-nav-btn" title="Open Studio Settings (Press ,)">
+          <svg class="settings-nav-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+          <span style="font-family: var(--font-mono); font-size: 11px; font-weight: 800; letter-spacing: 0.05em;">SETTINGS</span>
+          <span class="settings-kbd-hint">,</span>
+        </button>
+        <button id="toggleConsoleBtn" class="console-nav-btn" title="Toggle System Console & Telemetry (Ctrl + `)">
+          <span class="console-dot" id="consoleNavDot"></span>
+          <span style="font-family: var(--font-mono); font-size: 11px; font-weight: 800; letter-spacing: 0.05em;">TERMINAL</span>
+          <span id="consoleBadge" class="console-count-badge">0</span>
+        </button>
+        <div class="theme-segmented-cluster">
+          <button id="themeModeToggleBtn" class="theme-mode-btn" title="Switch to Light Mode" aria-label="Toggle Light or Dark Mode">
+            <span id="themeModeIcon" class="theme-mode-icon">
+              <svg class="moon-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+              </svg>
+            </span>
+            <span id="themeModeText" class="theme-mode-text">DARK</span>
+          </button>
+          <div class="theme-seg-divider"></div>
+          <select id="themeSelect" class="theme-select" title="Switch Theme Variant">
+            <option value="industrial-hybrid">Industrial Hybrid</option>
+            <option value="sleek-bento">Sleek Bento Cyber</option>
+            <option value="cyberpunk-neon">Cyberpunk Neon</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Section with Title and Mode Ribbon -->
+  <section class="hero">
+    <div>
+      <h1>Hinglish<br><mark>subtitles</mark>.</h1>
+      <p>Precision AI engineering skills covering hardware-accelerated speech-to-text, neural phonetic transliteration, and code-mixed Hinglish subtitles.</p>
+    </div>
+
+    <!-- Quick Spoken Language Selector Ribbon -->
+    <div class="ribbon" id="languageRibbon">
+      <button class="tile active" data-lang="mixed" style="--c: var(--yellow);">
+        <div class="glyph">
+          <svg viewBox="0 0 24 24"><path d="M12 2v20M2 12h20M4.93 4.93l14.14 14.14M4.93 19.07L19.07 4.93"/></svg>
+        </div>
+        Mixed Hinglish
+        <small>Hindi + English</small>
+      </button>
+
+      <button class="tile" data-lang="hi" style="--c: var(--cyan);">
+        <div class="glyph">
+          <svg viewBox="0 0 24 24"><path d="M4 7h16M12 7v13M9 20h6"/></svg>
+        </div>
+        Pure Hindi
+        <small>Devanagari</small>
+      </button>
+
+      <button class="tile" data-lang="hi-en" style="--c: var(--orange, #fb923c);">
+        <div class="glyph">
+          <svg viewBox="0 0 24 24"><path d="M5 8l6 6M4 14l6-6 2-3M2 5h12M7 2h1M22 22l-5-10-5 10M14 18h6"/></svg>
+        </div>
+        Hindi ➔ English
+        <small>English Captions</small>
+      </button>
+
+      <button class="tile" data-lang="en" style="--c: var(--green);">
+        <div class="glyph">
+          <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        </div>
+        English
+        <small>Latin Text</small>
+      </button>
+
+      <button class="tile" data-lang="auto" style="--c: var(--purple);">
+        <div class="glyph">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+        </div>
+        Auto-Detect
+        <small>Dynamic Scan</small>
+      </button>
+    </div>
+  </section>
+
+  <!-- Dynamic Controls Bar (With Permanent Topic Hints in Main Window) -->
+  <section class="controls-wrap" id="mainDynamicControlsWrap">
+    <div class="controls-card cols-1" id="mainDynamicControlsCard">
+      <!-- Left Column: Topic Hints + Pinned HW/Pacing -->
+      <div class="controls-left-col" id="mainColLeft">
+        <div class="control-group" id="mainHwGroup" style="display: none;">
+          <div class="control-group-title">
+            <span>⚡ ACCELERATION HARDWARE</span>
+          </div>
+          <div class="pills" id="mainDevicePills">
+            <button class="pill active" data-device="auto">Auto (GPU Preferred)</button>
+            <button class="pill" data-device="cuda">NVIDIA GPU (CUDA)</button>
+            <button class="pill" data-device="cpu">CPU (Safe Mode)</button>
+          </div>
+        </div>
+
+        <div class="control-group" id="mainPacingGroup" style="display: none; margin-top: 18px;">
+          <div class="control-group-title">
+            <span>⏱️ CAPTION PACING & FORMAT</span>
+          </div>
+          <div class="pills" id="mainPacingPills">
+            <button type="button" class="pill active" data-pacing="short">📱 SHORT-FORM (REELS / SHORTS)</button>
+            <button type="button" class="pill" data-pacing="long">📺 LONG-FORM (YOUTUBE / 16:9)</button>
+          </div>
+        </div>
+
+        <!-- Topic / Brand Vocabulary Hints (PERMANENT IN MAIN WINDOW) -->
+        <div class="control-group topic-hint-group" id="mainTopicHintGroup" style="margin-top: auto; padding-top: 14px;">
+          <div class="control-group-title" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <span>🎯 TOPIC / BRAND VOCABULARY HINTS</span>
+            <span class="settings-card-badge" style="font-size: 9px; padding: 1px 6px;">HOTWORDS</span>
+          </div>
+          <div>
+            <input type="text" id="topicHintInput" class="topic-hint-input" placeholder="e.g. Dettol vs Savlon, #VadaPav, #Marketing" style="width: 100%;">
+          </div>
+          <div class="hint-helper-text" id="hintHelperText" style="margin-top: 6px;">
+            Feeds into Whisper hotwords & brand snapping so brand names and niche jargon are never misheard.
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Model Switcher (when pinned) -->
+      <div class="controls-right-col" id="mainColRight" style="display: none;">
+        <div class="control-group" id="mainModelGroup" style="display: none;">
+          <div class="control-group-title">
+            <span>🧠 SPEECH RECOGNITION (ASR) MODEL</span>
+          </div>
+          <div class="pills" id="mainModelPills">
+            <button class="pill" data-model="small">Small (Fast)</button>
+            <button class="pill active" data-model="medium">Medium (Recommended)</button>
+            <button class="pill" data-model="large-v3-turbo">Large-v3-Turbo (⚡ ~3s)</button>
+            <button class="pill" data-model="large-v3">Large-V3 (Studio)</button>
+            <button class="pill" data-model="indic-conformer">IndicConformer (AI4Bharat 600M)</button>
+            <button class="pill" data-model="sravaani-1.0">SraVaani 1.0 (ARTPARK-IISc)</button>
+            <button class="pill" data-model="sensevoice-small">SenseVoice-Small (Experimental / Non-Hindi)</button>
+          </div>
+          <div id="mainModelDownloadStatus" class="model-status-bar">
+            <span id="mainModelStatusText">Checking model status...</span>
+            <button id="mainPreDownloadModelBtn" class="btn-secondary" style="padding: 4px 10px; font-size: 11px; display: none;">⚡ DOWNLOAD MODEL NOW</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Video / Audio Upload Dropzone -->
+  <section class="upload-container">
+    <div class="dropzone" id="dropzone">
+      <input type="file" id="videoFileInput" accept="video/*,audio/*,.mp4,.mov,.mkv,.webm,.avi,.mp3,.wav,.m4a,.aac,.flac,.ogg,.opus,.wma">
+      <div class="dropzone-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+      </div>
+      <div class="dropzone-title">DRAG & DROP VIDEO OR AUDIO FILE HERE</div>
+      <div class="dropzone-hint">Supports MP4, MOV, MKV, WEBM, AVI • MP3, WAV, M4A, AAC, FLAC, OGG (Click or drop)</div>
+    </div>
+
+    <!-- Uploaded File Summary & Video Preview -->
+    <div class="file-preview" id="filePreview">
+      <div class="file-preview-row">
+        <div>
+          <div class="file-name" id="fileNameLabel">video.mp4</div>
+          <div class="file-meta" id="fileMetaLabel">0.00 MB</div>
+        </div>
+        <div class="file-preview-actions">
+          <div class="caption-toggle-group" id="captionToggleGroup" style="display: none;">
+            <span class="caption-toggle-label">CAPTIONS:</span>
+            <button type="button" class="btn-caption-pill active" data-mode="hinglish">HINGLISH</button>
+            <button type="button" class="btn-caption-pill" data-mode="original">ORIGINAL</button>
+            <button type="button" class="btn-caption-pill" data-mode="off">OFF</button>
+          </div>
+          <button class="btn-secondary" id="removeFileBtn">Remove File</button>
+        </div>
+      </div>
+      <div class="video-preview-wrapper" id="videoWrapper">
+        <div class="video-stage" id="videoStage">
+          <div class="audio-track-banner" id="audioTrackBanner" style="display: none;">
+            <div class="audio-track-badge">
+              <span class="audio-live-dot"></span>
+              AUDIO TRANSCRIPTION MODE
+            </div>
+            <div class="audio-visualizer-wrap">
+              <canvas id="audioVisualizerCanvas" width="580" height="74"></canvas>
+            </div>
+            <div class="audio-track-sub">LIVE FREQUENCY EQUALIZER & SYNCHRONIZED CAPTIONS</div>
+          </div>
+          <video id="videoPlayer" playsinline></video>
+          <div class="video-caption-overlay" id="captionOverlay" aria-live="polite">
+            <div class="caption-box" id="captionBox">
+              <span class="caption-text" id="captionText"></span>
+            </div>
+          </div>
+          <div class="custom-media-controls" id="customMediaControls">
+            <button type="button" class="player-btn" id="playerPlayBtn" title="Play / Pause (Space)" aria-label="Play or Pause">
+              <svg class="icon-play" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg>
+              <svg class="icon-pause" viewBox="0 0 24 24" fill="currentColor" style="display: none;"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+            </button>
+            <div class="player-time-badge" id="playerTimeDisplay">
+              <span id="playerCurrentTime">00:00</span> / <span id="playerDuration">00:00</span>
+            </div>
+            <div class="player-scrubber-wrap">
+              <input type="range" class="player-scrubber" id="playerScrubber" min="0" max="100" value="0" step="0.05" aria-label="Seek timeline">
+            </div>
+            <div class="player-volume-wrap">
+              <button type="button" class="player-btn-sm" id="playerVolumeBtn" title="Mute / Unmute" aria-label="Mute or Unmute">
+                <svg class="icon-volume" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+                <svg class="icon-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display: none;"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+              </button>
+              <input type="range" class="player-volume-slider" id="playerVolumeSlider" min="0" max="1" value="1" step="0.05" aria-label="Volume">
+            </div>
+            <button type="button" class="player-btn-sm" id="playerFullscreenBtn" title="Toggle Fullscreen" aria-label="Fullscreen">
+              <svg class="icon-fs-enter" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+              <svg class="icon-fs-exit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display: none;"><path d="M4 14h6m0 0v6m0-6L3 21m17-7h-6m0 0v6m0-6l7 7M10 10H4m6 0V4m0 6L3 3m17 7h-6m0 0V4m0 6l7-7"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Execution Action Bar -->
+  <section class="action-bar">
+    <button class="btn-primary is-standby" id="generateBtn" disabled>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+      GENERATE HINGLISH SUBTITLES
+    </button>
+    <div class="action-status-chip" id="actionStatusChip">
+      <span class="dot"></span>
+      <span id="actionStatusText">Drop a video or audio file above to begin</span>
+    </div>
+  </section>
+
+  <!-- Empty State Workbench: Web Importer & Recent Files (Pattern B) -->
+  <section class="workbench-empty-state" id="workbenchEmptyState">
+    <div class="workbench-grid" id="workbenchGrid">
+      <!-- Left Column: Web Video Importer -->
+      <div class="workbench-card" id="workbenchImporterCard">
+        <div class="workbench-card-header">
+          <div class="workbench-card-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            <span>WEB VIDEO IMPORTER</span>
+          </div>
+        </div>
+        <div class="workbench-card-body">
+          <p class="workbench-card-desc">Paste any YouTube, Instagram Reel, TikTok, or direct video link to fetch and transcribe it.</p>
+          
+          <!-- Media Format & Quality Controls (Option 1) -->
+          <div class="importer-controls-row">
+            <div class="importer-format-tabs" role="tablist" aria-label="Media Format">
+              <button type="button" class="importer-tab active" id="importerModeVideo" data-mode="video" title="Download video and audio for caption overlay">
+                🎬 Video + Audio
+              </button>
+              <button type="button" class="importer-tab" id="importerModeAudio" data-mode="audio" title="Download audio stream only (fastest download & STT)">
+                🎵 Audio Only (Fastest ⚡)
+              </button>
+            </div>
+            <div class="importer-quality-wrap">
+              <label for="importerQualitySelect" class="importer-quality-label">QUALITY:</label>
+              <select id="importerQualitySelect" class="importer-quality-select" aria-label="Media Quality">
+                <option value="best">🌟 Source Best (1080p/Max)</option>
+                <option value="720p" selected>⚡ 720p (Fast HD)</option>
+                <option value="480p">⚡ 480p (Lightweight)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="url-input-wrap">
+            <input type="text" id="urlImportInput" class="url-import-input" placeholder="Paste YouTube / Reel URL here..." aria-label="Web Video URL">
+            <button type="button" id="urlFetchBtn" class="url-fetch-btn">
+              <span id="urlFetchText">⚡ FETCH & STAGE</span>
+            </button>
+          </div>
+          <div id="urlImportStatus" class="url-import-status" style="display: none;"></div>
+          <div class="url-platform-pills">
+            <span class="platform-pill">YouTube Shorts</span>
+            <span class="platform-pill">Instagram Reels</span>
+            <span class="platform-pill">TikTok</span>
+            <span class="platform-pill">Direct MP4/M4A</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Recent Files & Test Samples -->
+      <div class="workbench-card" id="workbenchRecentsCard">
+        <div class="workbench-card-header">
+          <div class="workbench-card-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <span>RECENT FILES & SAMPLES</span>
+          </div>
+        </div>
+        <div class="workbench-card-body">
+          <div class="recents-list" id="recentsListContainer">
+            <!-- Dynamically populated from localStorage -->
+          </div>
+          <div class="samples-sub-group">
+            <div class="samples-title">1-CLICK BENCHMARK REELS:</div>
+            <div class="samples-grid">
+              <button type="button" class="sample-chip-btn" id="sampleTrafficBtn" title="Load Traffic Reel Benchmark (0:58)">
+                <span class="sample-name">⚡ Traffic Reel (0:58)</span>
+                <span class="sample-cta">LOAD & TEST ➔</span>
+              </button>
+              <button type="button" class="sample-chip-btn" id="sampleGeniusBtn" title="Load Genius Ad Benchmark (0:45)">
+                <span class="sample-name">⚡ Genius Ad (0:45)</span>
+                <span class="sample-cta">LOAD & TEST ➔</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Real-time Progress Bar -->
+  <section class="progress-panel" id="progressPanel">
+    <div class="progress-box">
+      <div class="progress-header">
+        <span class="progress-label" id="progressStatusText">Extracting audio...</span>
+        <span class="progress-pct" id="progressPctText">0%</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-bar-fill" id="progressBarFill"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Subtitle Results Section -->
+  <section id="resultsSection" style="display: none;">
+    
+    <!-- Results Toolbar -->
+    <div class="toolbar">
+      <div class="toolbar-meta">
+        <div class="toolbar-meta-left">
+          <span id="segmentCountLabel">Showing 0 segments</span>
+          <div class="segments-view-controls">
+            <button type="button" class="btn-toggle-grid" id="toggleGridBtn" title="Toggle Subtitle Cards">
+              <span id="gridToggleIcon">▼</span>
+              <span id="gridToggleText">HIDE CARDS</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="toolbar-meta-right">
+          <span id="speedMetaLabel" style="color: var(--green); font-weight: 700;">Speed: 0.0x real-time</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Collapsed Notice Banner (Shown when segments are hidden) -->
+    <div class="segments-collapsed-card" id="segmentsCollapsedCard" style="display: none;">
+      <div class="collapsed-msg">
+        <span class="collapsed-icon">📑</span>
+        <span id="collapsedCountText">Subtitle segments are hidden</span>
+        <span class="collapsed-sub">(On-video live captions and file downloads remain fully active)</span>
+      </div>
+      <button type="button" class="btn-primary btn-sm" id="expandSegmentsBannerBtn">
+        ▼ EXPAND SUBTITLE SEGMENTS
+      </button>
+    </div>
+
+    <!-- Cards Grid -->
+    <div class="grid" id="subtitleGrid">
+      <!-- Cards dynamically inserted here -->
+    </div>
+  </section>
+
+  <!-- Slide-out Studio Settings Drawer (Option 1) -->
+  <div class="drawer-overlay settings-drawer-overlay" id="settingsDrawerOverlay"></div>
+  <aside class="drawer settings-drawer" id="settingsDrawer" aria-label="Studio Settings">
+    <div class="drawer-head">
+      <div class="drawer-title-group">
+        <div class="glyph" style="--c: var(--yellow);">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </div>
+        <div>
+          <h2 style="font-size: 18px; font-weight: 800; letter-spacing: 0.04em;">STUDIO SETTINGS</h2>
+          <span style="font-family: var(--font-mono); font-size: 11px; color: var(--muted);">ASR Engine • GPU Acceleration • Pacing</span>
+        </div>
+      </div>
+      <button class="drawer-close" id="settingsDrawerCloseBtn" title="Close Settings (Esc)">ESC</button>
+    </div>
+
+    <div class="drawer-body settings-drawer-body">
+      <!-- Section 1: ASR Model Engine -->
+      <div class="settings-card">
+        <div class="settings-card-head">
+          <span class="settings-card-title">🧠 SPEECH RECOGNITION (ASR) MODEL</span>
+          <button type="button" class="pin-switch" id="pinModelSwitch" title="Pin Model Switcher to main window">
+            <span class="pin-knob"></span>
+            <span class="pin-text">PIN TO MAIN</span>
+          </button>
+        </div>
+        <p class="settings-card-desc">Select Whisper model weights. Turbo and Medium are recommended for RTX 4050.</p>
+        <div class="pills settings-pills" id="modelPills">
+          <button class="pill" data-model="small">Small (Fast)</button>
+          <button class="pill active" data-model="medium">Medium (Recommended)</button>
+          <button class="pill" data-model="large-v3-turbo">Large-v3-Turbo (⚡ ~3s)</button>
+          <button class="pill" data-model="large-v3">Large-V3 (Studio)</button>
+          <button class="pill" data-model="indic-conformer">IndicConformer (AI4Bharat 600M)</button>
+          <button class="pill" data-model="sravaani-1.0">SraVaani 1.0 (ARTPARK-IISc)</button>
+          <button class="pill" data-model="sensevoice-small">SenseVoice-Small (Experimental / Non-Hindi)</button>
+        </div>
+        <div id="modelDownloadStatus" class="model-status-bar" style="margin-top: 12px;">
+          <span id="modelStatusText">Checking model status...</span>
+          <button id="preDownloadModelBtn" class="btn-secondary" style="padding: 4px 10px; font-size: 11px; display: none;">⚡ DOWNLOAD MODEL NOW</button>
+        </div>
+      </div>
+
+      <!-- Section 2: Hardware Acceleration -->
+      <div class="settings-card">
+        <div class="settings-card-head">
+          <span class="settings-card-title">⚡ ACCELERATION HARDWARE</span>
+          <button type="button" class="pin-switch" id="pinHwSwitch" title="Pin Hardware Acceleration to main window">
+            <span class="pin-knob"></span>
+            <span class="pin-text">PIN TO MAIN</span>
+          </button>
+        </div>
+        <p class="settings-card-desc">CUDA FP16 delivers ~6-10x real-time speed. CPU Safe Mode provides fallback.</p>
+        <div class="pills settings-pills" id="devicePills">
+          <button class="pill active" data-device="auto">Auto (GPU Preferred)</button>
+          <button class="pill" data-device="cuda">NVIDIA GPU (CUDA)</button>
+          <button class="pill" data-device="cpu">CPU (Safe Mode)</button>
+        </div>
+      </div>
+
+      <!-- Section 3: Caption Pacing & Format -->
+      <div class="settings-card">
+        <div class="settings-card-head">
+          <span class="settings-card-title">⏱️ CAPTION PACING & FORMAT</span>
+          <button type="button" class="pin-switch" id="pinPacingSwitch" title="Pin Caption Pacing to main window">
+            <span class="pin-knob"></span>
+            <span class="pin-text">PIN TO MAIN</span>
+          </button>
+        </div>
+        <p class="settings-card-desc">Controls subtitle line chunking, character limits, and sentence-boundary snapping.</p>
+        <div class="pills settings-pills" id="pacingPills">
+          <button type="button" class="pill active" data-pacing="short">📱 SHORT-FORM (REELS / SHORTS)</button>
+          <button type="button" class="pill" data-pacing="long">📺 LONG-FORM (YOUTUBE / 16:9)</button>
+        </div>
+      </div>
+
+      <!-- Section 3b: Speaker Diarization -->
+      <div class="settings-card">
+        <div class="settings-card-head">
+          <span class="settings-card-title">👥 SPEAKER DIARIZATION</span>
+          <span class="settings-card-badge">ACOUSTIC CLUSTERING</span>
+        </div>
+        <p class="settings-card-desc">Automatically separates distinct speakers and prefixes captions with [Speaker 1]:, [Speaker 2]:</p>
+        <div class="pills settings-pills">
+          <button type="button" class="pill active" id="diarizeOffBtn" data-diarize="false">OFF (SINGLE SPEAKER)</button>
+          <button type="button" class="pill" id="diarizeOnBtn" data-diarize="true">👥 AUTO-DETECT MULTI-SPEAKER</button>
+        </div>
+      </div>
+
+      <!-- Section 4: Workbench Modules Visibility -->
+      <div class="settings-card">
+        <div class="settings-card-head">
+          <span class="settings-card-title">📂 WORKBENCH PANELS & MODULES</span>
+          <span class="settings-card-badge">EMPTY STATE</span>
+        </div>
+        <p class="settings-card-desc">Show or hide modules in the empty-state canvas below the upload zone.</p>
+        
+        <div class="settings-module-row" style="padding: 6px 0;">
+          <div class="settings-module-info">
+            <span class="settings-module-name">🔗 WEB VIDEO IMPORTER</span>
+            <span class="settings-module-sub">URL fetcher for YouTube, Reels, TikTok & direct media</span>
+          </div>
+          <div class="pills settings-pills-sm">
+            <button type="button" class="pill active" id="settingsShowImporterBtn" data-visibility="show">SHOW</button>
+            <button type="button" class="pill" id="settingsHideImporterBtn" data-visibility="hide">✕ HIDE</button>
+          </div>
+        </div>
+
+        <div class="settings-module-row" style="margin-top: 10px; padding: 6px 0; border-top: 1px solid rgba(255, 255, 255, 0.06);">
+          <div class="settings-module-info">
+            <span class="settings-module-name">⏱️ RECENT FILES & SAMPLES</span>
+            <span class="settings-module-sub">History of past transcriptions and 1-click test reels</span>
+          </div>
+          <div class="pills settings-pills-sm">
+            <button type="button" class="pill active" id="settingsShowRecentsBtn" data-visibility="show">SHOW</button>
+            <button type="button" class="pill" id="settingsHideRecentsBtn" data-visibility="hide">✕ HIDE</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="drawer-foot settings-drawer-foot">
+      <button class="btn-primary" id="saveAndCloseSettingsBtn" style="flex: 1;">
+        DONE & CLOSE (ESC)
+      </button>
+    </div>
+  </aside>
+
+  <!-- Slide-out Subtitle Inspector Drawer (Adapted from interior/drawer.tsx) -->
+  <div class="drawer-overlay" id="drawerOverlay"></div>
+  <aside class="drawer" id="drawer">
+    <div class="drawer-head">
+      <div class="drawer-title-group">
+        <div class="glyph" id="drawerGlyph" style="--c: var(--yellow);">
+          <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        </div>
+        <div>
+          <h2 id="drawerIndexTitle" style="font-size: 18px; font-weight: 800;">SEGMENT #1</h2>
+          <span id="drawerTimeRange" style="font-family: var(--font-mono); font-size: 12px; color: var(--green);">00:00:00,000 --> 00:00:02,500</span>
+        </div>
+      </div>
+      <button class="drawer-close" id="drawerCloseBtn">ESC</button>
+    </div>
+
+    <div class="drawer-body">
+      <div>
+        <div class="drawer-section-title">ORIGINAL WHISPER TEXT (DEVANAGARI / ENGLISH)</div>
+        <div class="card-orig-box" id="drawerOrigText" style="font-size: 15px; margin: 0;">—</div>
+      </div>
+
+      <div>
+        <div class="drawer-section-title">HINGLISH SUBTITLE (EDITABLE)</div>
+        <textarea class="drawer-textarea" id="drawerHinglishInput"></textarea>
+      </div>
+
+      <button class="btn-secondary" id="drawerSaveBtn" style="width: 100%;">
+        Save Subtitle Edit
+      </button>
+    </div>
+
+    <div class="drawer-foot">
+      <button class="btn-secondary" id="drawerCopyBtn" style="flex: 1;">COPY TEXT</button>
+      <button class="btn-secondary" id="drawerPlayAudioBtn" style="flex: 1;">SEEK VIDEO</button>
+    </div>
+  </aside>
+
+  <!-- Floating Download Bar (Fixed Bottom) -->
+  <div id="floatingDownloadBar" class="floating-download-bar" style="display: none; z-index: 95;">
+    <div class="floating-export-label">
+      <span style="color: var(--yellow);">EXPORT SUBTITLES:</span>
+      <span id="downloadMetaText" class="floating-export-sub">Ready for YouTube, Premiere & DaVinci</span>
+    </div>
+    <div class="live-match-pill" id="floatingMatchPill" title="Subtitle segments matching current search">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
+      <span id="floatingMatchCountText">0 SEGMENTS</span>
+    </div>
+    <div class="floating-search-wrap">
+      <svg class="floating-search-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      <input type="text" id="floatingSearchInput" class="floating-search-input" placeholder="Search keywords in Hindi or English... (Press / to focus)" aria-label="Search subtitles">
+      <span class="floating-search-kbd">/</span>
+    </div>
+    <div class="floating-export-actions">
+      <button class="btn-secondary" id="floatingCopyAllBtn" title="Copy all Hinglish subtitles to clipboard">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+        <span id="floatingCopyAllText">COPY ALL</span>
+      </button>
+      <button class="btn-primary" id="downloadHinglishBtn">📥 DOWNLOAD HINGLISH SRT</button>
+      <button class="btn-secondary" id="downloadAssBtn" title="Animated Bouncy Karaoke Subtitles (.ASS) for Reels & TikTok">🎤 KARAOKE (.ASS)</button>
+      <button class="btn-secondary" id="burnVideoBtn" title="Burn styled subtitles directly into the video file via local FFmpeg" style="color: var(--orange, #fb923c); border-color: rgba(249, 115, 22, 0.4);">🔥 BURN VIDEO (.MP4)</button>
+      <button class="btn-secondary" id="downloadOrigBtn">📄 ORIGINAL SRT</button>
+      <button class="btn-secondary" id="downloadTxtBtn">📝 PLAIN TEXT</button>
+    </div>
+  </div>
+
+  <!-- Bottom-Dock In-App Terminal Console (Option 1) -->
+  <div id="terminalDock" class="terminal-dock collapsed">
+    <div id="terminalResizeHandle" class="terminal-resize-handle" title="Drag to resize console"></div>
+    <div class="terminal-header">
+      <div class="terminal-title">
+        <span class="terminal-indicator" id="terminalIndicator"></span>
+        <span class="terminal-label">SYSTEM CONSOLE & TELEMETRY</span>
+        <span id="consoleStatusText" class="terminal-sub">INITIALIZING</span>
+      </div>
+      <div class="terminal-filters" id="terminalFilterGroup">
+        <button class="terminal-pill active" data-filter="all">ALL</button>
+        <button class="terminal-pill" data-filter="stage">STAGES</button>
+        <button class="terminal-pill" data-filter="warn">WARNINGS</button>
+        <button class="terminal-pill" data-filter="error">ERRORS</button>
+      </div>
+      <div class="terminal-actions">
+        <button id="clearConsoleBtn" class="terminal-action-btn" title="Clear console buffer">CLEAR</button>
+        <button id="copyConsoleBtn" class="terminal-action-btn" title="Copy log to clipboard">COPY</button>
+        <button id="downloadConsoleBtn" class="terminal-action-btn" title="Export full log">EXPORT</button>
+        <button id="closeConsoleBtn" class="terminal-action-btn close" title="Collapse console (Ctrl + `)">✕</button>
+      </div>
+    </div>
+    <div id="terminalBody" class="terminal-body">
+      <!-- Live streamed logs rendered here -->
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,245 @@
+/* ==========================================================================
+   DESIGN TOKENS - HYBRID PRO DESIGN SYSTEM
+   Extracted directly from skills_library.html with multi-theme architecture.
+   ========================================================================== */
+
+:root,
+[data-theme="industrial-hybrid"] {
+  /* Surfaces & Backgrounds */
+  --bg: #0c0d10;
+  --bg-pattern: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  --bg-pattern-size: 28px 28px;
+  --card: #11131a;
+  --card-hover: #161922;
+  --panel-bg: #08090d;
+  --header-bg: rgba(12, 13, 16, 0.88);
+  --tile-bg: #14161d;
+  --tile-hover-bg: #1c1c1c;
+
+  /* Strict Borders (0px border-radius everywhere) */
+  --border-radius: 0px;
+  --border-color: #282c3c;
+  --border: 2px solid var(--border-color);
+  --border-hover: 2px solid #ffffff;
+  --border-dashed: 1px dashed #262938;
+
+  /* Typography */
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --text: #ffffff;
+  --text-secondary: #e2e8f0;
+  --muted: #888888;
+  --muted-dark: #666666;
+
+  /* Brand & Status Accents */
+  --yellow: #facc15;      /* Brand hero highlight & primary action */
+  --cyan: #38bdf8;        /* Audio / Code streams */
+  --green: #4ade80;       /* Timestamps & status */
+  --pink: #f43f5e;        /* Error / VAD markers */
+  --purple: #a855f7;      /* Model / Engine markers */
+  --orange: #f97316;      /* Warnings / Triggers */
+  --blue: #60a5fa;        /* Info / Tags */
+  --paper: #f8fafc;       /* Hard shadow contrast */
+
+  /* Neo-Brutalist Mechanical Physics */
+  --shadow-card: 5px 5px 0 #000000;
+  --shadow-hover: 7px 7px 0 var(--accent, var(--cyan));
+  --shadow-btn: 3px 3px 0 var(--paper);
+  --shadow-btn-small: 2px 2px 0 var(--paper);
+  --shadow-pill: 2px 2px 0 #000000;
+  --shadow-pill-active: 3px 3px 0 #ffffff;
+  --shadow-tile: 3px 3px 0 var(--c, var(--cyan));
+  --shadow-drawer: -10px 0 30px rgba(0, 0, 0, 0.8);
+
+  /* Physics Transitions */
+  --hover-lift: translate(-2px, -2px);
+  --hover-tile-glyph: translate(2px, 2px);
+  --press-depth: translate(2px, 2px);
+  --transition-fast: 0.1s ease;
+  --transition-normal: 0.15s ease;
+  --transition-drawer: 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* --------------------------------------------------------------------------
+   THEME EXTENSION: Sleek Bento Cyber (Dark Bento / Organic Squircles)
+   -------------------------------------------------------------------------- */
+[data-theme="sleek-bento"] {
+  /* Surfaces & Backgrounds */
+  --bg: #07080a;
+  --bg-pattern: radial-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  --bg-pattern-size: 24px 24px;
+  --card: #131419;
+  --card-hover: #191b22;
+  --panel-bg: #0c0d10;
+  --header-bg: rgba(7, 8, 10, 0.92);
+  --tile-bg: #16181f;
+  --tile-hover-bg: #20222c;
+
+  /* Bento Radii & Subtle Borders */
+  --border-radius: 22px;
+  --border-radius-pill: 9999px;
+  --border-color: rgba(255, 255, 255, 0.08);
+  --border: 1px solid var(--border-color);
+  --border-hover: 1px solid rgba(190, 242, 100, 0.4);
+  --border-dashed: 1px dashed rgba(255, 255, 255, 0.12);
+
+  /* Accents from Reference Bento Image */
+  --yellow: #bef264;      /* Neon lime accent (primary hero) */
+  --cyan: #fb923c;        /* Solar orange */
+  --green: #4ade80;       /* Mint status */
+  --pink: #f43f5e;        /* Error */
+  --purple: #c084fc;      /* Secondary pill / Auto-detect */
+  --orange: #fb923c;      /* Solar orange translation */
+  --paper: #bef264;
+
+  /* Soft Organic Depth & Glow Shadows */
+  --shadow-card: 0 16px 36px -12px rgba(0, 0, 0, 0.85);
+  --shadow-hover: 0 20px 40px -10px rgba(0, 0, 0, 0.95);
+  --shadow-btn: 0 8px 20px -6px rgba(190, 242, 100, 0.45);
+  --shadow-btn-small: 0 4px 12px -2px rgba(0, 0, 0, 0.6);
+  --shadow-pill: 0 2px 8px rgba(0, 0, 0, 0.5);
+  --shadow-pill-active: 0 0 16px rgba(190, 242, 100, 0.4);
+  --shadow-tile: 0 8px 24px -8px rgba(0, 0, 0, 0.7);
+  --shadow-drawer: -12px 0 35px rgba(0, 0, 0, 0.9);
+}
+
+/* --------------------------------------------------------------------------
+   FUTURE THEME EXTENSION 1: Cyberpunk Neon
+   -------------------------------------------------------------------------- */
+[data-theme="cyberpunk-neon"] {
+  --bg: #050508;
+  --card: #0d0f17;
+  --card-hover: #141724;
+  --panel-bg: #030305;
+  --border-color: #00ffcc;
+  --border: 2px solid var(--border-color);
+  --border-hover: 2px solid #ff0055;
+  --text: #ffffff;
+  --yellow: #ff0055;
+  --cyan: #00ffcc;
+  --green: #39ff14;
+  --paper: #00ffcc;
+  --shadow-card: 5px 5px 0 #00ffcc44;
+}
+
+/* --------------------------------------------------------------------------
+   THEME EXTENSION 2: Warm Sandstone Editorial (Light Mode)
+   Anti-glare unbleached linen canvas, espresso typography, warm amber accents
+   -------------------------------------------------------------------------- */
+[data-theme="minimalist-light"] {
+  --bg: #f5f4ef;
+  --bg-pattern: radial-gradient(rgba(44, 38, 30, 0.06) 1px, transparent 1px);
+  --card: #ffffff;
+  --card-hover: #faf9f6;
+  --panel-bg: #eae7df;
+  --header-bg: rgba(245, 244, 239, 0.94);
+  --tile-bg: #ffffff;
+  --tile-hover-bg: #faf9f6;
+  --border-color: #d6d3cb;
+  --border: 1.5px solid var(--border-color);
+  --border-hover: 1.5px solid #1c1917;
+  --border-dashed: 1.5px dashed #d6d3cb;
+  --text: #1c1917;
+  --text-secondary: #57534e;
+  --muted: #78716c;
+  --muted-dark: #a8a29e;
+  --yellow: #f59e0b;
+  --cyan: #0284c7;
+  --green: #15803d;
+  --pink: #e11d48;
+  --orange: #ea580c;
+  --paper: #1c1917;
+  --line: #dedad2;
+  --shadow-card: 0 4px 20px -2px rgba(44, 38, 30, 0.07), 0 1px 3px rgba(44, 38, 30, 0.04);
+  --shadow-btn: 2px 2px 0 #1c1917;
+  --shadow-btn-small: 1px 1px 0 #1c1917;
+  --shadow-pill: 0 1px 3px rgba(44, 38, 30, 0.04);
+  --shadow-pill-active: 0 2px 8px rgba(245, 158, 11, 0.25);
+}
+
+/* --------------------------------------------------------------------------
+   Global Accessibility & Focus Rules
+   -------------------------------------------------------------------------- */
+:focus-visible {
+  outline: 2px solid var(--yellow);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Global Mechanical Scrollbar — Option 1: Stealth Industrial Dark
+   Strict 0px border-radius, #08090d track, #282c3c thumb with white active drag
+   -------------------------------------------------------------------------- */
+html {
+  color-scheme: dark;
+}
+
+/* Chrome, Edge, Safari, Brave root viewport & element scrollbars */
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+*::-webkit-scrollbar {
+  width: 8px !important;
+  height: 8px !important;
+  background-color: #08090d !important;
+}
+
+html::-webkit-scrollbar-track,
+body::-webkit-scrollbar-track,
+*::-webkit-scrollbar-track {
+  background: #08090d !important;
+  border-left: 1px solid #1a1d28 !important;
+  border-top: 1px solid #1a1d28 !important;
+}
+
+html::-webkit-scrollbar-thumb,
+body::-webkit-scrollbar-thumb,
+*::-webkit-scrollbar-thumb {
+  background: #282c3c !important;
+  border: 1px solid #151821 !important;
+  border-radius: 0px !important;
+}
+
+html::-webkit-scrollbar-thumb:hover,
+body::-webkit-scrollbar-thumb:hover,
+*::-webkit-scrollbar-thumb:hover {
+  background: #475569 !important;
+  border-color: #ffffff !important;
+}
+
+html::-webkit-scrollbar-thumb:active,
+body::-webkit-scrollbar-thumb:active,
+*::-webkit-scrollbar-thumb:active {
+  background: #ffffff !important;
+}
+
+html::-webkit-scrollbar-corner,
+body::-webkit-scrollbar-corner,
+*::-webkit-scrollbar-corner {
+  background: #08090d !important;
+}
+
+html::-webkit-scrollbar-button,
+body::-webkit-scrollbar-button,
+*::-webkit-scrollbar-button {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* Firefox fallback without disabling WebKit pseudo-elements in Chromium */
+@supports not selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #282c3c #08090d;
+  }
+}
+
+

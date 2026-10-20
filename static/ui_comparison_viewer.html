@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UI Comparison Lab: Option 1 vs Option 2</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #090a0f;
+      color: #e2e8f0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Top Comparison Control Header */
+    .lab-header {
+      background: #11141e;
+      border-bottom: 2px solid #282c3c;
+      padding: 12px 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      z-index: 50;
+    }
+    .lab-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .lab-title {
+      font-weight: 800;
+      font-size: 15px;
+      letter-spacing: -0.02em;
+      color: #fff;
+    }
+    .badge {
+      background: #1e2433;
+      border: 1px solid #38bdf8;
+      color: #38bdf8;
+      font-family: monospace;
+      font-size: 11px;
+      padding: 3px 8px;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+
+    /* Tab Switcher */
+    .tab-group {
+      display: flex;
+      background: #08090d;
+      border: 1px solid #282c3c;
+      padding: 3px;
+      gap: 4px;
+    }
+    .tab-btn {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      font-family: monospace;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 8px 16px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .tab-btn.active {
+      background: #facc15;
+      color: #000;
+      font-weight: 800;
+    }
+    .tab-btn:hover:not(.active) {
+      color: #fff;
+      background: #1a1e2b;
+    }
+
+    /* Quick Links & Info */
+    .lab-meta {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-family: monospace;
+      font-size: 11px;
+    }
+    .direct-link {
+      color: #38bdf8;
+      text-decoration: none;
+      padding: 4px 8px;
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+    .direct-link:hover {
+      background: #38bdf8;
+      color: #000;
+    }
+
+    /* Viewport Stage */
+    .stage {
+      flex: 1;
+      display: flex;
+      position: relative;
+      background: #000;
+      overflow: hidden;
+    }
+    .frame-container {
+      flex: 1;
+      height: 100%;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+    .frame-label {
+      background: #161a25;
+      border-bottom: 1px solid #282c3c;
+      padding: 6px 16px;
+      font-family: monospace;
+      font-size: 11px;
+      font-weight: 700;
+      display: flex;
+      justify-content: space-between;
+      color: #cbd5e1;
+    }
+    .frame-label.opt1 { border-top: 3px solid #facc15; }
+    .frame-label.opt2 { border-top: 3px solid #4ade80; }
+    iframe {
+      width: 100%;
+      flex: 1;
+      border: none;
+      background: #0c0d10;
+    }
+
+    /* Split Divider */
+    .split-divider {
+      width: 4px;
+      background: #282c3c;
+      height: 100%;
+      display: none;
+    }
+    .stage.is-split .split-divider {
+      display: block;
+    }
+
+    /* Breakdown Footer Drawer */
+    .breakdown-bar {
+      background: #0c0e14;
+      border-top: 1px solid #282c3c;
+      padding: 10px 24px;
+      display: flex;
+      gap: 24px;
+      font-size: 12px;
+      align-items: center;
+      color: #94a3b8;
+    }
+    .breakdown-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .breakdown-num {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #282c3c;
+      color: #fff;
+      font-size: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: monospace;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Lab Header -->
+  <header class="lab-header">
+    <div class="lab-brand">
+      <span class="lab-title">UI COMPARISON LAB</span>
+      <span class="badge">SAMPLE PREVIEWS</span>
+    </div>
+
+    <!-- Mode Selector Tabs -->
+    <div class="tab-group">
+      <button class="tab-btn active" id="tabSplit">SPLIT SIDE-BY-SIDE</button>
+      <button class="tab-btn" id="tabOpt1">OPTION 1 (CURRENT AS-IS)</button>
+      <button class="tab-btn" id="tabOpt2">OPTION 2 (MICRO-POLISHED)</button>
+    </div>
+
+    <!-- Direct HTML Links -->
+    <div class="lab-meta">
+      <a href="ui_option1_current.html" target="_blank" class="direct-link">&#x2197; Open Option 1 Fullscreen</a>
+      <a href="ui_option2_polished.html" target="_blank" class="direct-link">&#x2197; Open Option 2 Fullscreen</a>
+    </div>
+  </header>
+
+  <!-- Interactive Stage -->
+  <main class="stage is-split" id="stageContainer">
+    <!-- Frame 1: Option 1 (Current) -->
+    <div class="frame-container" id="frameContainer1">
+      <div class="frame-label opt1">
+        <span>OPTION 1: CURRENT AS-IS</span>
+        <span style="color: #facc15;">Unshortened GPU string wraps pill &bull; Hanging left column &bull; Static active button</span>
+      </div>
+      <iframe src="ui_option1_current.html" id="frame1" title="Option 1 Current Preview"></iframe>
+    </div>
+
+    <div class="split-divider" id="splitDivider"></div>
+
+    <!-- Frame 2: Option 2 (Polished) -->
+    <div class="frame-container" id="frameContainer2">
+      <div class="frame-label opt2">
+        <span>OPTION 2: MICRO-POLISHED</span>
+        <span style="color: #4ade80;">Compact single-line pills &bull; Grounded baseline &bull; Smart standby/active CTA</span>
+      </div>
+      <iframe src="ui_option2_polished.html" id="frame2" title="Option 2 Polished Preview"></iframe>
+    </div>
+  </main>
+
+  <!-- Explanatory Highlights Footer -->
+  <footer class="breakdown-bar">
+    <strong style="color: #fff; font-family: monospace;">KEY QUALITY DIFFERENCES:</strong>
+    <div class="breakdown-item">
+      <span class="breakdown-num">1</span>
+      <span><strong>Hero Meta Row:</strong> Opt 1 strands '0% LLM Hallucinations' on row 2 vs Opt 2 fits all 3 on 1 balanced row.</span>
+    </div>
+    <div class="breakdown-item">
+      <span class="breakdown-num">2</span>
+      <span><strong>Action CTA:</strong> Opt 1 stays bright yellow with no file vs Opt 2 stays on standby and lights up upon file staging.</span>
+    </div>
+    <div class="breakdown-item">
+      <span class="breakdown-num">3</span>
+      <span><strong>Bento Alignment:</strong> Opt 1 hangs with a bottom gap vs Opt 2 grounds the topic input flush with the right banner.</span>
+    </div>
+  </footer>
+
+  <script>
+    const tabSplit = document.getElementById("tabSplit");
+    const tabOpt1 = document.getElementById("tabOpt1");
+    const tabOpt2 = document.getElementById("tabOpt2");
+    const container1 = document.getElementById("frameContainer1");
+    const container2 = document.getElementById("frameContainer2");
+    const stage = document.getElementById("stageContainer");
+
+    function setView(mode) {
+      tabSplit.classList.remove("active");
+      tabOpt1.classList.remove("active");
+      tabOpt2.classList.remove("active");
+
+      if (mode === "split") {
+        tabSplit.classList.add("active");
+        container1.style.display = "flex";
+        container2.style.display = "flex";
+        stage.classList.add("is-split");
+      } else if (mode === "opt1") {
+        tabOpt1.classList.add("active");
+        container1.style.display = "flex";
+        container2.style.display = "none";
+        stage.classList.remove("is-split");
+      } else if (mode === "opt2") {
+        tabOpt2.classList.add("active");
+        container1.style.display = "none";
+        container2.style.display = "flex";
+        stage.classList.remove("is-split");
+      }
+    }
+
+    tabSplit.addEventListener("click", () => setView("split"));
+    tabOpt1.addEventListener("click", () => setView("opt1"));
+    tabOpt2.addEventListener("click", () => setView("opt2"));
+  </script>
+</body>
+</html>
