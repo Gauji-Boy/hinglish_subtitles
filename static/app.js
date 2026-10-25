@@ -7,13 +7,26 @@ let currentFile = null;
 let currentResults = null;
 let currentSegments = [];
 let activeSegmentIndex = null;
+let editorSearchQuery = "";
+let editorDirty = false;
+let editorStyleSaveTimer = null;
 
 const initialConfig = window.__INITIAL_CONFIG__ || {};
 let selectedLanguage = initialConfig.selected_language || localStorage.getItem("selectedLanguage") || "mixed";
 let selectedDevice = initialConfig.selected_device || localStorage.getItem("selectedDevice") || "auto";
 let selectedModel = initialConfig.selected_model || localStorage.getItem("selectedModel") || "medium";
 let selectedPacing = initialConfig.selected_pacing || localStorage.getItem("selectedPacing") || "short";
-let isDiarizationEnabled = initialConfig.enable_diarization ?? (localStorage.getItem("isDiarizationEnabled") === "true");
+const storedDiarization = localStorage.getItem("isDiarizationEnabled");
+let isDiarizationEnabled = storedDiarization === null
+  ? (initialConfig.enable_diarization ?? false)
+  : storedDiarization === "true";
+let activeCaptionStyle = initialConfig.caption_style || null;
+let captionStyles = [];
+let captionFonts = [];
+let defaultCaptionStyleId = "hormozi";
+let styleSaveTimer = null;
+let stylePreviewTimer = null;
+let stylePreviewUrl = null;
 
 if (selectedLanguage === "hi-en" && !["small", "medium", "large-v3"].includes(selectedModel)) {
   selectedModel = (selectedModel === "large-v3-turbo") ? "large-v3" : "medium";
@@ -31,6 +44,40 @@ const modelMetaPill = document.getElementById("modelMetaPill");
 const languageRibbon = document.getElementById("languageRibbon");
 const devicePills = document.getElementById("devicePills");
 const pacingPills = document.getElementById("pacingPills");
+const stylePresetGrid = document.getElementById("stylePresetGrid");
+const styleSample = document.getElementById("styleSample");
+const styleSampleText = document.getElementById("styleSampleText");
+const styleEditBtn = document.getElementById("styleEditBtn");
+const styleResetBtn = document.getElementById("styleResetBtn");
+const styleExportBtn = document.getElementById("styleExportBtn");
+const styleImportBtn = document.getElementById("styleImportBtn");
+const styleImportFile = document.getElementById("styleImportFile");
+const styleEditor = document.getElementById("styleEditor");
+const styleFont = document.getElementById("styleFont");
+const styleFontSize = document.getElementById("styleFontSize");
+const styleBaseColor = document.getElementById("styleBaseColor");
+const styleHighlightColor = document.getElementById("styleHighlightColor");
+const styleOutline = document.getElementById("styleOutline");
+const styleMargin = document.getElementById("styleMargin");
+const styleUppercase = document.getElementById("styleUppercase");
+const styleBox = document.getElementById("styleBox");
+const editorStylePresetGrid = document.getElementById("editorStylePresetGrid");
+const editorStyleFont = document.getElementById("editorStyleFont");
+const editorStyleFontSize = document.getElementById("editorStyleFontSize");
+const editorStyleBaseColor = document.getElementById("editorStyleBaseColor");
+const editorStyleHighlightColor = document.getElementById("editorStyleHighlightColor");
+const editorStyleOutline = document.getElementById("editorStyleOutline");
+const editorStyleMargin = document.getElementById("editorStyleMargin");
+const editorStyleUppercase = document.getElementById("editorStyleUppercase");
+const editorStyleBox = document.getElementById("editorStyleBox");
+const editorStyleResetBtn = document.getElementById("editorStyleResetBtn");
+const editorStyleExportBtn = document.getElementById("editorStyleExportBtn");
+const editorStyleImportBtn = document.getElementById("editorStyleImportBtn");
+const editorStyleImportFile = document.getElementById("editorStyleImportFile");
+const editorStyleStatus = document.getElementById("editorStyleStatus");
+const stylePreviewBtn = document.getElementById("stylePreviewBtn");
+const stylePreviewVideo = document.getElementById("stylePreviewVideo");
+const stylePreviewStatus = document.getElementById("stylePreviewStatus");
 const modelPills = document.getElementById("modelPills");
 const modelStatusText = document.getElementById("modelStatusText");
 const preDownloadModelBtn = document.getElementById("preDownloadModelBtn");
@@ -42,23 +89,35 @@ const mainDynamicControlsWrap = document.getElementById("mainDynamicControlsWrap
 const mainDynamicControlsCard = document.getElementById("mainDynamicControlsCard");
 const mainColLeft = document.getElementById("mainColLeft");
 const mainColRight = document.getElementById("mainColRight");
+const mainColRuntime = document.getElementById("mainColRuntime");
+const mainColStyle = document.getElementById("mainColStyle");
+const mainLowerDeck = document.getElementById("mainLowerDeck");
 const mainHwGroup = document.getElementById("mainHwGroup");
 const mainPacingGroup = document.getElementById("mainPacingGroup");
+const mainDiarizeGroup = document.getElementById("mainDiarizeGroup");
 const mainModelGroup = document.getElementById("mainModelGroup");
+const mainStyleGroup = document.getElementById("mainStyleGroup");
+const mainStylePresetGrid = document.getElementById("mainStylePresetGrid");
+const mainStyleSample = document.getElementById("mainStyleSample");
+const mainStyleSampleText = document.getElementById("mainStyleSampleText");
 const mainModelPills = document.getElementById("mainModelPills");
 const mainDevicePills = document.getElementById("mainDevicePills");
 const mainPacingPills = document.getElementById("mainPacingPills");
+const mainDiarizePills = document.getElementById("mainDiarizePills");
 const mainModelStatusText = document.getElementById("mainModelStatusText");
 const mainPreDownloadModelBtn = document.getElementById("mainPreDownloadModelBtn");
 
 const pinModelSwitch = document.getElementById("pinModelSwitch");
 const pinHwSwitch = document.getElementById("pinHwSwitch");
 const pinPacingSwitch = document.getElementById("pinPacingSwitch");
+const pinStyleSwitch = document.getElementById("pinStyleSwitch");
+const pinDiarizeSwitch = document.getElementById("pinDiarizeSwitch");
 
 let pinnedModules = {
   model: false,
   hw: false,
-  pacing: false
+  pacing: false,
+  diarize: false
 };
 
 const dropzone = document.getElementById("dropzone");
@@ -71,9 +130,67 @@ const videoPlayer = document.getElementById("videoPlayer");
 const videoStage = document.getElementById("videoStage");
 const audioTrackBanner = document.getElementById("audioTrackBanner");
 const captionToggleGroup = document.getElementById("captionToggleGroup");
+const captionSync = document.getElementById("captionSync");
+const captionSyncValue = document.getElementById("captionSyncValue");
+const captionSyncEarlier = document.getElementById("captionSyncEarlier");
+const captionSyncLater = document.getElementById("captionSyncLater");
 const captionOverlay = document.getElementById("captionOverlay");
 const captionText = document.getElementById("captionText");
+const captionPill = document.getElementById("captionPill");
 let captionMode = "hinglish";
+
+// Keep these in sync with karaoke_ass.py. They decide which words become gold.
+const KINETIC_ACCENT_WORDS = new Set(
+  "hey hi hello yo wow yes yeah no nah okay ok oh ah arrey arey oye by".split(/\s+/)
+);
+const KINETIC_STOPWORDS = new Set(
+  `a an the and or but if then so to of in on at by for with from as is are was were be been
+  being am do does did have has had i you he she it we they me him her us them my your his its
+  our their this that these those there here what which who whom whose when where why how not
+  no yes just very too also about into over under again once all any both each few more most
+  other some such only own same than now up down out off every each another many much more most
+  few several plenty enough really quite rather almost less least lot lots bunch it's i'm you're
+  we're they're don't doesn't didn't can't won't isn't aren't wasn't weren't i've you've we've
+  they've i'll you'll he'll she'll we'll they'll i'd you'd he'd she'd we'd they'd that's there's
+  let's lets ne ko ka ki ke hai hain tha thi the aur par se me mein ek yeh ye wo vo kya nahi nahin
+  bhi toh hi na ha ho hua hui hue kar karta karti karte kiya raha rahi rahe gaya gayi gaye liye liya
+  diya di de dena lena le lo chalo aao ja jaao sakta sakti sakte chahiye hoga hogi honge mera meri
+  mere tera teri tere uska uski uske inka inki inke hamara hamari hamare unka unki unke yahan wahan
+  ab phir fir kal aaj roz sab sabse kuch koi kuchh bas sirf bahut zyada kam accha acha`.split(/\s+/)
+);
+let kineticRenderKey = "";
+let kineticStyleKey = "";
+let kineticPillKey = "";
+let kineticPillTop = null;
+let kineticMeasureCtx = null;
+
+// Caption playback clock. Every style is driven from the same frame loop so a
+// card is painted on the frame its start time passes, not on the video's
+// `timeupdate` tick (which only fires ~4x/s and can be a quarter second late).
+let captionRaf = null;
+let captionFrameHandle = null;
+let captionLoopOn = false;
+let captionRenderKey = "";
+let captionOffsetMs = 0;
+let captionBaseSegments = null;
+
+// Recess geometry. The ASS renderer emits a libass-calibrated em; the browser
+// needs the real one. libass lays Arial Black out at 0.652x its Pillow advance,
+// so matching the line width (and therefore the wrapping and the 82% fill)
+// means scaling the emitted em by the same ratio.
+const RECESS_LIVE_EM = 0.652;
+// Pill padding/radius are authored in the reference type em, which is the
+// emitted em scaled by 0.775 (see karaoke_ass._RECESS_PILL_EM_RATIO).
+const RECESS_PILL_EM_RATIO = 0.775;
+const RECESS_CAP_RATIO = 0.52;
+const RECESS_PILL_PAD_X = 0.16;
+const RECESS_PILL_PAD_Y = 0.32;
+// Arial Black's cap centre sits 0.035 em below the middle of a line-height:1
+// box (ascent 1.10, descent 0.31, cap 0.72). Both the block and the pill are
+// positioned from it, so the caps land on the video's midline like \an5.
+const RECESS_PILL_Y_NUDGE = 0.035;
+// Row pitch: the ASS line pitch is 0.915 em, which is one 1 em box plus this.
+const RECESS_ROW_GAP = 0.29;
 
 const generateBtn = document.getElementById("generateBtn");
 const progressPanel = document.getElementById("progressPanel");
@@ -101,16 +218,37 @@ const settingsDrawerCloseBtn = document.getElementById("settingsDrawerCloseBtn")
 const saveAndCloseSettingsBtn = document.getElementById("saveAndCloseSettingsBtn");
 const settingsHwBadge = document.getElementById("settingsHwBadge");
 
-const drawerOverlay = document.getElementById("drawerOverlay");
-const drawer = document.getElementById("drawer");
-const drawerCloseBtn = document.getElementById("drawerCloseBtn");
-const drawerIndexTitle = document.getElementById("drawerIndexTitle");
-const drawerTimeRange = document.getElementById("drawerTimeRange");
-const drawerOrigText = document.getElementById("drawerOrigText");
-const drawerHinglishInput = document.getElementById("drawerHinglishInput");
-const drawerSaveBtn = document.getElementById("drawerSaveBtn");
-const drawerCopyBtn = document.getElementById("drawerCopyBtn");
-const drawerPlayAudioBtn = document.getElementById("drawerPlayAudioBtn");
+const subtitleEditor = document.getElementById("subtitleEditor");
+const editorResizer = document.getElementById("editorResizer");
+const editorCollapseBtn = document.getElementById("editorCollapseBtn");
+const editorExpandBtn = document.getElementById("editorExpandBtn");
+const editorRailCount = document.getElementById("editorRailCount");
+const editorSegmentCount = document.getElementById("editorSegmentCount");
+const editorTabCount = document.getElementById("editorTabCount");
+const editorSegmentsTab = document.getElementById("editorSegmentsTab");
+const editorStyleTab = document.getElementById("editorStyleTab");
+const editorSegmentsPanel = document.getElementById("editorSegmentsPanel");
+const editorStylePanel = document.getElementById("editorStylePanel");
+const editorSearchInput = document.getElementById("editorSearchInput");
+const editorMatchCount = document.getElementById("editorMatchCount");
+const editorSegmentList = document.getElementById("editorSegmentList");
+const editorSegmentTitle = document.getElementById("editorSegmentTitle");
+const editorSegmentTime = document.getElementById("editorSegmentTime");
+const editorCaptionInput = document.getElementById("editorCaptionInput");
+const editorOriginalText = document.getElementById("editorOriginalText");
+const editorStartInput = document.getElementById("editorStartInput");
+const editorEndInput = document.getElementById("editorEndInput");
+const editorSpeakerInput = document.getElementById("editorSpeakerInput");
+const editorSpeakerOptions = document.getElementById("editorSpeakerOptions");
+const editorSaveBtn = document.getElementById("editorSaveBtn");
+const editorSeekBtn = document.getElementById("editorSeekBtn");
+const editorRevertBtn = document.getElementById("editorRevertBtn");
+
+const studioBreadcrumbBar = document.getElementById("studioBreadcrumbBar");
+const studioFileChip = document.getElementById("studioFileChip");
+const studioModeChip = document.getElementById("studioModeChip");
+const studioMetaText = document.getElementById("studioMetaText");
+const studioToggleConfigBtn = document.getElementById("studioToggleConfigBtn");
 
 const floatingDownloadBar = document.getElementById("floatingDownloadBar");
 const floatingMatchPill = document.getElementById("floatingMatchPill");
@@ -186,6 +324,7 @@ async function initApp() {
   applyModelSelection(selectedModel, false);
   applyDeviceSelection(selectedDevice, false);
   applyPacingSelection(selectedPacing, false);
+  loadCaptionStyles();
 
   try {
     const res = await fetch("/api/hardware");
@@ -284,33 +423,37 @@ function updateModelStatusUI() {
 // Speaker Diarization Switch
 const diarizeOffBtn = document.getElementById("diarizeOffBtn");
 const diarizeOnBtn = document.getElementById("diarizeOnBtn");
+const mainDiarizeOffBtn = document.getElementById("mainDiarizeOffBtn");
+const mainDiarizeOnBtn = document.getElementById("mainDiarizeOnBtn");
 
 function updateDiarizationUI() {
-  if (diarizeOffBtn && diarizeOnBtn) {
-    if (isDiarizationEnabled) {
-      diarizeOffBtn.classList.remove("active");
-      diarizeOnBtn.classList.add("active");
-    } else {
-      diarizeOffBtn.classList.add("active");
-      diarizeOnBtn.classList.remove("active");
-    }
-  }
+  [
+    [diarizeOffBtn, diarizeOnBtn],
+    [mainDiarizeOffBtn, mainDiarizeOnBtn]
+  ].forEach(([off, on]) => {
+    if (!off || !on) return;
+    off.classList.toggle("active", !isDiarizationEnabled);
+    on.classList.toggle("active", isDiarizationEnabled);
+    off.setAttribute("aria-pressed", String(!isDiarizationEnabled));
+    on.setAttribute("aria-pressed", String(isDiarizationEnabled));
+  });
 }
 
-if (diarizeOffBtn) {
-  diarizeOffBtn.addEventListener("click", () => {
-    isDiarizationEnabled = false;
-    localStorage.setItem("isDiarizationEnabled", "false");
-    updateDiarizationUI();
-  });
+function setDiarization(enabled) {
+  isDiarizationEnabled = enabled;
+  localStorage.setItem("isDiarizationEnabled", String(enabled));
+  updateDiarizationUI();
 }
-if (diarizeOnBtn) {
-  diarizeOnBtn.addEventListener("click", () => {
-    isDiarizationEnabled = true;
-    localStorage.setItem("isDiarizationEnabled", "true");
-    updateDiarizationUI();
-  });
-}
+
+[
+  [diarizeOffBtn, false],
+  [diarizeOnBtn, true],
+  [mainDiarizeOffBtn, false],
+  [mainDiarizeOnBtn, true]
+].forEach(([button, value]) => {
+  if (button) button.addEventListener("click", () => setDiarization(value));
+});
+
 updateDiarizationUI();
 
 // Pre-download Model Handler
@@ -603,6 +746,1316 @@ function applyPacingSelection(pacing, persist = true) {
   });
 }
 
+async function loadCaptionStyles() {
+  try {
+    const res = await fetch("/api/caption-styles");
+    if (!res.ok) return;
+    const data = await res.json();
+    captionStyles = (data.presets || []).slice();
+    defaultCaptionStyleId = data.default || defaultCaptionStyleId;
+    captionFonts = data.fonts || [];
+    populateStyleFonts();
+    if (data.custom && data.custom.id === "custom" && !captionStyles.some(s => s.id === "custom")) {
+      captionStyles.push(data.custom);
+    }
+    // Migrate a saved pre-kinetic Honey Punch selection to the new animated preset.
+    if (activeCaptionStyle && activeCaptionStyle.id) {
+      const preset = captionStyles.find(s => s.id === activeCaptionStyle.id);
+      if (preset && preset.motion === "word-pop" && !activeCaptionStyle.motion) {
+        activeCaptionStyle = { ...preset };
+      }
+    }
+    if (!activeCaptionStyle) {
+      activeCaptionStyle = captionStyles.find(s => s.id === defaultCaptionStyleId) || captionStyles[0] || null;
+    }
+    renderCaptionPresets();
+    syncStyleEditor();
+  } catch (err) {
+    console.warn("Could not load caption styles:", err);
+  }
+}
+
+function populateStyleFonts() {
+  [styleFont, editorStyleFont].forEach(select => {
+    if (!select) return;
+    select.textContent = "";
+    captionFonts.forEach(font => {
+      const option = document.createElement("option");
+      option.value = font;
+      option.textContent = font;
+      select.appendChild(option);
+    });
+  });
+}
+
+const STYLE_SHORT_NAMES = {
+  hormozi: "Hormozi",
+  vox: "Vox",
+  cyber: "Cyber",
+  blackout: "Blackout",
+  editorial: "Editorial",
+  buzz: "Buzz",
+  medusa: "Medusa",
+  cartwheel: "Cartwheel",
+  heat: "Heat",
+  neon: "Neon",
+  magazine: "Magazine",
+  techwave: "Techwave",
+  minima: "Minima",
+  blank: "Blank"
+};
+
+function compactStyleName(style) {
+  if (style.id === "custom") {
+    return style.name && style.name !== "Custom" ? style.name.slice(0, 14) : "Custom";
+  }
+  return STYLE_SHORT_NAMES[style.id] || style.name;
+}
+
+function renderCaptionPresets() {
+  renderPresetGrid(stylePresetGrid, false);
+  renderPresetGrid(editorStylePresetGrid, false);
+  applyCaptionSample();
+}
+
+function renderPresetGrid(grid, compact) {
+  if (!grid) return;
+  grid.textContent = "";
+  captionStyles.forEach(style => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = compact ? "style-mini-pill" : "style-preset-btn";
+    btn.dataset.styleId = style.id;
+    const isActive = !!(activeCaptionStyle && style.id === activeCaptionStyle.id);
+    if (isActive) btn.classList.add("active");
+    btn.setAttribute("aria-pressed", String(isActive));
+    btn.title = style.name;
+
+    const swatch = document.createElement("span");
+    swatch.className = compact ? "style-mini-dot" : "style-preset-swatch";
+    swatch.style.background = style.box
+      ? `linear-gradient(135deg, ${style.back_color} 0 52%, ${style.highlight_color} 52% 100%)`
+      : style.highlight_color;
+
+    const name = document.createElement("span");
+    name.className = compact ? "style-mini-name" : "style-preset-name";
+    name.textContent = compact ? compactStyleName(style) : style.name;
+
+    btn.append(swatch, name);
+    btn.addEventListener("click", () => selectCaptionStyle(style));
+    grid.appendChild(btn);
+  });
+}
+
+function selectCaptionStyle(style, { persist = true } = {}) {
+  activeCaptionStyle = { ...style };
+  renderCaptionPresets();
+  syncStyleEditor();
+  applyCaptionStyleToVideo();
+  updateVideoCaption(true);
+  if (persist) saveCaptionStyle(activeCaptionStyle);
+}
+
+async function saveCaptionStyle(style) {
+  try {
+    const fd = new FormData();
+    fd.append("caption_style", JSON.stringify(style));
+    const res = await fetch("/api/config/preferences", { method: "POST", body: fd });
+    if (!res.ok) {
+      setEditorStyleStatus("SAVE FAILED", true);
+      return false;
+    }
+    const data = await res.json();
+    if (data.preferences && data.preferences.caption_style) {
+      activeCaptionStyle = data.preferences.caption_style;
+      if (activeCaptionStyle.id === "custom") {
+        const idx = captionStyles.findIndex(s => s.id === "custom");
+        if (idx >= 0) captionStyles[idx] = activeCaptionStyle;
+        else captionStyles.push(activeCaptionStyle);
+      }
+    }
+    renderCaptionPresets();
+    syncStyleEditor();
+    setEditorStyleStatus("SAVED");
+    if (typeof scheduleStylePreview === "function") scheduleStylePreview();
+    return true;
+  } catch (err) {
+    setEditorStyleStatus("SAVE FAILED", true);
+    console.warn("Could not save caption style:", err);
+    return false;
+  }
+}
+
+function applyCaptionSample() {
+  if (styleSample && styleSampleText) paintCaptionSample(styleSample, styleSampleText, 0.4, 42);
+  if (mainStyleSample && mainStyleSampleText) paintCaptionSample(mainStyleSample, mainStyleSampleText, 0.28, 26);
+  applyCaptionStyleToVideo();
+  updateVideoCaption(true);
+}
+
+function kineticWordKey(text) {
+  const raw = String(text || "")
+    .trim()
+    .replace(/^[^\p{L}\p{N}_']+|[^\p{L}\p{N}_']+$/gu, "");
+  return raw.toLowerCase().replace(/\u2019/g, "'");
+}
+
+function kineticIsAccent(text, mode = "content") {
+  if (mode === "all") return true;
+  if (mode === "none") return false;
+  const raw = String(text || "")
+    .trim()
+    .replace(/^[^\p{L}\p{N}_']+|[^\p{L}\p{N}_']+$/gu, "");
+  const key = kineticWordKey(raw);
+  if (!key) return false;
+  if (KINETIC_ACCENT_WORDS.has(key)) return true;
+  if (KINETIC_STOPWORDS.has(key)) return false;
+  return key.length >= 4 || /^[A-Z]/.test(raw);
+}
+
+function kineticIsPunch(text, mode = "content") {
+  if (mode === "none" || !kineticIsAccent(text, mode)) return false;
+  const raw = String(text || "")
+    .trim()
+    .replace(/^[^\p{L}\p{N}_']+|[^\p{L}\p{N}_']+$/gu, "");
+  const key = kineticWordKey(raw);
+  if (!key || KINETIC_STOPWORDS.has(key)) return false;
+  if (KINETIC_ACCENT_WORDS.has(key) || /^[A-Z]/.test(raw)) return true;
+  return key.length >= 5;
+}
+
+function kineticIsTitlePhrase(words) {
+  return Boolean(
+    words && words.length >= 2 &&
+    words[0].key === "the" &&
+    /^[A-Z]/.test(String(words[1].rawText || "").trim())
+  );
+}
+
+const KINETIC_SENTENCE_END = /[.?!\u0964]$/;
+// Mirrors karaoke_ass._KINETIC_SENTENCE_PAUSE_SEC: a full stop ends a poster
+// only when the speaker pauses, or when the ASR card ends on it. Continuous
+// delivery mid-card keeps the block together.
+const KINETIC_SENTENCE_PAUSE_SEC = 0.2;
+
+// Mirrors karaoke_ass._ends_sentence: a trailing quote or bracket after the
+// full stop still closes the sentence.
+function kineticEndsSentence(text) {
+  const stripped = String(text || "")
+    .trim()
+    .replace(/["'\u201d\u2019)\]}»]+$/u, "")
+    .trim();
+  return KINETIC_SENTENCE_END.test(stripped);
+}
+
+// Mirrors karaoke_ass._kinetic_lines: greedy wrap plus the reference's forced
+// breaks. Returns how many words each rendered line holds, so a poster can be
+// split on exactly the line boundary the burn will draw.
+function kineticLineWordCounts(words, baseSize, maxWidth, style, scaleOf) {
+  const counts = [];
+  let count = 0;
+  let width = 0;
+  words.forEach((word, index) => {
+    const size = baseSize * scaleOf(word);
+    let advance = kineticAdvance(word.text, size, style.font, style.bold);
+    if (advance > maxWidth && maxWidth > 0) advance = maxWidth;
+    const space = count ? kineticAdvance(" ", size, style.font, style.bold) : 0;
+    if (count && width + space + advance > maxWidth) {
+      counts.push(count);
+      count = 0;
+      width = advance;
+    } else {
+      width += space + advance;
+    }
+    count += 1;
+    const next = words[index + 1];
+    const endsQuestion = /\?$/.test(String(word.text || "").trim());
+    const breakBeforeThe =
+      Boolean(next) && word.key === "about" && next.key === "the" && index < words.length - 2;
+    const breakAfterFirst =
+      index === 0 && words.length > 1 && KINETIC_ACCENT_WORDS.has(word.key);
+    if (next && (breakAfterFirst || breakBeforeThe || (endsQuestion && index < words.length - 1))) {
+      counts.push(count);
+      count = 0;
+      width = 0;
+    }
+  });
+  if (count) counts.push(count);
+  return counts;
+}
+
+// The live clock asks for this every frame, and building it classifies every
+// word twice with Unicode-property regexes. Cached against the inputs that can
+// change it; `captureCaptionBase()` clears it because the editor mutates cards
+// in place without swapping the array.
+let kineticWordsCache = { segments: null, key: "", words: [] };
+
+function flattenKineticWords() {
+  if (!currentSegments || !currentSegments.length) return [];
+  const accentMode = (activeCaptionStyle && activeCaptionStyle.accent_mode) || "content";
+  const gap = Math.max(0.1, Number(activeCaptionStyle && activeCaptionStyle.phrase_gap_ms || 650) / 1000);
+  const rect = videoPlayer ? videoPlayer.getBoundingClientRect() : { width: 456, height: 600 };
+  const isPortrait = (rect.height || 600) > (rect.width || 456) * 1.15;
+  const grouping = (activeCaptionStyle && activeCaptionStyle.kinetic_grouping) || "flow";
+  const posterGrouping = grouping === "poster";
+  const configuredMax = Number(activeCaptionStyle && activeCaptionStyle.max_words_per_phrase);
+  // Posters are capped by the rendered line count, not by the ASR card rhythm.
+  // Keep in step with karaoke_ass._KINETIC_POSTER_MAX_WORDS.
+  const maxWords = Math.min(
+    (Number.isFinite(configuredMax) && configuredMax > 0) ? configuredMax : 10,
+    posterGrouping ? (isPortrait ? 8 : 12) : (isPortrait ? 4 : 20)
+  );
+  const punchGrouping = grouping === "punch";
+  const cacheKey = [captionMode, accentMode, gap, maxWords, grouping, isPortrait].join("|");
+  if (kineticWordsCache.segments === currentSegments && kineticWordsCache.key === cacheKey) {
+    return kineticWordsCache.words;
+  }
+
+  const words = [];
+  currentSegments.forEach(segment => {
+    const list = Array.isArray(segment.words) ? segment.words : [];
+    const cardStart = Number(segment.start) || 0;
+    const cardEnd = Number(segment.end) || cardStart + 2;
+    list.forEach(word => {
+      const rawText = captionMode === "original"
+        ? (word.word || word.text || "")
+        : (word.hinglish || word.word || word.text || "");
+      const text = String(rawText || "").trim();
+      if (!text) return;
+      const rawStart = Number(word.start);
+      const rawEnd = Number(word.end);
+      const start = Number.isFinite(rawStart) ? rawStart : cardStart;
+      let end = Number.isFinite(rawEnd) ? rawEnd : start + 0.3;
+      if (end < start) end = start + 0.3;
+      words.push({
+        text,
+        rawText: text,
+        key: kineticWordKey(text),
+        accent: kineticIsAccent(text, accentMode),
+        punch: kineticIsPunch(text, accentMode),
+        start,
+        end,
+        cardStart,
+        cardEnd,
+        order: words.length,
+        phrase: 0,
+        nextStart: end
+      });
+    });
+  });
+  words.sort((a, b) => (a.start - b.start) || (a.order - b.order));
+  const groups = [];
+  let current = [];
+  words.forEach((word, index) => {
+    if (index > 0) {
+      const previous = words[index - 1];
+      const wordGap = word.start - previous.end;
+      // A poster ignores card boundaries: an ASR card break is not a pause.
+      const isTimeGap = posterGrouping
+        ? wordGap > gap
+        : (wordGap > gap || (word.cardStart - previous.cardEnd) > gap);
+      const isMaxWords = current.length >= maxWords;
+      // Recess isolates every punch word into its own card and keeps each run
+      // of connective words together (see karaoke_ass._group_phrases).
+      const isPunchBreak = punchGrouping && Boolean(previous.punch || word.punch);
+      const isSentenceEnd =
+        posterGrouping &&
+        kineticEndsSentence(previous.text) &&
+        (wordGap >= KINETIC_SENTENCE_PAUSE_SEC || word.cardStart !== previous.cardStart);
+      // A poster's word cap is applied per sentence below, not per card, so a
+      // long poster splits evenly instead of leaving a one-word tail.
+      if (isPunchBreak || isTimeGap || (isMaxWords && !posterGrouping) || isSentenceEnd) {
+        groups.push(current);
+        current = [];
+      }
+    }
+    current.push(word);
+  });
+  if (current.length) groups.push(current);
+
+  // Mirror karaoke_ass._split_overlong_posters: a poster that wraps past the
+  // line budget is cut on its own line boundary, so the preview and the burn
+  // agree on where one block ends and the next begins.
+  if (posterGrouping) {
+    const style = activeCaptionStyle || {};
+    const punchScale = Number(style.accent_scale || 150) / 100;
+    const accentSizeScale = Number(style.accent_size_scale || 100) / 100;
+    const scaleOf = word => (word.punch ? punchScale : (word.accent ? accentSizeScale : 1));
+    const baseSize = kineticBaseSize(style);
+    const lineWidth = Math.max(
+      80,
+      ((rect.width || 456) * kineticMaxWidthPercent(null, style)) / 100
+    );
+    const maxLines = isPortrait ? 5 : 4;
+    const split = [];
+    groups.forEach(group => {
+      let pending = group;
+      while (pending.length) {
+        const counts = kineticLineWordCounts(pending, baseSize, lineWidth, style, scaleOf);
+        const fitsWords = maxWords <= 0 || pending.length <= maxWords;
+        const fitsLines = counts.length <= maxLines;
+        if (fitsWords && fitsLines) {
+          split.push(pending);
+          break;
+        }
+        // Two limits: the word cap and the rendered line budget. Cuts are
+        // tried at every word boundary and the one closest to an even split
+        // wins, so a 14-word run reads 7 + 7 rather than 8 + 6 or 8 + 1.
+        const blocks = Math.max(
+          1,
+          Math.ceil(counts.length / maxLines),
+          Math.ceil(pending.length / Math.max(1, maxWords))
+        );
+        const target = pending.length / blocks;
+        let best = null;
+        for (let keep = 1; keep < pending.length; keep += 1) {
+          if (maxWords > 0 && keep > maxWords) break;
+          if (maxLines > 0) {
+            const head = pending.slice(0, keep);
+            const headLines = kineticLineWordCounts(head, baseSize, lineWidth, style, scaleOf);
+            if (headLines.length > maxLines) continue;
+          }
+          const score = Math.abs(keep - target);
+          if (!best || score < best.score || (score === best.score && keep < best.keep)) {
+            best = { score, keep };
+          }
+        }
+        if (!best) {
+          split.push(pending);
+          break;
+        }
+        split.push(pending.slice(0, best.keep));
+        pending = pending.slice(best.keep);
+      }
+    });
+    groups.length = 0;
+    split.forEach(group => groups.push(group));
+  }
+
+  groups.forEach((group, index) => group.forEach(word => { word.phrase = index; }));
+  words.forEach((word, index) => {
+    const next = words[index + 1];
+    word.nextStart = next && next.phrase === word.phrase ? next.start : word.end;
+  });
+  // "The Sweet Spot?" is a gold/punch title; plain "the bakery" stays white.
+  words.forEach((word, index) => {
+    const next = words[index + 1];
+    if (word.key === "the" && next && next.phrase === word.phrase && /^[A-Z]/.test(next.rawText)) {
+      word.accent = true;
+      word.punch = true;
+    }
+  });
+  kineticWordsCache = { segments: currentSegments, key: cacheKey, words };
+  return words;
+}
+
+function kineticBaseSize(style) {
+  const rect = videoPlayer ? videoPlayer.getBoundingClientRect() : { width: 456, height: 600 };
+  const height = rect.height || (videoPlayer && videoPlayer.clientHeight) || 600;
+  const width = rect.width || (videoPlayer && videoPlayer.clientWidth) || 456;
+  const isPortrait = height > width * 1.15;
+  if (style && style.pill) {
+    // Mirror karaoke_ass._recess_base_em: the emitted em is the style size
+    // scaled by kinetic_size_scale, shrunk on portrait canvases, then
+    // converted from libass units to a CSS font-size.
+    const portrait = isPortrait ? 0.70 * 0.55 : 1;
+    const em = Number(style.font_size || 136) * height * portrait / 1600;
+    return Math.max(12, Math.min(320, em * Number(style.kinetic_size_scale || 1) * RECESS_LIVE_EM));
+  }
+  const portraitFactor = isPortrait ? 0.65 : (height > width * 0.9 ? 0.90 : 1);
+  return Math.max(16, Math.min(140, Number(style.font_size || 128) * height * portraitFactor / 1600));
+}
+
+function kineticMaxWidthPercent(state, style) {
+  const rect = videoPlayer ? videoPlayer.getBoundingClientRect() : { width: 456, height: 600 };
+  const isPortrait = (rect.height || 600) > (rect.width || 456) * 1.15;
+  let percent = Number(style.max_width || 54);
+  if (style && style.pill) {
+    // Same rule as karaoke_ass._kinetic_max_width.
+    return isPortrait ? Math.min(92, percent + 18) : percent;
+  }
+  // Browser flex metrics run ~4% wider than Pillow's ASS measurement at this
+  // weight. Tighten the live landscape box so phrase 1 breaks after "about"
+  // instead of pulling "the" onto line 2.
+  if (isPortrait) percent = Math.min(92, percent + 26);
+  else percent = Math.max(35, percent - 4);
+  if (state && state.phraseTitle) percent = Math.min(92, percent + 10);
+  return percent;
+}
+
+function kineticStateAt(seconds) {
+  const words = flattenKineticWords();
+  if (!words.length) return null;
+  let activeIndex = -1;
+  for (let i = 0; i < words.length; i += 1) {
+    if (words[i].start <= seconds + 1e-6) activeIndex = i;
+    else break;
+  }
+  if (activeIndex < 0) return null;
+  const phraseId = words[activeIndex].phrase;
+  const phraseWords = words.filter(word => word.phrase === phraseId);
+  if (!phraseWords.length) return null;
+  const phraseStart = words.indexOf(phraseWords[0]);
+  const last = phraseWords[phraseWords.length - 1];
+  const nextPhrase = words.find(word => word.phrase > phraseId);
+  const naturalEnd = Math.max(last.end, last.start + 0.35);
+  const displayEnd = nextPhrase
+    ? Math.min(nextPhrase.start, naturalEnd + 1.30)
+    : naturalEnd + 0.30;
+  if (seconds > displayEnd) return null;
+  return {
+    words,
+    activeIndex,
+    phraseId,
+    phraseWords,
+    phraseStart,
+    phraseTitle: kineticIsTitlePhrase(phraseWords),
+    displayEnd
+  };
+}
+
+function kineticStyleSignature(style) {
+  return [
+    style.font, style.font_size, style.accent_scale, style.accent_size_scale,
+    style.active_scale,
+    style.pop_ms, style.settle_ms, style.phrase_gap_ms, style.anchor_y,
+    style.max_width, style.kinetic_layout, style.accent_mode,
+    style.max_words_per_phrase, style.kinetic_size_scale, style.kinetic_grouping,
+    style.pill, style.pill_gradient_start, style.pill_gradient_end,
+    style.pill_pad_x, style.pill_pad_y, style.pill_radius, style.pill_alpha,
+    style.pill_fade_ms, style.pill_slide_ms, style.reveal_fade_ms,
+    style.reveal_spring_ms, style.reveal_spring_scale, captionMode
+  ].join("|");
+}
+
+function kineticAnchorPercent(state, style) {
+  // ASS and the browser distribute the first line's leading differently;
+  // nudge the live overlay down 1.5% so the glyph tops line up.
+  let percent = Number(style.anchor_y ?? 20) + 1.5;
+  // The reference's two-line title sits slightly higher than the normal
+  // four-line block. Keep the style anchor as the normal position.
+  if (state && state.phraseTitle) percent -= 4.5;
+  return Math.max(6, Math.min(80, percent));
+}
+
+function recessCentreTop(em) {
+  // The overlay's containing block also holds the audio banner, so 50% is not
+  // the video's centre. Anchor to the video's own midline, minus the cap lift.
+  const parent = captionOverlay.offsetParent || captionOverlay.parentElement;
+  if (!parent || !videoPlayer) return null;
+  const parentRect = parent.getBoundingClientRect();
+  const videoRect = videoPlayer.getBoundingClientRect();
+  const centre = videoRect.top + videoRect.height / 2 - parentRect.top - (parent.clientTop || 0);
+  return centre - RECESS_PILL_Y_NUDGE * em;
+}
+
+function ensureKineticOverlay(style, state = null) {
+  if (!captionOverlay || !captionText) return;
+  const captionBox = document.getElementById("captionBox");
+  const pill = Boolean(style && style.pill);
+  captionOverlay.classList.add("kinetic");
+  captionText.classList.add("kinetic");
+  captionOverlay.classList.toggle("recess", pill);
+  captionText.classList.toggle("recess", pill);
+  if (pill) {
+    // The Recess CSS centres the block; an inline top/transform would win.
+    captionOverlay.style.bottom = "auto";
+    const em = kineticBaseSize(style);
+    const top = recessCentreTop(em);
+    captionOverlay.style.top = top === null ? "50%" : `${top.toFixed(1)}px`;
+    captionText.style.setProperty("--recess-row", `${RECESS_ROW_GAP * em}px`);
+    if (captionPill) {
+      captionPill.style.backgroundImage =
+        `linear-gradient(180deg, ${style.pill_gradient_start || "#D2E860"}, ${style.pill_gradient_end || "#A793FF"})`;
+    }
+  } else {
+    captionOverlay.style.top = `${kineticAnchorPercent(state, style)}%`;
+    captionOverlay.style.bottom = "auto";
+    captionText.style.removeProperty("--recess-row");
+    if (captionPill) captionPill.style.opacity = "0";
+  }
+  captionText.style.fontFamily = `"${style.font}", sans-serif`;
+  captionText.style.fontWeight = style.bold ? "900" : "700";
+  captionText.style.textTransform = style.uppercase ? "uppercase" : "none";
+  captionText.style.color = style.base_color || "#FFFFFF";
+  captionText.style.lineHeight = pill ? "1" : "1.2";
+  if (captionBox) {
+    captionBox.style.background = "transparent";
+    captionBox.style.border = "none";
+    captionBox.style.boxShadow = "none";
+    captionBox.style.padding = "0";
+    captionBox.style.maxWidth = "100%";
+    captionBox.style.width = "100%";
+  }
+}
+
+function hideRecessPill() {
+  if (captionPill) captionPill.style.opacity = "0";
+  kineticPillKey = "";
+  kineticPillTop = null;
+}
+
+function kineticMeasureFont(size, font, bold) {
+  if (!kineticMeasureCtx) {
+    const canvas = document.createElement("canvas");
+    kineticMeasureCtx = canvas.getContext("2d");
+  }
+  if (!kineticMeasureCtx) return null;
+  kineticMeasureCtx.font = `${bold ? 900 : 700} ${Math.max(1, size)}px "${font}", sans-serif`;
+  return kineticMeasureCtx;
+}
+
+function kineticInkMetrics(text, size, font, bold) {
+  const ctx = kineticMeasureFont(size, font, bold);
+  if (!ctx) return { left: 0, right: 0, width: Math.max(1, size) };
+  const metrics = ctx.measureText(String(text || ""));
+  const left = Number(metrics.actualBoundingBoxLeft) || 0;
+  const right = Number(metrics.actualBoundingBoxRight) || metrics.width || 0;
+  return { left, right, width: Math.max(1, left + right) };
+}
+
+// Advance width, i.e. what karaoke_ass._measure_kinetic_text measures for
+// line wrapping. Ink bounds are narrower, which would let the overlay keep a
+// word that the burn shrinks.
+function kineticAdvance(text, size, font, bold) {
+  const ctx = kineticMeasureFont(size, font, bold);
+  if (!ctx) return Math.max(1, size) * String(text || "").length;
+  return ctx.measureText(String(text || "")).width || 0;
+}
+
+function kineticOffsetWithin(element, ancestor) {
+  // Layout coordinates: offsetLeft/offsetTop ignore the reveal transform, which
+  // would otherwise move the pill while a word springs.
+  let x = 0;
+  let y = 0;
+  let node = element;
+  while (node && node !== ancestor) {
+    x += node.offsetLeft || 0;
+    y += node.offsetTop || 0;
+    node = node.offsetParent;
+  }
+  return { x, y };
+}
+
+function placeRecessPill(style, state, activeLocal, baseSize) {
+  if (!captionPill || !captionText || !captionOverlay) return;
+  const span = captionText.querySelectorAll(".kinetic-word")[activeLocal];
+  const word = state.phraseWords[activeLocal];
+  if (!span || !word) {
+    hideRecessPill();
+    return;
+  }
+
+  const spot = kineticOffsetWithin(span, captionOverlay);
+  const punchScale = Number(style.accent_scale || 150) / 100;
+  const accentScale = Number(style.accent_size_scale || 100) / 100;
+  const wordSize = baseSize * (word.punch ? punchScale : (word.accent ? accentScale : 1));
+  const rawLabel = String(span.textContent || "");
+  const label = style.uppercase ? rawLabel.toUpperCase() : rawLabel;
+  const ink = kineticInkMetrics(label, wordSize, style.font, style.bold);
+
+  // Padding is authored in the emitted em (libass units), so the live overlay
+  // has to undo the CSS conversion before applying it.
+  const typeEm = baseSize / RECESS_LIVE_EM;
+  const padX = RECESS_PILL_PAD_X * RECESS_PILL_EM_RATIO * typeEm;
+  const padY = RECESS_PILL_PAD_Y * RECESS_PILL_EM_RATIO * typeEm;
+  const radius = Number(style.pill_radius ?? 0.26) * RECESS_PILL_EM_RATIO * typeEm;
+  const width = ink.width + padX * 2;
+  const height = wordSize * (RECESS_CAP_RATIO / RECESS_LIVE_EM) + padY * 2;
+  // The glyph's ink centre, not the advance box, is what the reference hugs.
+  const centreX = spot.x + (ink.right - ink.left) / 2;
+  const centreY = spot.y + (span.offsetHeight || wordSize) / 2 + wordSize * RECESS_PILL_Y_NUDGE;
+
+  const left = centreX - width / 2;
+  const top = centreY - height / 2;
+
+  const key = `${state.phraseId}:${activeLocal}`;
+  const moved = key !== kineticPillKey;
+  const sameLine = moved && kineticPillTop !== null && Math.abs(spot.y - kineticPillTop) <= 2;
+  const fadeMs = Math.max(0, Number(style.pill_fade_ms ?? 65));
+  const slideMs = Math.max(0, Number(style.pill_slide_ms ?? 130));
+  const alpha = Math.max(0, Math.min(1, Number(style.pill_alpha ?? 1)));
+
+  captionPill.style.left = `${left}px`;
+  captionPill.style.top = `${top}px`;
+  captionPill.style.width = `${width}px`;
+  captionPill.style.height = `${height}px`;
+  captionPill.style.borderRadius = `${radius}px`;
+
+  if (moved) {
+    if (sameLine && slideMs > 0) {
+      // Same line: slide the pill from the previous word to the new one.
+      captionPill.style.transition =
+        `left ${slideMs}ms cubic-bezier(0.16, 1, 0.3, 1), ` +
+        `top ${slideMs}ms cubic-bezier(0.16, 1, 0.3, 1), ` +
+        `width ${slideMs}ms cubic-bezier(0.16, 1, 0.3, 1), ` +
+        `height ${slideMs}ms cubic-bezier(0.16, 1, 0.3, 1), ` +
+        `opacity ${fadeMs}ms linear`;
+    } else {
+      // New line: jump without sliding, then fade back in.
+      captionPill.style.transition = "none";
+      captionPill.style.opacity = "0";
+      void captionPill.offsetWidth;
+      captionPill.style.transition = `opacity ${fadeMs}ms linear`;
+    }
+    kineticPillKey = key;
+    kineticPillTop = spot.y;
+  }
+  captionPill.style.opacity = String(alpha);
+}
+
+function hideKineticCaption() {
+  if (captionOverlay) captionOverlay.classList.remove("visible");
+  hideRecessPill();
+  kineticRenderKey = "";
+}
+
+function updateKineticCaption() {
+  if (!captionOverlay || !captionText || !activeCaptionStyle) return;
+  if (captionMode === "off" || !currentSegments || !currentSegments.length) {
+    hideKineticCaption();
+    return;
+  }
+  if (activeCaptionStyle.motion !== "word-pop") return;
+
+  const seconds = videoPlayer ? videoPlayer.currentTime : 0;
+  const state = kineticStateAt(seconds);
+  if (!state) {
+    hideKineticCaption();
+    return;
+  }
+
+  const style = activeCaptionStyle;
+  ensureKineticOverlay(style, state);
+  const signature = kineticStyleSignature(style);
+  if (signature !== kineticStyleKey) {
+    kineticStyleKey = signature;
+    kineticRenderKey = "";
+  }
+
+  const baseSize = kineticBaseSize(style);
+  const punchScale = Number(style.accent_scale || 150) / 100;
+  const accentScale = Number(style.accent_size_scale || 100) / 100;
+  const wordScale = word => (word && word.punch ? punchScale : (word && word.accent ? accentScale : 1));
+  const widthPercent = kineticMaxWidthPercent(state, style);
+  const rect = videoPlayer ? videoPlayer.getBoundingClientRect() : { width: 456, height: 600 };
+  const isPortrait = (rect.height || 600) > (rect.width || 456) * 1.15;
+  const layout = style.kinetic_layout || "center";
+  // `alternate` follows the reference frames: phrase 1 flush right, phrase 2
+  // flush left, 7% in from the edge. `right` keeps older custom styles.
+  const alternate = layout === "alternate";
+  const flushRight = alternate ? Number(state.phraseId || 0) % 2 === 0 : layout === "right";
+  const flushLeft = alternate && !flushRight;
+  const alignRight = flushRight;
+  captionText.style.fontSize = `${baseSize}px`;
+  captionText.style.width = `${widthPercent}%`;
+  captionText.style.maxWidth = `${widthPercent}%`;
+  let marginLeft = "auto";
+  let marginRight = "auto";
+  if (alternate) {
+    // The overlay is inset 10px from the video on each side, so a CSS
+    // percentage would measure the wrong box. Compute the frame-accurate
+    // 7% margin in pixels instead.
+    const frameWidth = rect.width || 456;
+    const overlayWidth = captionOverlay.clientWidth || frameWidth;
+    const inset = Math.max(0, (frameWidth - overlayWidth) / 2);
+    const flush = `${Math.max(0, frameWidth * 0.07 - inset).toFixed(1)}px`;
+    if (flushRight) marginRight = flush;
+    else marginLeft = flush;
+  } else if (alignRight) {
+    marginRight = isPortrait ? "8%" : "20%";
+  }
+  captionText.style.marginLeft = marginLeft;
+  captionText.style.marginRight = marginRight;
+  captionText.style.justifyContent = alignRight ? "flex-end" : (flushLeft ? "flex-start" : "center");
+  captionText.style.textAlign = alignRight ? "right" : (flushLeft ? "left" : "center");
+
+  const activeLocal = state.activeIndex - state.phraseStart;
+  const renderKey = `${state.phraseId}:${signature}`;
+  if (renderKey !== kineticRenderKey) {
+    captionText.textContent = "";
+    state.phraseWords.forEach((word, i) => {
+      if (!word) return;
+      const span = document.createElement("span");
+      span.className = "kinetic-word" +
+        (word.accent ? " accent" : "") +
+        (word.punch ? " punch" : "");
+      span.textContent = word.text;
+      span.dataset.start = String(word.start);
+      span.dataset.end = String(word.end);
+      span.dataset.next = String(word.nextStart);
+      captionText.appendChild(span);
+      const endsQuestion = /\?$/.test(String(word.text || "").trim());
+      const nextWord = state.phraseWords[i + 1];
+      const beforeTheAfterAbout =
+        word.key === "about" && Boolean(nextWord) && nextWord.key === "the";
+      if (
+        (i === 0 && state.phraseWords.length > 1 && KINETIC_ACCENT_WORDS.has(word.key)) ||
+        beforeTheAfterAbout ||
+        (endsQuestion && i < state.phraseWords.length - 1)
+      ) {
+        const lineBreak = document.createElement("span");
+        lineBreak.className = "kinetic-break";
+        lineBreak.setAttribute("aria-hidden", "true");
+        captionText.appendChild(lineBreak);
+      }
+    });
+    kineticRenderKey = renderKey;
+  }
+
+  const spans = captionText.querySelectorAll(".kinetic-word");
+  spans.forEach((span, index) => {
+    const word = state.phraseWords[index];
+    if (!word) return;
+    const visible = index <= activeLocal;
+    span.style.visibility = visible ? "visible" : "hidden";
+    let size = baseSize * wordScale(word);
+    if (!style.pill && captionText.clientWidth > 0) {
+      // Mirror karaoke_ass._kinetic_lines: a word wider than the line box is
+      // shrunk to fit instead of running off the frame.
+      const advance = kineticAdvance(word.text, size, style.font, style.bold);
+      if (advance > captionText.clientWidth) {
+        size *= captionText.clientWidth / advance;
+      }
+    }
+    span.style.fontSize = `${size}px`;
+    span.style.color = word.accent
+      ? (style.highlight_color || "#F5C844")
+      : (style.base_color || "#FFFFFF");
+    span.classList.toggle("active", index === activeLocal);
+    if (visible && span.dataset.revealed !== "1") {
+      span.dataset.revealed = "1";
+      if (style.pill && typeof span.animate === "function") {
+        const spring = Math.max(60, Number(style.reveal_spring_ms || 130));
+        const fadeIn = Math.max(60, Number(style.reveal_fade_ms || 65));
+        const from = Number(style.reveal_spring_scale || 1.1);
+        span.animate(
+          [
+            { opacity: 0, transform: `scale(${from})` },
+            { opacity: 1, transform: "scale(1)" }
+          ],
+          {
+            duration: Math.max(spring, fadeIn),
+            easing: "cubic-bezier(0.16, 1, 0.3, 1)"
+          }
+        );
+      }
+    }
+  });
+  if (style.pill) {
+    // Punch words are isolated on their own line, so the tallest word sets the
+    // block's em for the cap lift and the pill follows the same centre.
+    const blockEm = state.phraseWords.reduce(
+      (max, word) => Math.max(max, baseSize * wordScale(word)),
+      baseSize
+    );
+    const top = recessCentreTop(blockEm);
+    if (top !== null) captionOverlay.style.top = `${top.toFixed(1)}px`;
+    placeRecessPill(style, state, activeLocal, baseSize);
+  } else {
+    hideRecessPill();
+  }
+  captionOverlay.classList.add("visible");
+}
+
+// One clock for every style. `requestVideoFrameCallback` fires once per
+// presented frame (frame-exact, no drift); rAF is the fallback. Both read
+// `video.currentTime`, so seeking and 0.5x/2x playback stay correct.
+function scheduleCaptionFrame() {
+  if (!captionLoopOn || !videoPlayer) return;
+  // Idempotent: `captionTick` calls updateVideoCaption() (which may start the
+  // loop) and then schedules again. Without this guard a second callback would
+  // be queued every frame and the loop would multiply.
+  if (captionRaf !== null || captionFrameHandle !== null) return;
+  if (typeof videoPlayer.requestVideoFrameCallback === "function") {
+    captionFrameHandle = videoPlayer.requestVideoFrameCallback(captionTick);
+  } else {
+    captionRaf = requestAnimationFrame(captionTick);
+  }
+}
+
+function captionTick() {
+  captionRaf = null;
+  captionFrameHandle = null;
+  if (!captionLoopOn) return;
+  if (!videoPlayer || videoPlayer.paused || videoPlayer.ended || captionMode === "off") {
+    stopCaptionLoop();
+    updateVideoCaption(true);
+    return;
+  }
+  updateVideoCaption();
+  scheduleCaptionFrame();
+}
+
+function startCaptionLoop() {
+  if (!videoPlayer || captionMode === "off" || videoPlayer.ended) return;
+  if (videoPlayer.paused) return;
+  if (captionLoopOn) {
+    if (captionRaf === null && captionFrameHandle === null) scheduleCaptionFrame();
+    return;
+  }
+  captionLoopOn = true;
+  scheduleCaptionFrame();
+}
+
+function stopCaptionLoop() {
+  captionLoopOn = false;
+  if (captionRaf !== null) {
+    cancelAnimationFrame(captionRaf);
+    captionRaf = null;
+  }
+  if (captionFrameHandle !== null) {
+    if (typeof videoPlayer.cancelVideoFrameCallback === "function") {
+      videoPlayer.cancelVideoFrameCallback(captionFrameHandle);
+    }
+    captionFrameHandle = null;
+  }
+}
+
+function applyCaptionStyleToVideo() {
+  if (!captionText || !activeCaptionStyle) return;
+  const s = activeCaptionStyle;
+  const captionBox = document.getElementById("captionBox");
+  const isKinetic = s.motion === "word-pop";
+  captionOverlay.classList.toggle("kinetic", isKinetic);
+  captionText.classList.toggle("kinetic", isKinetic);
+
+  captionText.style.fontFamily = `"${s.font}", sans-serif`;
+  captionText.style.fontWeight = s.bold ? "900" : "700";
+
+  const previewSize = Math.max(13, Math.min(32, Math.round((s.font_size || 60) * 0.32)));
+  captionText.style.fontSize = `${previewSize}px`;
+  captionText.style.color = s.base_color || "#FFFFFF";
+  captionText.style.textTransform = s.uppercase ? "uppercase" : "none";
+
+  if (s.box) {
+    if (captionBox) {
+      captionBox.style.background = s.back_color ? s.back_color : "rgba(0, 0, 0, 0.88)";
+      captionBox.style.border = "1px solid rgba(255, 255, 255, 0.18)";
+      captionBox.style.boxShadow = "0 2px 10px rgba(0,0,0,0.5)";
+      captionBox.style.borderRadius = "8px";
+      captionBox.style.padding = "6px 14px";
+    }
+    captionText.style.textShadow = "none";
+  } else {
+    if (captionBox) {
+      captionBox.style.background = "transparent";
+      captionBox.style.border = "none";
+      captionBox.style.boxShadow = "none";
+      captionBox.style.padding = "4px 8px";
+    }
+    const outlinePx = Math.max(0, Math.min(6, Math.round((s.outline_width || 0) / 1.5)));
+    const shadowPx = Math.max(0, Math.min(8, Math.round(s.shadow || 0)));
+    const oc = s.outline_color || "#000000";
+    const shadows = [];
+    if (outlinePx > 0) {
+      shadows.push(
+        `-${outlinePx}px -${outlinePx}px 0 ${oc}`,
+        `${outlinePx}px -${outlinePx}px 0 ${oc}`,
+        `-${outlinePx}px ${outlinePx}px 0 ${oc}`,
+        `${outlinePx}px ${outlinePx}px 0 ${oc}`
+      );
+    }
+    if (shadowPx > 0) {
+      const drop = Math.max(1, Math.round(shadowPx * 0.5));
+      shadows.push(`${drop}px ${drop}px ${shadowPx * 2}px rgba(0,0,0,0.75)`);
+    }
+    captionText.style.textShadow = shadows.length ? shadows.join(", ") : "none";
+  }
+
+  if (isKinetic) {
+    ensureKineticOverlay(s);
+    captionText.style.fontSize = `${kineticBaseSize(s)}px`;
+    captionText.style.textTransform = s.uppercase ? "uppercase" : "none";
+    if (!s.pill) {
+      captionOverlay.style.top = `${kineticAnchorPercent(null, s)}%`;
+      captionOverlay.style.bottom = "auto";
+    }
+    kineticStyleKey = "";
+    kineticRenderKey = "";
+    if (currentSegments && currentSegments.length && captionMode !== "off") {
+      updateKineticCaption();
+      if (!videoPlayer.paused && !videoPlayer.ended) startCaptionLoop();
+    } else {
+      hideKineticCaption();
+    }
+    return;
+  }
+
+  captionOverlay.classList.remove("kinetic");
+  captionOverlay.classList.remove("recess");
+  captionText.classList.remove("kinetic");
+  captionText.classList.remove("recess");
+  hideRecessPill();
+  // Classic fade. The old 150 ms fade sat on top of the playback-clock delay,
+  // so text was only half-readable ~75 ms after the card was already late.
+  const fadeMs = Math.max(0, Math.min(300, Number(s.reveal_fade_ms ?? 80)));
+  captionOverlay.style.setProperty("--caption-fade", `${fadeMs}ms`);
+  captionText.style.removeProperty("--recess-row");
+  captionOverlay.style.top = "";
+  captionText.style.width = "";
+  captionText.style.maxWidth = "";
+  captionText.style.marginLeft = "";
+  captionText.style.marginRight = "";
+  captionText.style.justifyContent = "";
+  captionText.style.textAlign = "";
+  if (captionBox) {
+    captionBox.style.width = "";
+    captionBox.style.maxWidth = "";
+  }
+
+  if (captionOverlay && typeof s.margin_v === "number") {
+    const bottomPx = Math.max(40, Math.min(140, Math.round(s.margin_v * 0.28)));
+    captionOverlay.style.bottom = `${bottomPx}px`;
+  }
+
+  applyCaptionWordColors(videoPlayer ? videoPlayer.currentTime : 0);
+}
+
+function renderCaptionText(segment, text, currentTime) {
+  if (!captionText || !activeCaptionStyle) return;
+  const words = Array.isArray(segment.words) ? segment.words : [];
+  const tokens = text.trim().split(/\s+/).filter(Boolean);
+  if (!words.length || words.length !== tokens.length) {
+    captionText.textContent = text.trim();
+    return;
+  }
+
+  // Match the .ASS \k behaviour: spoken words keep the highlight colour, upcoming words use the base colour.
+  const base = activeCaptionStyle.base_color || "#FFFFFF";
+  const highlight = activeCaptionStyle.highlight_color || base;
+  captionText.textContent = "";
+  const fragment = document.createDocumentFragment();
+
+  tokens.forEach((token, index) => {
+    const word = words[index] || {};
+    const rawStart = word.start;
+    const start = Number(rawStart);
+    const hasStart = rawStart !== null && rawStart !== undefined && rawStart !== "" && Number.isFinite(start);
+    const span = document.createElement("span");
+    span.className = "caption-word";
+    span.textContent = token;
+    if (hasStart) span.dataset.start = String(start);
+    span.style.color = hasStart && currentTime >= start ? highlight : base;
+    fragment.appendChild(span);
+    if (index < tokens.length - 1) fragment.appendChild(document.createTextNode(" "));
+  });
+
+  captionText.appendChild(fragment);
+}
+
+function applyCaptionWordColors(currentTime) {
+  if (!captionText || !activeCaptionStyle) return;
+  const base = activeCaptionStyle.base_color || "#FFFFFF";
+  const highlight = activeCaptionStyle.highlight_color || base;
+  captionText.querySelectorAll(".caption-word").forEach(span => {
+    const start = Number.parseFloat(span.dataset.start);
+    const spoken = span.dataset.start !== "" && Number.isFinite(start) && currentTime >= start;
+    span.style.color = spoken ? highlight : base;
+  });
+}
+
+function paintCaptionSample(container, textElement, scale, maxSize) {
+  if (!container || !textElement || !activeCaptionStyle) return;
+  const s = activeCaptionStyle;
+  const box = !!s.box;
+
+  container.style.background = box ? s.back_color : "#111827";
+  textElement.textContent = "";
+  textElement.style.fontFamily = `"${s.font}", sans-serif`;
+  textElement.style.fontWeight = s.bold ? "800" : "400";
+  textElement.style.fontSize = `${Math.max(12, Math.min(maxSize, Math.round((s.font_size || 60) * scale)))}px`;
+  textElement.style.color = s.base_color;
+  const outlinePx = Math.max(1, Math.min(6, Math.round((s.outline_width || 3) / 2)));
+  textElement.style.textShadow = box ? "none" : `${outlinePx}px ${outlinePx}px 0 ${s.outline_color}`;
+
+  const base = document.createElement("span");
+  base.textContent = s.uppercase ? "CAPTION " : "Caption ";
+  const highlight = document.createElement("span");
+  highlight.textContent = s.uppercase ? "STYLE" : "style";
+  highlight.style.color = s.highlight_color;
+  textElement.append(base, highlight);
+}
+
+function hex6(value) {
+  const text = String(value || "");
+  return /^#[0-9a-fA-F]{6}/.test(text) ? text.slice(0, 7) : "#FFFFFF";
+}
+
+function syncStyleEditor() {
+  if (!activeCaptionStyle) return;
+  const s = activeCaptionStyle;
+  if (styleFont) {
+    styleFont.value = s.font;
+    styleFontSize.value = s.font_size;
+    styleBaseColor.value = hex6(s.base_color);
+    styleHighlightColor.value = hex6(s.highlight_color);
+    styleOutline.value = s.outline_width;
+    styleMargin.value = s.margin_v;
+    styleUppercase.checked = !!s.uppercase;
+    styleBox.checked = !!s.box;
+  }
+
+  if (editorStyleFont) {
+    editorStyleFont.value = s.font;
+    editorStyleFontSize.value = s.font_size;
+    editorStyleBaseColor.value = hex6(s.base_color);
+    editorStyleHighlightColor.value = hex6(s.highlight_color);
+    editorStyleOutline.value = s.outline_width;
+    editorStyleMargin.value = s.margin_v;
+    editorStyleUppercase.checked = !!s.uppercase;
+    editorStyleBox.checked = !!s.box;
+  }
+}
+
+function readStyleEditor() {
+  const base = activeCaptionStyle || captionStyles[0] || {};
+  return {
+    ...base,
+    id: "custom",
+    name: "Custom",
+    font: styleFont.value,
+    font_size: Number(styleFontSize.value) || 60,
+    uppercase: styleUppercase.checked,
+    base_color: styleBaseColor.value,
+    highlight_color: styleHighlightColor.value,
+    outline_width: Number(styleOutline.value),
+    margin_v: Number(styleMargin.value),
+    box: styleBox.checked
+  };
+}
+
+function setEditorStyleStatus(message, isError = false) {
+  if (!editorStyleStatus) return;
+  editorStyleStatus.textContent = message;
+  editorStyleStatus.style.color = isError ? "var(--pink)" : "var(--green)";
+}
+
+function readEditorStyleEditor() {
+  const base = activeCaptionStyle || captionStyles[0] || {};
+  return {
+    ...base,
+    id: "custom",
+    name: "Custom",
+    font: editorStyleFont.value,
+    font_size: Number(editorStyleFontSize.value) || 60,
+    uppercase: editorStyleUppercase.checked,
+    base_color: editorStyleBaseColor.value,
+    highlight_color: editorStyleHighlightColor.value,
+    outline_width: Number(editorStyleOutline.value),
+    margin_v: Number(editorStyleMargin.value),
+    box: editorStyleBox.checked
+  };
+}
+
+function queueEditorStyleSave() {
+  if (!editorStyleFont || !activeCaptionStyle) return;
+  const draft = readEditorStyleEditor();
+  activeCaptionStyle = draft;
+  const idx = captionStyles.findIndex(s => s.id === "custom");
+  if (idx >= 0) captionStyles[idx] = draft;
+  else captionStyles.push(draft);
+  markActiveStyle();
+  applyCaptionSample();
+  setEditorStyleStatus("SAVING...");
+  clearTimeout(editorStyleSaveTimer);
+  editorStyleSaveTimer = setTimeout(() => saveCaptionStyle(draft), 400);
+}
+
+function markActiveStyle() {
+  [stylePresetGrid, editorStylePresetGrid].forEach(grid => {
+    if (!grid) return;
+    const activeId = activeCaptionStyle && activeCaptionStyle.id;
+    grid.querySelectorAll("[data-style-id]").forEach(btn => {
+      const isActive = btn.dataset.styleId === activeId;
+      btn.classList.toggle("active", isActive);
+      btn.setAttribute("aria-pressed", String(isActive));
+    });
+  });
+}
+
+function queueStyleSave() {
+  if (!styleFont) return;
+  const draft = readStyleEditor();
+  activeCaptionStyle = draft;
+
+  const idx = captionStyles.findIndex(s => s.id === "custom");
+  if (idx >= 0) {
+    captionStyles[idx] = draft;
+    markActiveStyle();
+    applyCaptionSample();
+  } else {
+    captionStyles.push(draft);
+    renderCaptionPresets();
+  }
+
+  clearTimeout(styleSaveTimer);
+  styleSaveTimer = setTimeout(() => saveCaptionStyle(draft), 400);
+}
+
+function detectAspect() {
+  if (videoPlayer && videoPlayer.videoWidth && videoPlayer.videoHeight) {
+    const ratio = videoPlayer.videoWidth / videoPlayer.videoHeight;
+    if (ratio > 1.2) return "16:9";
+    if (ratio < 0.85) return "9:16";
+    return "1:1";
+  }
+  return selectedPacing === "long" ? "16:9" : "9:16";
+}
+
+async function requestStylePreview() {
+  if (!activeCaptionStyle || !stylePreviewBtn) return;
+  stylePreviewBtn.disabled = true;
+  stylePreviewBtn.textContent = "RENDERING...";
+  if (stylePreviewStatus) stylePreviewStatus.textContent = "Rendering with libass...";
+
+  try {
+    const res = await fetch("/api/preview-style", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ style: activeCaptionStyle, aspect: detectAspect() })
+    });
+    if (!res.ok) {
+      const detail = await res.text();
+      throw new Error(detail || `HTTP ${res.status}`);
+    }
+    const blob = await res.blob();
+    if (stylePreviewUrl) URL.revokeObjectURL(stylePreviewUrl);
+    stylePreviewUrl = URL.createObjectURL(blob);
+    if (stylePreviewVideo) {
+      stylePreviewVideo.src = stylePreviewUrl;
+      stylePreviewVideo.hidden = false;
+      stylePreviewVideo.play().catch(() => {});
+    }
+    if (stylePreviewStatus) stylePreviewStatus.textContent = "RENDERED BY LIBASS — this is the burned look.";
+  } catch (err) {
+    if (stylePreviewStatus) stylePreviewStatus.textContent = "Preview failed. Check the FFmpeg log.";
+    console.warn("Could not render style preview:", err);
+  } finally {
+    stylePreviewBtn.disabled = false;
+    stylePreviewBtn.textContent = "VERIFY RENDER";
+  }
+}
+
+function scheduleStylePreview() {
+  if (!stylePreviewVideo || stylePreviewVideo.hidden) return;
+  clearTimeout(stylePreviewTimer);
+  stylePreviewTimer = setTimeout(requestStylePreview, 600);
+}
+
+if (stylePreviewBtn) {
+  stylePreviewBtn.addEventListener("click", requestStylePreview);
+}
+
+if (styleEditBtn && styleEditor) {
+  styleEditBtn.addEventListener("click", () => {
+    if (styleEditor.hasAttribute("hidden")) {
+      styleEditor.removeAttribute("hidden");
+      styleEditBtn.textContent = "CLOSE EDITOR";
+      syncStyleEditor();
+    } else {
+      styleEditor.setAttribute("hidden", "");
+      styleEditBtn.textContent = "EDIT STYLE";
+    }
+  });
+}
+
+if (styleResetBtn) {
+  styleResetBtn.addEventListener("click", () => {
+    const preset = captionStyles.find(s => s.id === defaultCaptionStyleId) || captionStyles[0];
+    if (preset) {
+      selectCaptionStyle(preset);
+      syncStyleEditor();
+    }
+  });
+}
+
+if (styleExportBtn) {
+  styleExportBtn.addEventListener("click", () => {
+    if (!activeCaptionStyle) return;
+    const blob = new Blob([JSON.stringify(activeCaptionStyle, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "caption-style.json";
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  });
+}
+
+if (styleImportBtn && styleImportFile) {
+  styleImportBtn.addEventListener("click", () => styleImportFile.click());
+  styleImportFile.addEventListener("change", async () => {
+    const file = styleImportFile.files && styleImportFile.files[0];
+    if (!file) return;
+    try {
+      const parsed = JSON.parse(await file.text());
+      selectCaptionStyle({ ...parsed, id: "custom", name: parsed.name || "Custom" });
+      if (styleEditor) {
+        styleEditor.removeAttribute("hidden");
+        if (styleEditBtn) styleEditBtn.textContent = "CLOSE EDITOR";
+      }
+    } catch (err) {
+      alert("Invalid style JSON: " + err.message);
+    } finally {
+      styleImportFile.value = "";
+    }
+  });
+}
+
+[styleFont, styleFontSize, styleBaseColor, styleHighlightColor, styleOutline, styleMargin, styleUppercase, styleBox].forEach(el => {
+  if (!el) return;
+  el.addEventListener("input", queueStyleSave);
+  el.addEventListener("change", queueStyleSave);
+});
+
+[editorStyleFont, editorStyleFontSize, editorStyleBaseColor, editorStyleHighlightColor, editorStyleOutline, editorStyleMargin, editorStyleUppercase, editorStyleBox].forEach(el => {
+  if (!el) return;
+  el.addEventListener("input", queueEditorStyleSave);
+  el.addEventListener("change", queueEditorStyleSave);
+});
+
+if (editorStyleResetBtn) {
+  editorStyleResetBtn.addEventListener("click", () => {
+    const preset = captionStyles.find(s => s.id === defaultCaptionStyleId) || captionStyles[0];
+    if (preset) {
+      selectCaptionStyle(preset);
+      setEditorStyleStatus("RESET TO DEFAULT");
+    }
+  });
+}
+
+if (editorStyleExportBtn) {
+  editorStyleExportBtn.addEventListener("click", () => {
+    if (!activeCaptionStyle) return;
+    const blob = new Blob([JSON.stringify(activeCaptionStyle, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `caption_style_${activeCaptionStyle.id || "custom"}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    setEditorStyleStatus("EXPORTED");
+  });
+}
+
+if (editorStyleImportBtn && editorStyleImportFile) {
+  editorStyleImportBtn.addEventListener("click", () => editorStyleImportFile.click());
+  editorStyleImportFile.addEventListener("change", async () => {
+    const file = editorStyleImportFile.files && editorStyleImportFile.files[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      selectCaptionStyle({ ...parsed, id: "custom", name: parsed.name || "Custom" }, { persist: false });
+      const saved = await saveCaptionStyle(activeCaptionStyle);
+      setEditorStyleStatus(saved ? "IMPORTED" : "SAVE FAILED", !saved);
+    } catch (err) {
+      alert("Invalid style JSON: " + err.message);
+    }
+  });
+}
+
 async function saveBackendPreference(key, value) {
   if (key === "selected_language") selectedLanguage = value;
   if (key === "selected_model") selectedModel = value;
@@ -642,6 +2095,14 @@ function savePinnedControls() {
   }
 }
 
+function syncPinSwitch(button, isOn) {
+  if (!button) return;
+  button.classList.toggle("on", isOn);
+  button.setAttribute("aria-pressed", String(isOn));
+  const txt = button.querySelector(".pin-text");
+  if (txt) txt.textContent = isOn ? "PINNED" : "PIN TO MAIN";
+}
+
 function updateDynamicControlsLayout() {
   if (!mainDynamicControlsWrap || !mainDynamicControlsCard) return;
 
@@ -651,58 +2112,38 @@ function updateDynamicControlsLayout() {
 
   const hasHw = !!pinnedModules.hw;
   const hasPacing = !!pinnedModules.pacing;
+  const hasDiarize = !!pinnedModules.diarize;
   const hasModel = !!pinnedModules.model;
 
   // Update Switches UI in Settings Drawer
-  if (pinModelSwitch) {
-    pinModelSwitch.classList.toggle("on", hasModel);
-    const txt = pinModelSwitch.querySelector(".pin-text");
-    if (txt) txt.textContent = hasModel ? "PINNED" : "PIN TO MAIN";
-  }
-  if (pinHwSwitch) {
-    pinHwSwitch.classList.toggle("on", hasHw);
-    const txt = pinHwSwitch.querySelector(".pin-text");
-    if (txt) txt.textContent = hasHw ? "PINNED" : "PIN TO MAIN";
-  }
-  if (pinPacingSwitch) {
-    pinPacingSwitch.classList.toggle("on", hasPacing);
-    const txt = pinPacingSwitch.querySelector(".pin-text");
-    if (txt) txt.textContent = hasPacing ? "PINNED" : "PIN TO MAIN";
-  }
+  syncPinSwitch(pinModelSwitch, hasModel);
+  syncPinSwitch(pinHwSwitch, hasHw);
+  syncPinSwitch(pinPacingSwitch, hasPacing);
+  syncPinSwitch(pinDiarizeSwitch, hasDiarize);
 
-  // Left Column elements
-  if (mainHwGroup) {
-    mainHwGroup.style.display = hasHw ? "flex" : "none";
-  }
-  if (mainPacingGroup) {
-    mainPacingGroup.style.display = hasPacing ? "flex" : "none";
-    mainPacingGroup.style.marginTop = (!hasHw && hasPacing) ? "0px" : "18px";
-  }
+  // Left Column items
+  if (mainHwGroup) mainHwGroup.style.display = hasHw ? "flex" : "none";
+  if (mainPacingGroup) mainPacingGroup.style.display = hasPacing ? "flex" : "none";
+  if (mainDiarizeGroup) mainDiarizeGroup.style.display = hasDiarize ? "flex" : "none";
 
   const mainTopicHintGroup = document.getElementById("mainTopicHintGroup");
   if (mainTopicHintGroup) {
-    if (hasHw || hasPacing) {
-      mainTopicHintGroup.style.marginTop = "auto";
-      mainTopicHintGroup.style.paddingTop = "14px";
-    } else {
-      mainTopicHintGroup.style.marginTop = "0px";
-      mainTopicHintGroup.style.paddingTop = "0px";
-    }
+    const hasAnyLeftPinned = hasHw || hasPacing || hasDiarize;
+    mainTopicHintGroup.style.marginTop = hasAnyLeftPinned ? "auto" : "0px";
+    mainTopicHintGroup.style.paddingTop = hasAnyLeftPinned ? "14px" : "0px";
   }
 
-  // Right Column (ASR Model Switcher)
-  if (mainColRight) {
-    mainColRight.style.display = hasModel ? "flex" : "none";
-  }
-  if (mainModelGroup) {
-    mainModelGroup.style.display = hasModel ? "flex" : "none";
-  }
+  // Right Column (Model Switcher)
+  if (mainColRight) mainColRight.style.display = hasModel ? "flex" : "none";
+  if (mainModelGroup) mainModelGroup.style.display = hasModel ? "flex" : "none";
 
-  // Dynamic Grid: 2 columns if Model Switcher is pinned, 1 column if unpinned
+  // Grid columns: 1 column if model is unpinned, 2 columns if model is pinned
   if (hasModel) {
-    mainDynamicControlsCard.className = "controls-card cols-2";
+    mainDynamicControlsCard.classList.remove("cols-1");
+    mainDynamicControlsCard.classList.add("cols-2");
   } else {
-    mainDynamicControlsCard.className = "controls-card cols-1";
+    mainDynamicControlsCard.classList.remove("cols-2");
+    mainDynamicControlsCard.classList.add("cols-1");
   }
 }
 
@@ -710,27 +2151,19 @@ function initPinSwitches() {
   loadPinnedControls();
   updateDynamicControlsLayout();
 
-  if (pinModelSwitch) {
-    pinModelSwitch.addEventListener("click", () => {
-      pinnedModules.model = !pinnedModules.model;
+  [
+    [pinModelSwitch, "model"],
+    [pinHwSwitch, "hw"],
+    [pinPacingSwitch, "pacing"],
+    [pinDiarizeSwitch, "diarize"]
+  ].forEach(([button, key]) => {
+    if (!button) return;
+    button.addEventListener("click", () => {
+      pinnedModules[key] = !pinnedModules[key];
       savePinnedControls();
       updateDynamicControlsLayout();
     });
-  }
-  if (pinHwSwitch) {
-    pinHwSwitch.addEventListener("click", () => {
-      pinnedModules.hw = !pinnedModules.hw;
-      savePinnedControls();
-      updateDynamicControlsLayout();
-    });
-  }
-  if (pinPacingSwitch) {
-    pinPacingSwitch.addEventListener("click", () => {
-      pinnedModules.pacing = !pinnedModules.pacing;
-      savePinnedControls();
-      updateDynamicControlsLayout();
-    });
-  }
+  });
 }
 
 // Drawer Pill Event Listeners
@@ -932,32 +2365,160 @@ function handleSelectedFile(file) {
 // --------------------------------------------------------------------------
 // On-Video Subtitle Sync Engine (Option 1: Social Media Reel Overlay)
 // --------------------------------------------------------------------------
-function updateVideoCaption() {
+
+// Binary search: segments are sorted and non-overlapping. Much cheaper than a
+// linear scan once a long video has thousands of cards.
+function activeCardIndexAt(seconds) {
+  const segs = currentSegments;
+  if (!segs || segs.length === 0) return -1;
+  let lo = 0;
+  let hi = segs.length - 1;
+  let best = -1;
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    if (segs[mid].start <= seconds) {
+      best = mid;
+      lo = mid + 1;
+    } else {
+      hi = mid - 1;
+    }
+  }
+  if (best < 0) return -1;
+  return seconds <= segs[best].end ? best : -1;
+}
+
+function hideCaptionOverlay() {
+  if (captionRenderKey === "hidden") return;
+  captionRenderKey = "hidden";
+  captionOverlay.classList.remove("visible");
+}
+
+// `force` re-renders even when the playhead is still inside the same card: used
+// by seek/style/mode changes, not by the frame loop.
+function updateVideoCaption(force) {
   if (!captionOverlay || !captionText) return;
 
   if (captionMode === "off" || !currentSegments || currentSegments.length === 0) {
-    captionOverlay.classList.remove("visible");
+    hideCaptionOverlay();
+    stopCaptionLoop();
+    return;
+  }
+
+  if (activeCaptionStyle && activeCaptionStyle.motion === "word-pop") {
+    captionRenderKey = "";
+    updateKineticCaption();
+    startCaptionLoop();
     return;
   }
 
   const curTime = videoPlayer.currentTime;
-  const activeSeg = currentSegments.find(s => curTime >= s.start && curTime <= s.end);
+  const idx = activeCardIndexAt(curTime);
+  if (idx < 0) {
+    hideCaptionOverlay();
+    return;
+  }
+  const activeSeg = currentSegments[idx];
+  const text = captionMode === "original" ? (activeSeg.original_text || "") : (activeSeg.hinglish_text || "");
+  if (!text.trim()) {
+    hideCaptionOverlay();
+    return;
+  }
 
-  if (activeSeg) {
-    const text = captionMode === "original" ? (activeSeg.original_text || "") : (activeSeg.hinglish_text || "");
-    if (text.trim()) {
-      captionText.textContent = text.trim();
-      captionOverlay.classList.add("visible");
-    } else {
-      captionOverlay.classList.remove("visible");
-    }
+  // Only rebuild the card's DOM when the card itself changes. Every other frame
+  // just recolours the existing spans, which is what keeps a 60 Hz tick cheap.
+  const cardKey = `${idx}|${captionMode}|${activeSeg.start}|${text.length}`;
+  if (force || cardKey !== captionRenderKey) {
+    renderCaptionText(activeSeg, text, curTime);
+    applyCaptionStyleToVideo();
+    captionOverlay.classList.add("visible");
+    captionRenderKey = cardKey;
   } else {
-    captionOverlay.classList.remove("visible");
+    applyCaptionWordColors(curTime);
   }
 }
 
-videoPlayer.addEventListener("timeupdate", updateVideoCaption);
-videoPlayer.addEventListener("seeked", updateVideoCaption);
+videoPlayer.addEventListener("timeupdate", () => updateVideoCaption());
+videoPlayer.addEventListener("seeked", () => updateVideoCaption(true));
+videoPlayer.addEventListener("seeking", () => updateVideoCaption(true));
+videoPlayer.addEventListener("ratechange", () => updateVideoCaption(true));
+
+// --------------------------------------------------------------------------
+// Per-clip sync nudge
+//
+// One number, applied once to the card timeline, so the live preview, the
+// .ASS export, the .SRT rebuild and the burn can never drift apart. ±500 ms
+// in 20 ms steps is enough to fix a clip without creating new problems.
+// --------------------------------------------------------------------------
+const CAPTION_OFFSET_STEP = 20;
+const CAPTION_OFFSET_LIMIT = 500;
+
+function roundCaptionTime(value) {
+  return Math.round(Number(value || 0) * 1000) / 1000;
+}
+
+// Move one card and its words by `delta` seconds, never past 0.
+function shiftSegmentTimes(seg, delta) {
+  const start = Math.max(0, Number(seg.start || 0) + delta);
+  const end = Math.max(start + 0.05, Number(seg.end || start) + delta);
+  const words = (seg.words || []).map((word) => {
+    const ws = Math.max(0, Number(word.start ?? start) + delta);
+    const we = Math.max(ws + 0.02, Number(word.end ?? ws) + delta);
+    return { ...word, start: roundCaptionTime(ws), end: roundCaptionTime(we) };
+  });
+  return {
+    ...seg,
+    start: roundCaptionTime(start),
+    end: roundCaptionTime(end),
+    start_str: srtTimestamp(start),
+    end_str: srtTimestamp(end),
+    words,
+  };
+}
+
+function renderCaptionSyncLabel() {
+  if (!captionSyncValue) return;
+  const sign = captionOffsetMs > 0 ? "+" : (captionOffsetMs < 0 ? "−" : "");
+  captionSyncValue.textContent = `${sign}${Math.abs(captionOffsetMs)} ms`;
+  captionSyncValue.classList.toggle("active", captionOffsetMs !== 0);
+}
+
+// The editor edits the shifted timeline, so re-derive the unshifted source of
+// truth before the next nudge, otherwise a nudge would undo the edit.
+function captureCaptionBase() {
+  // The editor mutates cards in place, so identity alone would keep a stale
+  // kinetic word list.
+  kineticWordsCache.segments = null;
+  if (!captionBaseSegments) return;
+  const delta = -captionOffsetMs / 1000;
+  captionBaseSegments = currentSegments.map((seg) => shiftSegmentTimes(seg, delta));
+}
+
+function setCaptionOffset(ms, { persist = false } = {}) {
+  const stepped = Math.round(Number(ms || 0) / CAPTION_OFFSET_STEP) * CAPTION_OFFSET_STEP;
+  captionOffsetMs = Math.max(-CAPTION_OFFSET_LIMIT, Math.min(CAPTION_OFFSET_LIMIT, stepped));
+
+  if (captionBaseSegments) {
+    const delta = captionOffsetMs / 1000;
+    currentSegments = captionBaseSegments.map((seg) => shiftSegmentTimes(seg, delta));
+  }
+
+  captionRenderKey = "";
+  renderCaptionSyncLabel();
+  updateVideoCaption(true);
+  if (currentSegments.length) renderEditorList();
+  if (persist) {
+    try {
+      localStorage.setItem("hinglish.captionOffsetMs", String(captionOffsetMs));
+    } catch (err) { /* private mode: keep the value for this session only */ }
+  }
+}
+
+function nudgeCaptionOffset(deltaMs) {
+  setCaptionOffset(captionOffsetMs + deltaMs, { persist: true });
+}
+
+if (captionSyncEarlier) captionSyncEarlier.addEventListener("click", () => nudgeCaptionOffset(-CAPTION_OFFSET_STEP));
+if (captionSyncLater) captionSyncLater.addEventListener("click", () => nudgeCaptionOffset(CAPTION_OFFSET_STEP));
 
 if (captionToggleGroup) {
   captionToggleGroup.querySelectorAll(".btn-caption-pill").forEach(btn => {
@@ -973,6 +2534,9 @@ if (captionToggleGroup) {
 removeFileBtn.addEventListener("click", () => {
   currentFile = null;
   videoFileInput.value = "";
+  closeSubtitleEditor();
+  if (editorSearchInput) editorSearchInput.value = "";
+  editorSearchQuery = "";
   filePreview.style.display = "none";
   dropzone.style.display = "block";
   if (workbenchEmptyState) {
@@ -995,6 +2559,9 @@ removeFileBtn.addEventListener("click", () => {
   fileMetaLabel.textContent = "0.00 MB";
   if (captionToggleGroup) {
     captionToggleGroup.style.display = "none";
+  }
+  if (captionSync) {
+    captionSync.style.display = "none";
   }
   if (captionOverlay) {
     captionOverlay.classList.remove("visible");
@@ -1074,14 +2641,20 @@ if (playerPlayBtn) {
 videoPlayer.addEventListener("play", () => {
   updatePlayPauseBtnState();
   startVisualizerAnimation();
+  startCaptionLoop();
+  updateVideoCaption(true);
 });
 
 videoPlayer.addEventListener("pause", () => {
   updatePlayPauseBtnState();
+  stopCaptionLoop();
+  updateVideoCaption(true);
 });
 
 videoPlayer.addEventListener("ended", () => {
   updatePlayPauseBtnState();
+  stopCaptionLoop();
+  updateVideoCaption(true);
 });
 
 videoPlayer.addEventListener("loadedmetadata", () => {
@@ -1393,6 +2966,17 @@ generateBtn.addEventListener("click", async () => {
     const data = await res.json();
     currentResults = data;
     currentSegments = data.segments || [];
+    // Keep an untouched copy of the timeline so the sync nudge can be applied
+    // (and undone) without re-transcribing.
+    captionBaseSegments = (data.segments || []).map((seg) => ({
+      ...seg,
+      words: (seg.words || []).map((word) => ({ ...word })),
+    }));
+    let savedOffset = 0;
+    try {
+      savedOffset = Number(localStorage.getItem("hinglish.captionOffsetMs") || 0) || 0;
+    } catch (err) { savedOffset = 0; }
+    setCaptionOffset(savedOffset);
 
     // Complete Progress Bar
     progressBarFill.style.width = "100%";
@@ -1436,13 +3020,40 @@ function displayResults(data) {
   if (captionToggleGroup && currentSegments.length > 0) {
     captionToggleGroup.style.display = "flex";
   }
+  if (captionSync) {
+    captionSync.style.display = currentSegments.length > 0 ? "flex" : "none";
+    renderCaptionSyncLabel();
+  }
   updateDownloadButtonsLabels();
-  updateVideoCaption();
+  updateVideoCaption(true);
 
   setSegmentsCollapsed(false);
   if (floatingSearchInput) floatingSearchInput.value = "";
   updateFloatingMatchPill(currentSegments.length, currentSegments.length, false);
   renderCards(currentSegments);
+  updateStudioBreadcrumb();
+  openSubtitleEditor();
+}
+
+function updateStudioBreadcrumb() {
+  if (!studioBreadcrumbBar) return;
+  if (studioFileChip) {
+    studioFileChip.textContent = `🎬 ${currentFile ? currentFile.name : "video.mp4"}`;
+  }
+  if (studioModeChip) {
+    const langLabelMap = {
+      "mixed": "Mixed Hinglish",
+      "hi": "Pure Hindi",
+      "hi-en": "Hindi ➔ English",
+      "en": "English",
+      "auto": "Auto-Detect"
+    };
+    studioModeChip.textContent = langLabelMap[selectedLanguage] || "Hinglish";
+  }
+  if (studioMetaText) {
+    const modelLabel = (selectedModel || "medium").toUpperCase();
+    studioMetaText.textContent = `${modelLabel} • ${currentSegments ? currentSegments.length : 0} Segments`;
+  }
 }
 
 function renderCards(segments) {
@@ -1481,10 +3092,12 @@ function renderCards(segments) {
       </div>
     `;
 
-    // Open drawer on card click (except copy button)
+    // Select the segment in the left editor (except copy button)
     card.addEventListener("click", (e) => {
       if (e.target.closest(".copy-btn")) return;
-      openDrawer(seg);
+      if (subtitleEditor && subtitleEditor.hidden) openSubtitleEditor();
+      setEditorCollapsed(false, { persist: true, focus: false });
+      selectEditorSegment(seg.index, { seek: true, focus: true });
     });
 
     const copyBtn = card.querySelector(".copy-btn");
@@ -1596,7 +3209,7 @@ if (floatingSearchInput) {
   });
 }
 
-// Global keyboard shortcuts: '/' to focus bottom search, 'Escape' to close drawer, ',' to open settings
+// Global keyboard shortcuts: '/' to focus bottom search, 'Escape' to collapse editor, ',' to open settings
 document.addEventListener("keydown", (e) => {
   const activeTag = (document.activeElement.tagName || "").toLowerCase();
   const isInputActive = activeTag === "input" || activeTag === "textarea";
@@ -1616,8 +3229,8 @@ document.addEventListener("keydown", (e) => {
   } else if (e.key === "Escape") {
     if (settingsDrawer && settingsDrawer.classList.contains("open")) {
       closeSettingsDrawer();
-    } else if (drawer && drawer.classList.contains("open")) {
-      closeDrawer();
+    } else if (subtitleEditor && !subtitleEditor.hidden && !subtitleEditor.classList.contains("is-collapsed")) {
+      setEditorCollapsed(true);
     }
   }
 });
@@ -1627,9 +3240,6 @@ document.addEventListener("keydown", (e) => {
 // --------------------------------------------------------------------------
 function openSettingsDrawer() {
   if (settingsDrawer && settingsDrawerOverlay) {
-    if (drawer && drawer.classList.contains("open")) {
-      closeDrawer();
-    }
     settingsDrawerOverlay.classList.add("open");
     settingsDrawer.classList.add("open");
     if (settingsHwBadge && hwBadge) {
@@ -1670,58 +3280,421 @@ if (saveAndCloseSettingsBtn) {
 }
 
 // --------------------------------------------------------------------------
-// 7. Drawer Inspector & Live Editor
+// 7. Collapsible Subtitle Editor (Segments + Global Style)
 // --------------------------------------------------------------------------
-function openDrawer(seg) {
+function srtTimestamp(seconds) {
+  const safe = Math.max(0, Number(seconds) || 0);
+  const totalMs = Math.round(safe * 1000);
+  const ms = totalMs % 1000;
+  const totalSecs = Math.floor(totalMs / 1000);
+  const secs = totalSecs % 60;
+  const totalMins = Math.floor(totalSecs / 60);
+  const mins = totalMins % 60;
+  const hrs = Math.floor(totalMins / 60);
+  const pad = (value, width = 2) => String(value).padStart(width, "0");
+  return `${pad(hrs)}:${pad(mins)}:${pad(secs)},${pad(ms, 3)}`;
+}
+
+function shortClock(seconds) {
+  const safe = Math.max(0, Number(seconds) || 0);
+  const total = Math.floor(safe);
+  const mins = Math.floor(total / 60);
+  const secs = total % 60;
+  return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+}
+
+function editorFilteredSegments() {
+  const query = editorSearchQuery.toLowerCase().trim();
+  if (!query) return currentSegments;
+  return currentSegments.filter(seg =>
+    (seg.hinglish_text || "").toLowerCase().includes(query) ||
+    (seg.original_text || "").toLowerCase().includes(query) ||
+    (seg.speaker || "").toLowerCase().includes(query)
+  );
+}
+
+function updateEditorDirtyState() {
+  if (!editorSaveBtn) return;
+  editorSaveBtn.disabled = !editorDirty;
+  editorSaveBtn.textContent = editorDirty ? "SAVE CHANGES" : "NO CHANGES";
+  if (editorRevertBtn) editorRevertBtn.disabled = !editorDirty;
+}
+
+function markEditorDirty() {
+  if (!editorDirty) {
+    editorDirty = true;
+    updateEditorDirtyState();
+  }
+}
+
+function renderEditorSpeakerOptions() {
+  if (!editorSpeakerOptions) return;
+  const speakers = [...new Set(currentSegments.map(seg => seg.speaker).filter(Boolean))];
+  editorSpeakerOptions.textContent = "";
+  speakers.forEach(speaker => {
+    const option = document.createElement("option");
+    option.value = speaker;
+    editorSpeakerOptions.appendChild(option);
+  });
+}
+
+function renderEditorList() {
+  if (!editorSegmentList) return;
+  const items = editorFilteredSegments();
+  const total = currentSegments.length;
+  if (editorMatchCount) editorMatchCount.textContent = `${items.length} / ${total}`;
+  if (editorSegmentCount) editorSegmentCount.textContent = String(total);
+  if (editorTabCount) editorTabCount.textContent = String(total);
+  if (editorRailCount) editorRailCount.textContent = String(total);
+
+  editorSegmentList.textContent = "";
+  if (!items.length) {
+    const empty = document.createElement("div");
+    empty.className = "editor-segment-empty";
+    empty.textContent = total ? "No segments match this search." : "Generate captions to start editing.";
+    editorSegmentList.appendChild(empty);
+    return;
+  }
+
+  items.forEach(seg => {
+    const row = document.createElement("button");
+    row.type = "button";
+    row.className = "editor-segment-row";
+    row.dataset.segmentId = String(seg.index);
+    row.setAttribute("role", "option");
+    row.setAttribute("aria-selected", String(seg.index === activeSegmentIndex));
+
+    const speaker = seg.speaker ? `<span class="editor-row-speaker">${escapeHtml(seg.speaker)}</span>` : "";
+    row.innerHTML = `
+      <span class="editor-row-index">#${seg.index}</span>
+      <span class="editor-row-copy">
+        <span class="editor-row-text">${escapeHtml(seg.hinglish_text || seg.original_text || "—")}</span>
+        <span class="editor-row-meta">${speaker}<span>${escapeHtml(seg.start_str || "")}</span></span>
+      </span>
+      <span class="editor-row-time">${shortClock(seg.start)}</span>
+    `;
+    row.addEventListener("click", () => selectEditorSegment(seg.index, { seek: true }));
+    editorSegmentList.appendChild(row);
+  });
+}
+
+function fillEditor(seg) {
+  if (!editorCaptionInput) return;
+  if (!seg) {
+    editorSegmentTitle.textContent = "NO SEGMENT SELECTED";
+    editorSegmentTime.textContent = "—";
+    editorOriginalText.textContent = "—";
+    editorCaptionInput.value = "";
+    editorStartInput.value = "";
+    editorEndInput.value = "";
+    editorSpeakerInput.value = "";
+    editorDirty = false;
+    updateEditorDirtyState();
+    return;
+  }
+
   activeSegmentIndex = seg.index;
-  drawerIndexTitle.textContent = `SEGMENT #${seg.index}`;
-  drawerTimeRange.textContent = `${seg.start_str} ➔ ${seg.end_str}`;
-  drawerOrigText.textContent = seg.original_text || "—";
-  drawerHinglishInput.value = seg.hinglish_text || "";
-
-  drawerOverlay.classList.add("open");
-  drawer.classList.add("open");
+  editorSegmentTitle.textContent = `SEGMENT #${seg.index}`;
+  editorSegmentTime.textContent = `${seg.start_str} → ${seg.end_str}`;
+  editorSegmentTime.style.color = "var(--green)";
+  editorOriginalText.textContent = seg.original_text || "—";
+  editorCaptionInput.value = seg.hinglish_text || "";
+  editorStartInput.value = Number(seg.start || 0).toFixed(2);
+  editorEndInput.value = Number(seg.end || 0).toFixed(2);
+  editorSpeakerInput.value = seg.speaker || "";
+  editorDirty = false;
+  updateEditorDirtyState();
 }
 
-function closeDrawer() {
-  drawerOverlay.classList.remove("open");
-  drawer.classList.remove("open");
-  activeSegmentIndex = null;
-}
+function selectEditorSegment(index, { seek = false, focus = false } = {}) {
+  const seg = currentSegments.find(item => item.index === index);
+  if (!seg) return;
+  activeSegmentIndex = seg.index;
+  fillEditor(seg);
+  renderEditorList();
 
-drawerCloseBtn.addEventListener("click", closeDrawer);
-drawerOverlay.addEventListener("click", closeDrawer);
+  const activeRow = editorSegmentList && editorSegmentList.querySelector(`[data-segment-id="${seg.index}"]`);
+  if (activeRow) activeRow.scrollIntoView({ block: "nearest" });
 
-drawerSaveBtn.addEventListener("click", () => {
-  if (activeSegmentIndex === null) return;
-  const newText = drawerHinglishInput.value.trim();
-  const seg = currentSegments.find(s => s.index === activeSegmentIndex);
-  if (seg) {
-    seg.hinglish_text = newText;
-    renderCards(currentSegments);
-    updateVideoCaption();
-    drawerSaveBtn.textContent = "SAVED!";
-    setTimeout(() => {
-      drawerSaveBtn.textContent = "Save Subtitle Edit";
-      closeDrawer();
-    }, 600);
-  }
-});
-
-drawerCopyBtn.addEventListener("click", () => {
-  navigator.clipboard.writeText(drawerHinglishInput.value);
-  drawerCopyBtn.textContent = "COPIED!";
-  setTimeout(() => { drawerCopyBtn.textContent = "COPY TEXT"; }, 1500);
-});
-
-drawerPlayAudioBtn.addEventListener("click", () => {
-  if (activeSegmentIndex === null || !videoPlayer.src) return;
-  const seg = currentSegments.find(s => s.index === activeSegmentIndex);
-  if (seg) {
+  if (seek && videoPlayer && videoPlayer.src) {
     videoPlayer.currentTime = seg.start;
-    videoPlayer.play();
+    updateVideoCaption();
   }
+  if (focus && editorCaptionInput) editorCaptionInput.focus();
+}
+
+function refreshResultsAfterEditorChange() {
+  captureCaptionBase();
+  handleSubtitleSearch(floatingSearchInput ? floatingSearchInput.value : "");
+  updateVideoCaption(true);
+}
+
+function saveEditorSegment() {
+  if (activeSegmentIndex === null) return;
+  const seg = currentSegments.find(item => item.index === activeSegmentIndex);
+  if (!seg) return;
+
+  const start = Number(editorStartInput.value);
+  const end = Number(editorEndInput.value);
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) {
+    editorSegmentTime.textContent = "CHECK TIMING — END MUST BE AFTER START";
+    editorSegmentTime.style.color = "var(--pink)";
+    return;
+  }
+
+  const previousSpeaker = seg.speaker || "";
+  const nextSpeaker = editorSpeakerInput.value.trim();
+  let nextText = editorCaptionInput.value.trim();
+  let nextOriginal = seg.original_text || "";
+  const previousPrefix = previousSpeaker ? `[${previousSpeaker}]: ` : "";
+
+  if (previousSpeaker !== nextSpeaker) {
+    if (previousPrefix && nextText.startsWith(previousPrefix)) nextText = nextText.slice(previousPrefix.length);
+    if (previousPrefix && nextOriginal.startsWith(previousPrefix)) nextOriginal = nextOriginal.slice(previousPrefix.length);
+    if (nextSpeaker) {
+      if (nextText && !nextText.startsWith(`[${nextSpeaker}]:`)) nextText = `[${nextSpeaker}]: ${nextText}`;
+      if (nextOriginal && !nextOriginal.startsWith(`[${nextSpeaker}]:`)) nextOriginal = `[${nextSpeaker}]: ${nextOriginal}`;
+    }
+  }
+
+  seg.hinglish_text = nextText;
+  seg.original_text = nextOriginal;
+  seg.start = start;
+  seg.end = end;
+  seg.start_str = srtTimestamp(start);
+  seg.end_str = srtTimestamp(end);
+  if (nextSpeaker) seg.speaker = nextSpeaker;
+  else delete seg.speaker;
+
+  editorDirty = false;
+  updateEditorDirtyState();
+  renderEditorSpeakerOptions();
+  refreshResultsAfterEditorChange();
+  fillEditor(seg);
+  renderEditorList();
+  editorSaveBtn.textContent = "SAVED!";
+  setTimeout(updateEditorDirtyState, 900);
+}
+
+function openSubtitleEditor() {
+  if (!subtitleEditor) return;
+  subtitleEditor.hidden = false;
+  if (editorResizer) editorResizer.hidden = window.innerWidth <= 900;
+  document.body.classList.add("editor-open");
+
+  let collapsed = false;
+  try {
+    const stored = localStorage.getItem("subtitle_editor_collapsed");
+    if (stored !== null) {
+      collapsed = stored === "true";
+    } else if (window.innerWidth <= 900) {
+      collapsed = true;
+    }
+  } catch (_) {}
+  setEditorCollapsed(collapsed, { persist: false, focus: false });
+
+  // Restore saved width
+  try {
+    const savedW = localStorage.getItem("subtitle_editor_width");
+    if (savedW && Number(savedW) >= 320 && Number(savedW) <= 800) {
+      document.documentElement.style.setProperty("--editor-width", `${savedW}px`);
+      if (editorResizer && !collapsed) editorResizer.style.left = `${savedW}px`;
+    }
+  } catch (_) {}
+
+  renderEditorSpeakerOptions();
+  renderEditorList();
+
+  if (currentSegments.length) {
+    const keepActive = currentSegments.some(seg => seg.index === activeSegmentIndex);
+    selectEditorSegment(keepActive ? activeSegmentIndex : currentSegments[0].index, { seek: false });
+  } else {
+    fillEditor(null);
+    renderEditorList();
+  }
+}
+
+function closeSubtitleEditor() {
+  if (!subtitleEditor) return;
+  subtitleEditor.hidden = true;
+  if (editorResizer) editorResizer.hidden = true;
+  document.body.classList.remove("editor-open", "editor-collapsed", "setup-expanded");
+  if (studioToggleConfigBtn) studioToggleConfigBtn.textContent = "⚙️ SETUP / RE-RUN";
+  activeSegmentIndex = null;
+  editorDirty = false;
+  fillEditor(null);
+}
+
+function setEditorCollapsed(collapsed, { persist = true, focus = true } = {}) {
+  if (!subtitleEditor || subtitleEditor.hidden) return;
+  const isCollapsed = !!collapsed;
+  const keepScrollY = window.scrollY;
+  subtitleEditor.classList.toggle("is-collapsed", isCollapsed);
+  document.body.classList.toggle("editor-collapsed", isCollapsed);
+  if (editorResizer) {
+    editorResizer.style.display = isCollapsed ? "none" : "block";
+    if (!isCollapsed) {
+      const curW = parseInt(getComputedStyle(document.documentElement).getPropertyValue("--editor-width")) || 420;
+      editorResizer.style.left = `${curW}px`;
+    }
+  }
+  if (editorCollapseBtn) editorCollapseBtn.setAttribute("aria-expanded", String(!isCollapsed));
+  if (editorExpandBtn) editorExpandBtn.setAttribute("aria-expanded", String(!isCollapsed));
+  if (persist) {
+    try { localStorage.setItem("subtitle_editor_collapsed", String(isCollapsed)); } catch (_) {}
+  }
+  if (focus) {
+    const target = isCollapsed ? editorExpandBtn : editorCollapseBtn;
+    if (target) target.focus({ preventScroll: true });
+  }
+  // A column-width change can trigger scroll anchoring; keep the editor in place.
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      if (Math.abs(window.scrollY - keepScrollY) > 1) window.scrollTo(0, keepScrollY);
+    });
+  });
+}
+
+function activateEditorTab(name, focusTab = false) {
+  const tabs = [editorSegmentsTab, editorStyleTab].filter(Boolean);
+  tabs.forEach(tab => {
+    const selected = tab.dataset.editorTab === name;
+    tab.setAttribute("aria-selected", String(selected));
+    tab.tabIndex = selected ? 0 : -1;
+    if (selected && focusTab) tab.focus();
+  });
+  if (editorSegmentsPanel) editorSegmentsPanel.hidden = name !== "segments";
+  if (editorStylePanel) editorStylePanel.hidden = name !== "style";
+  if (name === "style") {
+    syncStyleEditor();
+    applyCaptionSample();
+  }
+}
+
+if (editorCollapseBtn) editorCollapseBtn.addEventListener("click", () => setEditorCollapsed(true));
+if (editorExpandBtn) editorExpandBtn.addEventListener("click", () => setEditorCollapsed(false));
+
+// If a desktop window is narrowed past the mobile breakpoint, do not leave the
+// full-width editor overlay covering the page. Do not persist this automatic
+// collapse, so the user's desktop preference remains intact.
+let lastViewportWasMobile = window.innerWidth <= 900;
+window.addEventListener("resize", () => {
+  const isMobile = window.innerWidth <= 900;
+  if (
+    isMobile &&
+    !lastViewportWasMobile &&
+    document.body.classList.contains("editor-open") &&
+    !document.body.classList.contains("editor-collapsed")
+  ) {
+    setEditorCollapsed(true, { persist: false, focus: false });
+  }
+  lastViewportWasMobile = isMobile;
 });
+
+// Subtitle Editor Drag Resizer
+if (editorResizer) {
+  let isResizingEditor = false;
+
+  editorResizer.addEventListener("mousedown", (e) => {
+    isResizingEditor = true;
+    editorResizer.classList.add("is-dragging");
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+  });
+
+  window.addEventListener("mousemove", (e) => {
+    if (!isResizingEditor) return;
+    const minW = 320;
+    const maxW = Math.min(800, window.innerWidth - 300);
+    const newW = Math.max(minW, Math.min(maxW, e.clientX));
+    document.documentElement.style.setProperty("--editor-width", `${newW}px`);
+    editorResizer.style.left = `${newW}px`;
+  });
+
+  window.addEventListener("mouseup", () => {
+    if (isResizingEditor) {
+      isResizingEditor = false;
+      editorResizer.classList.remove("is-dragging");
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      const finalW = parseInt(getComputedStyle(document.documentElement).getPropertyValue("--editor-width")) || 420;
+      try { localStorage.setItem("subtitle_editor_width", String(finalW)); } catch (_) {}
+    }
+  });
+}
+
+if (studioToggleConfigBtn) {
+  studioToggleConfigBtn.addEventListener("click", () => {
+    document.body.classList.toggle("setup-expanded");
+    const isExp = document.body.classList.contains("setup-expanded");
+    studioToggleConfigBtn.textContent = isExp ? "✕ HIDE SETUP" : "⚙️ SETUP / RE-RUN";
+  });
+}
+
+[editorSegmentsTab, editorStyleTab].forEach(tab => {
+  if (!tab) return;
+  tab.addEventListener("click", () => activateEditorTab(tab.dataset.editorTab));
+});
+
+if (subtitleEditor) {
+  subtitleEditor.addEventListener("keydown", (event) => {
+    if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+      event.preventDefault();
+      saveEditorSegment();
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      event.stopPropagation();
+      setEditorCollapsed(true);
+    }
+  });
+}
+
+if (editorSearchInput) {
+  editorSearchInput.addEventListener("input", () => {
+    editorSearchQuery = editorSearchInput.value;
+    renderEditorList();
+  });
+}
+
+if (editorSegmentList) {
+  editorSegmentList.addEventListener("keydown", (event) => {
+    if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
+    const rows = Array.from(editorSegmentList.querySelectorAll(".editor-segment-row"));
+    if (!rows.length) return;
+    event.preventDefault();
+    const currentIndex = rows.findIndex(row => Number(row.dataset.segmentId) === activeSegmentIndex);
+    let nextIndex = currentIndex;
+    if (event.key === "ArrowDown") nextIndex = Math.min(rows.length - 1, currentIndex + 1);
+    if (event.key === "ArrowUp") nextIndex = Math.max(0, currentIndex - 1);
+    if (event.key === "Home") nextIndex = 0;
+    if (event.key === "End") nextIndex = rows.length - 1;
+    const next = rows[nextIndex];
+    if (next) selectEditorSegment(Number(next.dataset.segmentId), { seek: true, focus: false });
+  });
+}
+
+[editorCaptionInput, editorStartInput, editorEndInput, editorSpeakerInput].forEach(input => {
+  if (!input) return;
+  input.addEventListener("input", markEditorDirty);
+  input.addEventListener("change", markEditorDirty);
+});
+
+if (editorSaveBtn) editorSaveBtn.addEventListener("click", saveEditorSegment);
+if (editorRevertBtn) {
+  editorRevertBtn.addEventListener("click", () => {
+    const seg = currentSegments.find(item => item.index === activeSegmentIndex);
+    if (seg) fillEditor(seg);
+  });
+}
+if (editorSeekBtn) {
+  editorSeekBtn.addEventListener("click", () => {
+    const seg = currentSegments.find(item => item.index === activeSegmentIndex);
+    if (!seg || !videoPlayer || !videoPlayer.src) return;
+    videoPlayer.currentTime = seg.start;
+    const playPromise = videoPlayer.play();
+    if (playPromise && typeof playPromise.catch === "function") playPromise.catch(() => {});
+  });
+}
 
 // --------------------------------------------------------------------------
 // 8. Subtitle Downloads & Desktop Native File Export
@@ -1730,7 +3703,7 @@ function rebuildSrt(isHinglish = true) {
   if (!currentSegments || currentSegments.length === 0) return "";
   return currentSegments.map(seg => {
     const text = isHinglish ? seg.hinglish_text : seg.original_text;
-    return `${seg.index}\n${seg.start_str} --> ${seg.end_str}\n${text || ""}\n`;
+    return `${seg.index}\n${srtTimestamp(seg.start)} --> ${srtTimestamp(seg.end)}\n${text || ""}\n`;
   }).join("\n");
 }
 
@@ -1740,7 +3713,7 @@ function showDownloadFeedback(btn, message, isSuccess = true) {
     metaText.textContent = message;
     metaText.style.color = isSuccess ? "var(--green)" : "var(--pink)";
     setTimeout(() => {
-      metaText.textContent = "Ready for YouTube, Premiere & DaVinci";
+      metaText.textContent = "";
       metaText.style.color = "var(--muted)";
     }, 4500);
   }
@@ -1832,20 +3805,20 @@ if (downloadAssBtn) {
     const baseName = currentFile ? currentFile.name.replace(/\.[^/.]+$/, "") : "subtitles";
     const title = `${baseName} - Karaoke`;
     
-    // If backend returned pre-calculated ass_karaoke and no manual edits were made, use it
-    if (window.__LAST_RESULT__ && window.__LAST_RESULT__.ass_karaoke && !hasManualEdits()) {
-      triggerDownload(`${baseName}_karaoke.ass`, window.__LAST_RESULT__.ass_karaoke, downloadAssBtn);
-      return;
-    }
+    // Always regenerate: the precomputed blob was created with the default style.
 
-    // Otherwise fetch fresh ASS from server with current edited segments
     try {
       const origText = downloadAssBtn.textContent;
       downloadAssBtn.textContent = "⏳ GENERATING ASS...";
       const res = await fetch("/api/export/ass", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ segments: currentSegments || [], title: title })
+        body: JSON.stringify({
+          segments: currentSegments || [],
+          title: title,
+          style: activeCaptionStyle,
+          aspect: detectAspect()
+        })
       });
       if (res.ok) {
         const assText = await res.text();
@@ -1860,10 +3833,6 @@ if (downloadAssBtn) {
       downloadAssBtn.textContent = "🎤 KARAOKE (.ASS)";
     }
   });
-}
-
-function hasManualEdits() {
-  return false;
 }
 
 if (burnVideoBtn) {
@@ -1885,25 +3854,25 @@ if (burnVideoBtn) {
       burnVideoBtn.disabled = true;
       burnVideoBtn.innerHTML = `<span>⏳</span> BURNING WITH FFMPEG...`;
 
-      // 1. Prepare ASS or SRT payload
+      // 1. Prepare ASS or SRT payload (always regenerate with the active style)
       let subPayload = "";
       let subFormat = "ass";
 
-      if (window.__LAST_RESULT__ && window.__LAST_RESULT__.ass_karaoke && !hasManualEdits()) {
-        subPayload = window.__LAST_RESULT__.ass_karaoke;
+      const assRes = await fetch("/api/export/ass", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          segments: currentSegments || [],
+          title: `${baseName} - Subtitles`,
+          style: activeCaptionStyle,
+          aspect: detectAspect()
+        })
+      });
+      if (assRes.ok) {
+        subPayload = await assRes.text();
       } else {
-        // Fetch fresh ASS from server
-        const assRes = await fetch("/api/export/ass", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ segments: currentSegments || [], title: `${baseName} - Subtitles` })
-        });
-        if (assRes.ok) {
-          subPayload = await assRes.text();
-        } else {
-          subPayload = rebuildSrt(true);
-          subFormat = "srt";
-        }
+        subPayload = rebuildSrt(true);
+        subFormat = "srt";
       }
 
       // 2. Send video + subtitle to /api/export/burn-video
@@ -2400,9 +4369,9 @@ function initWorkbenchEmptyState() {
       e.preventDefault();
       toggleDock();
     } else if (e.key === "Escape" && !terminalDock.classList.contains("collapsed")) {
-      // Don't close if drawer is active
-      const drawer = document.getElementById("drawer");
-      if (!drawer || !drawer.classList.contains("active")) {
+      const editorOpen = subtitleEditor && !subtitleEditor.hidden && !subtitleEditor.classList.contains("is-collapsed");
+      const settingsOpen = settingsDrawer && settingsDrawer.classList.contains("open");
+      if (!editorOpen && !settingsOpen) {
         toggleDock(false);
       }
     }

@@ -17,6 +17,8 @@ import os
 import time
 import inspect
 import re
+import threading
+import functools
 import unicodedata
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 
@@ -67,6 +69,43 @@ def export_decisions(reel_name: str = "reel", log_dir: str = "logs") -> Optional
 # 4. MODEL CACHE  (the engine currently re-creates WhisperModel on every request)
 # =============================================================================
 _MODELS: Dict[Tuple[str, str, str], object] = {}
+# Guards the cache and the construction of a model. Without it two requests can
+# both miss on the same key and load it twice, and a reader can pass the
+# membership test just before another request clears the dict, then hit
+# KeyError on the return -- a 500 with a perfectly healthy GPU.
+_MODEL_LOCK = threading.Lock()
+# One transcription job at a time. A model load plus its inference is what holds
+# VRAM, so a second concurrent job would either load a second copy or fight the
+# first for the card. A second request waits here instead. Reentrant so a job
+# that calls another entry point from the same thread nests instead of hanging.
+_JOB_LOCK = threading.RLock()
+
+
+def single_job(fn: Callable[..., Any]) -> Callable[..., Any]:
+    """Serialise a whole transcription job: one model load and inference at a time.
+
+    The engines wrap themselves in this, so `get_model` may assume that nothing
+    else is transcribing when it decides to swap the cache slot.
+    """
+    @functools.wraps(fn)
+    def wrapper(*args, **kwargs):
+        with _JOB_LOCK:
+            return fn(*args, **kwargs)
+    return wrapper
+
+
+def claim_job_slot() -> bool:
+    """Reserve the single job slot, or return False when a job already holds it.
+
+    The API layer uses this to answer immediately instead of parking a second
+    request behind a transcription that may run for minutes.
+    """
+    return _JOB_LOCK.acquire(blocking=False)
+
+
+def release_job_slot() -> None:
+    """Give the job slot back. Every successful `claim_job_slot` needs one call."""
+    _JOB_LOCK.release()
 
 
 def get_model(size: str, device: str, compute_type: str):
@@ -74,11 +113,18 @@ def get_model(size: str, device: str, compute_type: str):
     from faster_whisper import WhisperModel  # imported lazily so tests don't need it
 
     key = (size, device, compute_type)
-    if key not in _MODELS:
+    with _MODEL_LOCK:
+        cached = _MODELS.get(key)
+        if cached is not None:
+            return cached
         # One model at a time: two sizes on a 6 GB card can exhaust VRAM.
+        # Clearing the slot does not free a model a run still holds -- that run's
+        # local name keeps it alive until it returns -- so this swap is only safe
+        # because `single_job` guarantees the previous job has finished.
         _MODELS.clear()
-        _MODELS[key] = WhisperModel(size, device=device, compute_type=compute_type)
-    return _MODELS[key]
+        model = WhisperModel(size, device=device, compute_type=compute_type)
+        _MODELS[key] = model
+        return model
 
 
 # =============================================================================
@@ -134,6 +180,24 @@ def _supported_kwargs(model, **kw):
     return {k: v for k, v in kw.items() if k in params}
 
 
+def clamp_word_span(start: float, end: float, text: str,
+                    max_span: float = 2.5) -> Tuple[float, float, float]:
+    """Clamp a Whisper token whose DTW span was stretched across a silence or music bed.
+
+    A single spoken word never lasts 2.5 s, so a longer span means the aligner
+    leaked into the gap. Capping the end keeps the next cue on time, but it also
+    leaves a hole where the audio is still (nominally) that word, so the caller
+    keeps `tail` and lets the card hold over a bounded slice of it.
+
+    Returns (start, end, tail) where tail = discarded acoustic time.
+    """
+    span = end - start
+    if span <= max_span:
+        return start, end, 0.0
+    capped = round(start + min(span, max(1.0, len(text) * 0.15 + 0.6)), 3)
+    return start, capped, round(end - capped, 3)
+
+
 def transcribe_words(model, audio, language: Optional[str] = "hi",
                      topic_hint: str = "", extra_keywords: Iterable[str] = (),
                      beam_size: int = 5, task: str = "transcribe") -> List[dict]:
@@ -162,14 +226,11 @@ def transcribe_words(model, audio, language: Optional[str] = "hi",
         for w in (getattr(seg, "words", None) or []):
             t = w.word.strip()
             if t:
-                w_start = float(w.start)
-                w_end = float(w.end)
-                # Word-level duration clamp: in natural speech, a single word never lasts > 2.5s.
-                # If DTW cross-attention stretches a trailing token across a silence/music break,
-                # clamp the acoustic span so it doesn't artificially freeze on screen.
-                if w_end - w_start > 2.5:
-                    w_end = round(w_start + min(w_end - w_start, max(1.0, len(t) * 0.15 + 0.6)), 3)
-                words.append({"start": w_start, "end": w_end, "text": t})
+                w_start, w_end, tail = clamp_word_span(float(w.start), float(w.end), t)
+                word = {"start": w_start, "end": w_end, "text": t}
+                if tail > 0:
+                    word["tail"] = tail
+                words.append(word)
     return words
 
 
@@ -482,7 +543,11 @@ class LoanwordRecoverer:
                     if len(sk) >= 3:
                         scored = sorted((phone_distance(joined, self.lex[c]), c) for c in self._candidates(sk))
                         if scored and scored[0][0] <= 0.15:
-                            out.append({"start": w["start"], "end": n["end"], "text": scored[0][1]})
+                            merged = {"start": w["start"], "end": n["end"], "text": scored[0][1]}
+                            tail = float(w.get("tail") or 0.0) + float(n.get("tail") or 0.0)
+                            if tail > 0:
+                                merged["tail"] = tail
+                            out.append(merged)
                             i += 2
                             continue
             out.append(w)
@@ -874,6 +939,11 @@ def semantic_chunk(words: List[dict], to_latin: Callable[[str], str] = lambda s:
     return cards[::-1]
 
 
+# Cap on how much of a stretched token's discarded span a card may hold over.
+# Bounded so a music bed does not leave one caption stuck on screen for seconds.
+TAIL_HOLD_MAX = 1.5
+
+
 def pad_display_times(cards: List[dict], min_dur: float = 1.0, hold: float = 0.3, gap: float = 0.04,
                       max_dur: float = 2.8, pacing: str = "short") -> List[dict]:
     """Hold each card a little after the last word and up to min_dur if room remains (never overlaps next)."""
@@ -883,11 +953,23 @@ def pad_display_times(cards: List[dict], min_dur: float = 1.0, hold: float = 0.3
         max_dur = 5.0
     out = []
     for k, c in enumerate(cards):
-        limit = cards[k + 1]["start"] - gap if k + 1 < len(cards) else c["end"] + hold
+        next_start = cards[k + 1]["start"] if k + 1 < len(cards) else None
+        limit = (next_start - gap) if next_start is not None else c["end"] + hold
         end = max(c["end"], min(c["end"] + hold, limit), min(c["start"] + min_dur, limit))
         end = min(end, c["start"] + max_dur)
-        if k + 1 < len(cards):
+        if next_start is not None:
             end = min(end, limit)
+
+        # A DTW-stretched token was capped at 2.5 s, which would otherwise blink
+        # the card to nothing while the audio still belongs to that word. Hold
+        # over a bounded slice of the discarded tail, never into the next card.
+        tail = max((float(w.get("tail") or 0.0) for w in c.get("words", [])), default=0.0)
+        if tail > 0:
+            tail_end = c["end"] + min(tail, TAIL_HOLD_MAX)
+            if next_start is not None:
+                tail_end = min(tail_end, next_start - gap)
+            end = max(end, tail_end)
+
         out.append(dict(c, end=round(end, 3)))
     return out
 

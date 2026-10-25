@@ -33,10 +33,12 @@ if not os.environ.get("HF_HOME"):
 from hinglish_engine import extract_audio_numpy, format_srt_timestamp, get_hardware_info
 from hinglish_upgrades import (
     get_model,
+    single_job,
     semantic_chunk,
     pad_display_times,
     hint_keywords,
     normalize_case,
+    clamp_word_span,
     _supported_kwargs
 )
 
@@ -51,6 +53,7 @@ ENGLISH_SUBTITLE_PROMPT = (
 )
 
 
+@single_job
 def generate_english_subtitles(
     video_path: str,
     model_size: str = "medium",
@@ -148,11 +151,11 @@ def generate_english_subtitles(
         for w in (getattr(seg, "words", None) or []):
             t = w.word.strip()
             if t:
-                w_start = float(w.start)
-                w_end = float(w.end)
-                if w_end - w_start > 2.5:
-                    w_end = round(w_start + min(w_end - w_start, max(1.0, len(t) * 0.15 + 0.6)), 3)
-                words.append({"start": w_start, "end": w_end, "text": t})
+                w_start, w_end, tail = clamp_word_span(float(w.start), float(w.end), t)
+                word = {"start": w_start, "end": w_end, "text": t}
+                if tail > 0:
+                    word["tail"] = tail
+                words.append(word)
 
     emit_stage("whisper", f"Whisper translated {len(words)} English word tokens")
 
@@ -223,31 +226,9 @@ def generate_english_subtitles(
 
     srt_content = "\n".join(srt_lines)
 
-    from karaoke_ass import generate_karaoke_ass
-    ass_cards = [
-        {
-            "start": c["start"],
-            "end": c["end"],
-            "original_text": c["text"],
-            "hinglish_text": c["text"],
-            "words": [
-                {
-                    "start": w.get("start", c["start"]),
-                    "end": w.get("end", c["end"]),
-                    "word": w.get("text", ""),
-                    "hinglish": w.get("text", "")
-                }
-                for w in c.get("words", [])
-            ]
-        }
-        for c in reel_cards
-    ]
-    ass_content = generate_karaoke_ass(ass_cards, script_title=f"Hindi to English Subtitles - {os.path.basename(video_path)}")
-
     return {
         "srt_hinglish": srt_content,  # Populated with English translation
         "srt_original": srt_content,
-        "ass_karaoke": ass_content,
         "segments": segments_list,
         "full_text": "\n".join(plain_text_lines),
         "duration": audio_duration,

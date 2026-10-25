@@ -28,6 +28,7 @@ from typing import List, Dict, Any, Callable, Optional, Tuple
 import numpy as np
 from faster_whisper import WhisperModel
 from transliteration import convert_to_hinglish
+from hinglish_upgrades import single_job
 
 
 def format_srt_timestamp(seconds: float) -> str:
@@ -240,6 +241,7 @@ def get_sensevoice_model():
     return _SENSEVOICE_MODEL
 
 
+@single_job
 def generate_subtitles(
     video_path: str,
     language_choice: str = "mixed",
@@ -467,13 +469,9 @@ def generate_subtitles(
         progress_callback(1.0, f"Complete in {elapsed_time:.1f}s ({speed_factor:.1f}x real-time)!")
     emit_stage("done", f"Pipeline completed in {elapsed_time:.2f}s ({speed_factor:.1f}x real-time speed factor)")
 
-    from karaoke_ass import generate_karaoke_ass
-    ass_content = generate_karaoke_ass(reel_cards, script_title=f"Hinglish Subtitles - {os.path.basename(video_path)}")
-
     return {
         "srt_hinglish": "\n".join(srt_hinglish_lines),
         "srt_original": "\n".join(srt_orig_lines),
-        "ass_karaoke": ass_content,
         "segments": segments_list,
         "full_text": "\n".join(plain_text_lines),
         "duration": audio_duration,

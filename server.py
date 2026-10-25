@@ -39,6 +39,7 @@ if sys.platform == "win32":
             pass
 
 from typing import Optional, Dict, Any
+import functools
 import json
 import time
 import shutil
@@ -51,7 +52,9 @@ from fastapi.responses import FileResponse, JSONResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.background import BackgroundTask
 from hinglish_engine import generate_subtitles, get_hardware_info, get_models_status, is_model_cached
+from hinglish_upgrades import claim_job_slot, release_job_slot
 from faster_whisper.utils import download_model
+from caption_styles import ALLOWED_FONTS, DEFAULT_STYLE_ID, list_presets, resolve_style
 
 app = FastAPI(title="Hinglish Subtitle Generator API", version="2.5.0")
 
@@ -426,7 +429,8 @@ def save_preferences_dict(prefs: Dict[str, Any]) -> Dict[str, Any]:
             "selected_model": "medium",
             "selected_language": "mixed",
             "selected_device": "auto",
-            "selected_pacing": "short"
+            "selected_pacing": "short",
+            "caption_style": resolve_style(DEFAULT_STYLE_ID)
         }
         if os.path.exists(CONFIG_PATH):
             try:
@@ -444,12 +448,13 @@ def save_preferences_dict(prefs: Dict[str, Any]) -> Dict[str, Any]:
 
 @app.get("/api/config/preferences")
 def api_get_preferences():
-    """Returns saved user preferences (model, language, device, pacing)."""
+    """Returns saved user preferences (model, language, device, pacing, caption style)."""
     prefs = {
         "selected_model": "medium",
         "selected_language": "mixed",
         "selected_device": "auto",
-        "selected_pacing": "short"
+        "selected_pacing": "short",
+        "caption_style": resolve_style(DEFAULT_STYLE_ID)
     }
     if os.path.isfile(CONFIG_PATH):
         try:
@@ -460,6 +465,7 @@ def api_get_preferences():
                         prefs[k] = data[k]
         except Exception:
             pass
+    prefs["caption_style"] = resolve_style(prefs.get("caption_style"))
     return prefs
 
 
@@ -468,20 +474,66 @@ def api_set_preferences(
     selected_model: Optional[str] = Form(None),
     selected_language: Optional[str] = Form(None),
     selected_device: Optional[str] = Form(None),
-    selected_pacing: Optional[str] = Form(None)
+    selected_pacing: Optional[str] = Form(None),
+    caption_style: Optional[str] = Form(None)
 ):
     """Saves user preferences into launch_config.json."""
     try:
+        parsed_style = None
+        if caption_style is not None:
+            try:
+                parsed_style = resolve_style(json.loads(caption_style))
+            except (TypeError, ValueError):
+                parsed_style = resolve_style(caption_style)
         data = save_preferences_dict({
             "selected_model": selected_model,
             "selected_language": selected_language,
             "selected_device": selected_device,
-            "selected_pacing": selected_pacing
+            "selected_pacing": selected_pacing,
+            "caption_style": parsed_style,
+            "caption_custom_style": parsed_style if parsed_style and parsed_style.get("id") == "custom" else None
         })
         return {"status": "success", "preferences": data}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
+@app.get("/api/caption-styles")
+def api_caption_styles():
+    """Returns built-in caption presets plus the saved custom style, if any."""
+    saved_custom = None
+    if os.path.isfile(CONFIG_PATH):
+        try:
+            with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+                config = json.load(f)
+            saved_custom = config.get("caption_custom_style")
+            active = config.get("caption_style")
+            if not saved_custom and isinstance(active, dict) and active.get("id") == "custom":
+                saved_custom = active
+        except Exception:
+            saved_custom = None
+    return {
+        "default": DEFAULT_STYLE_ID,
+        "presets": list_presets(),
+        "custom": resolve_style(saved_custom) if saved_custom else None,
+        "fonts": list(ALLOWED_FONTS)
+    }
+
+
+@app.post("/api/preview-style")
+def api_preview_style(payload: Dict[str, Any]):
+    """Renders a short true libass preview MP4 for a caption style."""
+    from preview_renderer import render_preview
+    try:
+        path = render_preview(payload.get("style"), payload.get("aspect", "9:16"))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Preview render failed: {e}")
+    return FileResponse(
+        path,
+        media_type="video/mp4",
+        filename="caption-preview.mp4",
+        headers={"Cache-Control": "no-store"}
+    )
 
 
 @app.post("/api/export/ass")
@@ -490,7 +542,9 @@ def api_export_ass(payload: Dict[str, Any]):
     from karaoke_ass import generate_karaoke_ass
     segments = payload.get("segments", [])
     title = payload.get("title", "Hinglish Subtitles - Karaoke")
-    ass_text = generate_karaoke_ass(segments, script_title=title)
+    style = payload.get("style")
+    aspect = payload.get("aspect", "9:16")
+    ass_text = generate_karaoke_ass(segments, script_title=title, style=style, aspect=aspect)
     return Response(
         content=ass_text,
         media_type="text/x-ssa",
@@ -559,7 +613,28 @@ def api_download_model(model_size: str = Form(...)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+def _single_job_endpoint(fn):
+    """Answer 409 instead of parking the request behind a running transcription.
+
+    The slot is the same RLock the engines take in `single_job`; the request
+    thread re-enters it, so the engine is not blocked by its own guard.
+    """
+    @functools.wraps(fn)
+    def wrapper(*args, **kwargs):
+        if not claim_job_slot():
+            raise HTTPException(
+                status_code=409,
+                detail="Another transcription is already running. Wait for it to finish, then try again.",
+            )
+        try:
+            return fn(*args, **kwargs)
+        finally:
+            release_job_slot()
+    return wrapper
+
+
 @app.post("/api/transcribe")
+@_single_job_endpoint
 def api_transcribe(
     video: UploadFile = File(...),
     language: str = Form("mixed"),
@@ -640,7 +715,8 @@ def read_root():
         "selected_device": "auto",
         "selected_pacing": "short",
         "silent_launch": True,
-        "enable_diarization": False
+        "enable_diarization": False,
+        "caption_style": resolve_style(DEFAULT_STYLE_ID)
     }
     if os.path.isfile(CONFIG_PATH):
         try:
@@ -651,6 +727,7 @@ def read_root():
                         prefs[k] = data[k]
         except Exception:
             pass
+    prefs["caption_style"] = resolve_style(prefs.get("caption_style"))
 
     index_path = os.path.join(STATIC_DIR, "index.html")
     with open(index_path, "r", encoding="utf-8") as f:

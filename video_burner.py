@@ -88,6 +88,9 @@ def burn_subtitles_to_video(
             "-vf", filter_str,
             *encoder_args,
             "-c:a", "copy",
+            # Put the moov atom first so the burned file plays and seeks in a
+            # browser <video> without waiting for the whole download.
+            "-movflags", "+faststart",
             abs_out
         ]
 

@@ -202,6 +202,55 @@ class TestCaseNormalization:
 
 
 # =============================================================================
+# 3b. TRANSLITERATION TOKEN CACHE
+# =============================================================================
+class TestTransliterationCache:
+    @pytest.fixture(autouse=True)
+    def _clean_cache(self):
+        import transliteration
+        transliteration._TOKEN_CACHE.clear()
+        yield
+        transliteration._TOKEN_CACHE.clear()
+
+    def test_cached_output_matches_uncached(self):
+        import transliteration
+
+        tokens = ["आज", "कैसे", "है", "मार्केटिंग", "फिर", "बहुत", "अच्छा"]
+        for token in tokens:
+            fresh = transliteration._transliterate_hindi_word_uncached(token)
+            assert transliteration._transliterate_hindi_word(token) == fresh
+            # Second call must come from the cache and match the first.
+            assert transliteration._transliterate_hindi_word(token) == fresh
+
+    def test_convert_is_idempotent_across_calls(self):
+        text = "आज का दिन बहुत अच्छा है, फिर मिलेंगे!"
+        first = convert_to_hinglish(text)
+        second = convert_to_hinglish(text)
+        assert first == second
+        assert re.search(r"[\u0900-\u097F]", first) is None
+
+    def test_urdu_tokens_are_cached_too(self):
+        import transliteration
+
+        token = "کیسے"
+        fresh = transliteration._transliterate_urdu_word_uncached(token)
+        assert transliteration._transliterate_urdu_word(token) == fresh
+        assert transliteration._transliterate_urdu_word(token) == fresh
+        assert token in transliteration._TOKEN_CACHE
+
+    def test_cache_stays_bounded_and_correct_after_clear(self):
+        import transliteration
+
+        token = "आज"
+        expected = transliteration._transliterate_hindi_word_uncached(token)
+        transliteration._TOKEN_CACHE.clear()
+        for i in range(transliteration._TOKEN_CACHE_MAX + 5):
+            transliteration._TOKEN_CACHE[f"filler{i}"] = "x"
+        assert transliteration._transliterate_hindi_word(token) == expected
+        assert len(transliteration._TOKEN_CACHE) < 10
+
+
+# =============================================================================
 # 4. PROMPTING & HOTWORDS TESTS
 # =============================================================================
 class TestPrompting:
@@ -839,6 +888,9 @@ class TestPacingModeProperties:
         assert 'id="mainModelPills"' in html
         assert 'id="mainDevicePills"' in html
         assert 'id="mainPacingPills"' in html
+        assert 'id="mainDiarizeGroup"' in html
+        assert 'id="mainColLeft"' in html
+        assert 'id="mainColRight"' in html
 
         # 3. Dedicated slide-over drawer and overlay exist
         assert 'id="settingsDrawer"' in html
@@ -847,7 +899,7 @@ class TestPacingModeProperties:
         assert 'id="saveAndCloseSettingsBtn"' in html
 
         # 4. Core controls, Pin Switches, and Workbench Visibility toggles are in drawer
-        drawer_slice = html[html.find('id="settingsDrawer"'):html.find('id="drawerOverlay"')]
+        drawer_slice = html[html.find('id="settingsDrawer"'):html.find('id="floatingDownloadBar"')]
         assert 'id="modelPills"' in drawer_slice
         assert 'id="devicePills"' in drawer_slice
         assert 'id="pacingPills"' in drawer_slice
@@ -856,6 +908,7 @@ class TestPacingModeProperties:
         assert 'id="pinModelSwitch"' in drawer_slice
         assert 'id="pinHwSwitch"' in drawer_slice
         assert 'id="pinPacingSwitch"' in drawer_slice
+        assert 'id="pinDiarizeSwitch"' in drawer_slice
         assert 'id="settingsShowImporterBtn"' in drawer_slice
         assert 'id="settingsHideImporterBtn"' in drawer_slice
         assert 'id="settingsShowRecentsBtn"' in drawer_slice
@@ -868,8 +921,6 @@ class TestPacingModeProperties:
         assert ".settings-nav-btn" in css
         assert ".settings-card" in css
         assert ".pin-switch" in css
-        assert ".controls-card.cols-1" in css
-        assert ".controls-card.cols-2" in css
 
         # 6. JS wires drawer toggle, keyboard shortcuts, dynamic pin layout, and workbench visibility
         with open("static/app.js", "r", encoding="utf-8") as f:
@@ -882,8 +933,79 @@ class TestPacingModeProperties:
         assert "initPinSwitches" in js
         assert "updateDynamicControlsLayout" in js
         assert "pinnedModules" in js
+        assert "mainDiarizeOnBtn" in js
+        assert "setDiarization" in js
+        assert "paintCaptionSample" in js
         assert "settingsShowImporterBtn" in js
         assert "settingsHideImporterBtn" in js
+
+    def test_collapsible_left_subtitle_editor(self):
+        """Verifies the production left editor replaces the old right inspector."""
+        with open("static/index.html", "r", encoding="utf-8") as f:
+            html = f.read()
+
+        assert 'id="workspaceShell"' in html
+        assert 'id="subtitleEditor"' in html
+        assert 'id="subtitleEditor" aria-label="Subtitle editor" hidden' in html
+        assert 'id="editorSegmentsTab"' in html
+        assert 'id="editorStyleTab"' in html
+        assert 'id="editorSegmentsPanel"' in html
+        assert 'id="editorStylePanel"' in html
+        assert 'id="editorSegmentList"' in html
+        assert 'id="editorCaptionInput"' in html
+        assert 'id="editorStartInput"' in html
+        assert 'id="editorEndInput"' in html
+        assert 'id="editorSpeakerInput"' in html
+        assert 'id="editorSaveBtn"' in html
+        assert 'id="editorRevertBtn"' in html
+        assert 'id="editorSeekBtn"' in html
+        assert 'id="editorSearchInput"' in html
+        assert 'id="editorCollapseBtn"' in html
+        assert 'id="editorExpandBtn"' in html
+        assert 'id="editorStylePresetGrid"' in html
+        assert 'id="editorStyleFont"' in html
+        assert 'id="editorStyleFontSize"' in html
+        assert 'id="editorStyleBaseColor"' in html
+        assert 'id="editorStyleHighlightColor"' in html
+        assert 'id="editorStyleOutline"' in html
+        assert 'id="editorStyleMargin"' in html
+        assert 'id="editorStyleUppercase"' in html
+        assert 'id="editorStyleBox"' in html
+        assert 'id="editorStyleResetBtn"' in html
+
+        # The old right inspector is retired in favour of the left editor.
+        assert 'id="drawerOverlay"' not in html
+        assert 'id="drawerHinglishInput"' not in html
+        assert 'id="drawerSaveBtn"' not in html
+
+        with open("static/components.css", "r", encoding="utf-8") as f:
+            css = f.read()
+        assert ".workspace-shell" in css
+        assert ".subtitle-editor" in css
+        assert ".subtitle-editor.is-collapsed" in css
+        assert ".editor-segment-row" in css
+        assert ".editor-inspector" in css
+        assert ".editor-style-panel" in css
+        assert ".subtitle-editor-rail" in css
+        assert "body.editor-open .workspace-shell" in css
+        assert "body.editor-open.editor-collapsed .workspace-shell" in css
+        assert "@media (max-width: 1100px)" in css
+
+        with open("static/app.js", "r", encoding="utf-8") as f:
+            js = f.read()
+        assert "openSubtitleEditor" in js
+        assert "closeSubtitleEditor" in js
+        assert "setEditorCollapsed" in js
+        assert "renderEditorList" in js
+        assert "selectEditorSegment" in js
+        assert "saveEditorSegment" in js
+        assert "srtTimestamp" in js
+        assert "queueEditorStyleSave" in js
+        assert "editorStylePresetGrid" in js
+        assert "subtitle_editor_collapsed" in js
+        assert 'document.body.classList.add("editor-open")' in js
+        assert "openSubtitleEditor();" in js
+        assert "openDrawer(seg)" not in js
 
 
 # =============================================================================

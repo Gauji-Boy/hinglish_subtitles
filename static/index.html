@@ -242,6 +242,16 @@
           </div>
         </div>
 
+        <div class="control-group" id="mainDiarizeGroup" style="display: none; margin-top: 18px;">
+          <div class="control-group-title">
+            <span>👥 SPEAKER DIARIZATION</span>
+          </div>
+          <div class="pills" id="mainDiarizePills">
+            <button type="button" class="pill active" id="mainDiarizeOffBtn">OFF (SINGLE SPEAKER)</button>
+            <button type="button" class="pill" id="mainDiarizeOnBtn">👥 AUTO-DETECT MULTI-SPEAKER</button>
+          </div>
+        </div>
+
         <!-- Topic / Brand Vocabulary Hints (PERMANENT IN MAIN WINDOW) -->
         <div class="control-group topic-hint-group" id="mainTopicHintGroup" style="margin-top: auto; padding-top: 14px;">
           <div class="control-group-title" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
@@ -261,18 +271,18 @@
       <div class="controls-right-col" id="mainColRight" style="display: none;">
         <div class="control-group" id="mainModelGroup" style="display: none;">
           <div class="control-group-title">
-            <span>🧠 SPEECH RECOGNITION (ASR) MODEL</span>
+            <span>🧠 ASR MODEL (PINNED)</span>
           </div>
-          <div class="pills" id="mainModelPills">
-            <button class="pill" data-model="small">Small (Fast)</button>
-            <button class="pill active" data-model="medium">Medium (Recommended)</button>
-            <button class="pill" data-model="large-v3-turbo">Large-v3-Turbo (⚡ ~3s)</button>
-            <button class="pill" data-model="large-v3">Large-V3 (Studio)</button>
-            <button class="pill" data-model="indic-conformer">IndicConformer (AI4Bharat 600M)</button>
-            <button class="pill" data-model="sravaani-1.0">SraVaani 1.0 (ARTPARK-IISc)</button>
-            <button class="pill" data-model="sensevoice-small">SenseVoice-Small (Experimental / Non-Hindi)</button>
+          <div class="pills model-pills-compact" id="mainModelPills">
+            <button class="pill" data-model="small" title="Small (Fast)" aria-label="Small (Fast)">Small</button>
+            <button class="pill active" data-model="medium" title="Medium (Recommended)" aria-label="Medium (Recommended)">Medium</button>
+            <button class="pill" data-model="large-v3-turbo" title="Large-v3-Turbo (⚡ ~3s)" aria-label="Large-v3-Turbo (⚡ ~3s)">Turbo ⚡</button>
+            <button class="pill" data-model="large-v3" title="Large-V3 (Studio)" aria-label="Large-V3 (Studio)">Large V3</button>
+            <button class="pill" data-model="indic-conformer" title="IndicConformer (AI4Bharat 600M)" aria-label="IndicConformer (AI4Bharat 600M)">IndicConformer</button>
+            <button class="pill" data-model="sravaani-1.0" title="SraVaani 1.0 (ARTPARK-IISc)" aria-label="SraVaani 1.0 (ARTPARK-IISc)">SraVaani</button>
+            <button class="pill" data-model="sensevoice-small" title="SenseVoice-Small (Experimental / Non-Hindi)" aria-label="SenseVoice-Small (Experimental / Non-Hindi)">SenseVoice</button>
           </div>
-          <div id="mainModelDownloadStatus" class="model-status-bar">
+          <div id="mainModelDownloadStatus" class="model-status-bar" style="margin-top: 12px;">
             <span id="mainModelStatusText">Checking model status...</span>
             <button id="mainPreDownloadModelBtn" class="btn-secondary" style="padding: 4px 10px; font-size: 11px; display: none;">⚡ DOWNLOAD MODEL NOW</button>
           </div>
@@ -280,6 +290,159 @@
       </div>
     </div>
   </section>
+
+  <!-- Workspace: collapsible subtitle editor + main canvas -->
+  <div class="workspace-shell" id="workspaceShell">
+    <aside class="subtitle-editor" id="subtitleEditor" aria-label="Subtitle editor" hidden>
+      <div class="subtitle-editor-head">
+        <div>
+          <div class="editor-eyebrow"><span class="editor-live-dot"></span> CAPTION WORKBENCH</div>
+          <div class="editor-title-row">
+            <h2>SUBTITLE EDITOR</h2>
+            <span class="editor-count-badge" id="editorSegmentCount">0</span>
+          </div>
+        </div>
+        <button type="button" class="editor-collapse-btn" id="editorCollapseBtn" aria-label="Collapse subtitle editor" aria-expanded="true" title="Collapse editor (Esc)">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+      </div>
+
+      <div class="editor-tabs" role="tablist" aria-label="Subtitle editor sections">
+        <button type="button" class="editor-tab" id="editorSegmentsTab" role="tab" data-editor-tab="segments" aria-selected="true" aria-controls="editorSegmentsPanel" tabindex="0">
+          Segments <span class="editor-tab-count" id="editorTabCount">0</span>
+        </button>
+        <button type="button" class="editor-tab" id="editorStyleTab" role="tab" data-editor-tab="style" aria-selected="false" aria-controls="editorStylePanel" tabindex="-1">
+          Style
+        </button>
+      </div>
+
+      <div class="subtitle-editor-body">
+        <div class="editor-panel editor-segments-panel" id="editorSegmentsPanel" role="tabpanel" aria-labelledby="editorSegmentsTab">
+          <div class="editor-list-tools">
+            <input type="text" class="editor-search-input" id="editorSearchInput" placeholder="Search captions or speakers..." aria-label="Search subtitle segments">
+            <span class="editor-match-count" id="editorMatchCount">0 / 0</span>
+          </div>
+
+          <div class="editor-segment-list" id="editorSegmentList" role="listbox" aria-label="Subtitle segments" tabindex="0"></div>
+
+          <section class="editor-inspector" id="editorInspector" aria-label="Selected segment editor">
+            <div class="editor-inspector-head">
+              <span class="editor-segment-title" id="editorSegmentTitle">SEGMENT #1</span>
+              <span class="editor-segment-time" id="editorSegmentTime">00:00:00,000 → 00:00:00,000</span>
+            </div>
+
+            <div class="editor-inspector-scroll">
+            <label class="editor-field">HINGLISH CAPTION
+              <textarea class="editor-caption-input" id="editorCaptionInput" rows="3" spellcheck="false"></textarea>
+            </label>
+
+            <details class="editor-original-details">
+              <summary>ORIGINAL WHISPER TEXT</summary>
+              <div class="editor-original-text" id="editorOriginalText">—</div>
+            </details>
+
+            <div class="editor-two-col">
+              <label class="editor-field">START (SEC)
+                <input type="number" id="editorStartInput" min="0" step="0.01">
+              </label>
+              <label class="editor-field">END (SEC)
+                <input type="number" id="editorEndInput" min="0" step="0.01">
+              </label>
+            </div>
+
+            <label class="editor-field">SPEAKER
+              <input type="text" id="editorSpeakerInput" list="editorSpeakerOptions" placeholder="HOST / GUEST / Speaker 1">
+              <datalist id="editorSpeakerOptions"></datalist>
+            </label>
+            </div>
+
+            <div class="editor-action-row">
+              <button type="button" class="btn-secondary editor-play-btn" id="editorSeekBtn">▶ PLAY FROM HERE</button>
+              <button type="button" class="btn-primary editor-save-btn" id="editorSaveBtn">SAVE CHANGES</button>
+              <button type="button" class="btn-secondary editor-revert-btn" id="editorRevertBtn" title="Revert unsaved changes" aria-label="Revert unsaved changes">RESET</button>
+            </div>
+            <div class="editor-hint">Ctrl+Enter save · Esc collapse · edits update your exports locally</div>
+          </section>
+        </div>
+
+        <div class="editor-panel editor-style-panel" id="editorStylePanel" role="tabpanel" aria-labelledby="editorStyleTab" hidden>
+          <div class="editor-style-scroll">
+            <section class="editor-style-section">
+              <div class="editor-section-head">
+                <span class="editor-section-title">CAPTION PRESETS</span>
+                <span class="editor-scope">GLOBAL</span>
+              </div>
+              <p class="editor-section-note">Choose a look for every caption in this export.</p>
+              <div class="style-preset-grid" id="editorStylePresetGrid"></div>
+            </section>
+
+            <section class="editor-style-section">
+              <div class="editor-section-head">
+                <span class="editor-section-title">CUSTOM STYLE</span>
+                <span class="editor-scope">ALL CAPTIONS</span>
+              </div>
+              <div class="style-editor-grid">
+                <label class="style-field">FONT
+                  <select id="editorStyleFont"></select>
+                </label>
+                <label class="style-field">SIZE
+                  <input type="number" id="editorStyleFontSize" min="24" max="140" step="1">
+                </label>
+                <label class="style-field">BASE
+                  <input type="color" id="editorStyleBaseColor">
+                </label>
+                <label class="style-field">HIGHLIGHT
+                  <input type="color" id="editorStyleHighlightColor">
+                </label>
+                <label class="style-field">OUTLINE
+                  <input type="range" id="editorStyleOutline" min="0" max="30" step="1">
+                </label>
+                <label class="style-field">POSITION
+                  <input type="range" id="editorStyleMargin" min="0" max="600" step="10">
+                </label>
+              </div>
+              <div class="style-editor-toggles">
+                <label><input type="checkbox" id="editorStyleUppercase"> UPPERCASE</label>
+                <label><input type="checkbox" id="editorStyleBox"> BOX</label>
+              </div>
+              <div class="editor-style-actions">
+                <button type="button" class="style-action-btn" id="editorStyleResetBtn">RESET</button>
+                <button type="button" class="style-action-btn" id="editorStyleExportBtn">EXPORT JSON</button>
+                <button type="button" class="style-action-btn" id="editorStyleImportBtn">IMPORT JSON</button>
+                <input type="file" id="editorStyleImportFile" accept="application/json,.json" hidden>
+                <span class="editor-style-status" id="editorStyleStatus">SAVED</span>
+              </div>
+            </section>
+
+            <p class="editor-section-note editor-style-footnote">Style applies live to video player overlay, .ASS karaoke exports, and MP4 burn-in.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="subtitle-editor-rail" id="editorRail">
+        <button type="button" class="editor-expand-btn" id="editorExpandBtn" aria-label="Expand subtitle editor" aria-expanded="false" title="Expand subtitle editor">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
+        </button>
+        <span class="editor-rail-label">CAPTION EDITOR</span>
+        <span class="editor-rail-count" id="editorRailCount">0</span>
+      </div>
+    </aside>
+
+    <!-- Resizer Divider Handle -->
+    <div class="editor-resizer" id="editorResizer" role="separator" aria-orientation="vertical" aria-label="Resize Subtitle Editor" title="Drag horizontally to resize Subtitle Editor" hidden></div>
+
+    <div class="workspace-main" id="workspaceMain">
+      <!-- Studio Breadcrumb Bar (Option 1 + 3: Appears when editor is open) -->
+      <div class="studio-breadcrumb-bar" id="studioBreadcrumbBar">
+        <div class="studio-breadcrumb-left">
+          <span class="studio-file-chip" id="studioFileChip">🎬 video.mp4</span>
+          <span class="studio-mode-chip" id="studioModeChip">Mixed Hinglish</span>
+          <span class="studio-meta-text" id="studioMetaText">Medium • 0 Segments</span>
+        </div>
+        <button type="button" class="studio-toggle-btn" id="studioToggleConfigBtn" title="Toggle language ribbon and Whisper model controls">
+          ⚙️ SETUP / RE-RUN
+        </button>
+      </div>
 
   <!-- Video / Audio Upload Dropzone -->
   <section class="upload-container">
@@ -306,6 +469,12 @@
             <button type="button" class="btn-caption-pill" data-mode="original">ORIGINAL</button>
             <button type="button" class="btn-caption-pill" data-mode="off">OFF</button>
           </div>
+          <div class="caption-sync" id="captionSync" style="display: none;">
+            <span class="caption-toggle-label">SYNC:</span>
+            <button type="button" class="btn-caption-pill" id="captionSyncEarlier" aria-label="Show captions earlier">−</button>
+            <span class="caption-sync-value" id="captionSyncValue">0 ms</span>
+            <button type="button" class="btn-caption-pill" id="captionSyncLater" aria-label="Show captions later">+</button>
+          </div>
           <button class="btn-secondary" id="removeFileBtn">Remove File</button>
         </div>
       </div>
@@ -323,6 +492,7 @@
           </div>
           <video id="videoPlayer" playsinline></video>
           <div class="video-caption-overlay" id="captionOverlay" aria-live="polite">
+            <div class="caption-pill" id="captionPill" aria-hidden="true"></div>
             <div class="caption-box" id="captionBox">
               <span class="caption-text" id="captionText"></span>
             </div>
@@ -499,6 +669,8 @@
       <!-- Cards dynamically inserted here -->
     </div>
   </section>
+    </div>
+  </div>
 
   <!-- Slide-out Studio Settings Drawer (Option 1) -->
   <div class="drawer-overlay settings-drawer-overlay" id="settingsDrawerOverlay"></div>
@@ -579,7 +751,13 @@
       <div class="settings-card">
         <div class="settings-card-head">
           <span class="settings-card-title">👥 SPEAKER DIARIZATION</span>
-          <span class="settings-card-badge">ACOUSTIC CLUSTERING</span>
+          <div class="settings-card-head-right">
+            <span class="settings-card-badge">ACOUSTIC CLUSTERING</span>
+            <button type="button" class="pin-switch" id="pinDiarizeSwitch" title="Pin Speaker Diarization to main window" aria-pressed="false">
+              <span class="pin-knob"></span>
+              <span class="pin-text">PIN TO MAIN</span>
+            </button>
+          </div>
         </div>
         <p class="settings-card-desc">Automatically separates distinct speakers and prefixes captions with [Speaker 1]:, [Speaker 2]:</p>
         <div class="pills settings-pills">
@@ -627,58 +805,18 @@
     </div>
   </aside>
 
-  <!-- Slide-out Subtitle Inspector Drawer (Adapted from interior/drawer.tsx) -->
-  <div class="drawer-overlay" id="drawerOverlay"></div>
-  <aside class="drawer" id="drawer">
-    <div class="drawer-head">
-      <div class="drawer-title-group">
-        <div class="glyph" id="drawerGlyph" style="--c: var(--yellow);">
-          <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
-        </div>
-        <div>
-          <h2 id="drawerIndexTitle" style="font-size: 18px; font-weight: 800;">SEGMENT #1</h2>
-          <span id="drawerTimeRange" style="font-family: var(--font-mono); font-size: 12px; color: var(--green);">00:00:00,000 --> 00:00:02,500</span>
-        </div>
-      </div>
-      <button class="drawer-close" id="drawerCloseBtn">ESC</button>
-    </div>
-
-    <div class="drawer-body">
-      <div>
-        <div class="drawer-section-title">ORIGINAL WHISPER TEXT (DEVANAGARI / ENGLISH)</div>
-        <div class="card-orig-box" id="drawerOrigText" style="font-size: 15px; margin: 0;">—</div>
-      </div>
-
-      <div>
-        <div class="drawer-section-title">HINGLISH SUBTITLE (EDITABLE)</div>
-        <textarea class="drawer-textarea" id="drawerHinglishInput"></textarea>
-      </div>
-
-      <button class="btn-secondary" id="drawerSaveBtn" style="width: 100%;">
-        Save Subtitle Edit
-      </button>
-    </div>
-
-    <div class="drawer-foot">
-      <button class="btn-secondary" id="drawerCopyBtn" style="flex: 1;">COPY TEXT</button>
-      <button class="btn-secondary" id="drawerPlayAudioBtn" style="flex: 1;">SEEK VIDEO</button>
-    </div>
-  </aside>
-
   <!-- Floating Download Bar (Fixed Bottom) -->
   <div id="floatingDownloadBar" class="floating-download-bar" style="display: none; z-index: 95;">
-    <div class="floating-export-label">
-      <span style="color: var(--yellow);">EXPORT SUBTITLES:</span>
-      <span id="downloadMetaText" class="floating-export-sub">Ready for YouTube, Premiere & DaVinci</span>
-    </div>
-    <div class="live-match-pill" id="floatingMatchPill" title="Subtitle segments matching current search">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
-      <span id="floatingMatchCountText">0 SEGMENTS</span>
-    </div>
-    <div class="floating-search-wrap">
-      <svg class="floating-search-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-      <input type="text" id="floatingSearchInput" class="floating-search-input" placeholder="Search keywords in Hindi or English... (Press / to focus)" aria-label="Search subtitles">
-      <span class="floating-search-kbd">/</span>
+    <div class="floating-left-cluster">
+      <div class="live-match-pill" id="floatingMatchPill" title="Subtitle segments matching current search">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
+        <span id="floatingMatchCountText">0 SEGMENTS</span>
+      </div>
+      <div class="floating-search-wrap">
+        <svg class="floating-search-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <input type="text" id="floatingSearchInput" class="floating-search-input" placeholder="Search keywords in Hindi or English... (Press / to focus)" aria-label="Search subtitles">
+        <span class="floating-search-kbd">/</span>
+      </div>
     </div>
     <div class="floating-export-actions">
       <button class="btn-secondary" id="floatingCopyAllBtn" title="Copy all Hinglish subtitles to clipboard">

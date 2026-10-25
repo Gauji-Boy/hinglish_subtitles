@@ -280,7 +280,45 @@ URDU_WORD_MAP = {
 }
 
 
+# ---------------------------------------------------------------------------
+# Token cache
+#
+# `transliterate.process` (aksharamukha) dominates the conversion: a 400-word
+# reel calls it once per word and spoken Hinglish repeats a small vocabulary
+# ("hai", "to", "mein", "ka", "ki", ...). Cache the finished Latin form per
+# token. The cache is bounded and cleared wholesale when it fills: the working
+# set for one clip is a few hundred entries, so an LRU would add bookkeeping for
+# no measurable benefit.
+# ---------------------------------------------------------------------------
+_TOKEN_CACHE: dict = {}
+_TOKEN_CACHE_MAX = 8192
+
+
+def _remember_token(token: str, value: str) -> None:
+    if len(_TOKEN_CACHE) >= _TOKEN_CACHE_MAX:
+        _TOKEN_CACHE.clear()
+    _TOKEN_CACHE[token] = value
+
+
 def _transliterate_hindi_word(word: str) -> str:
+    cached = _TOKEN_CACHE.get(word)
+    if cached is not None:
+        return cached
+    value = _transliterate_hindi_word_uncached(word)
+    _remember_token(word, value)
+    return value
+
+
+def _transliterate_urdu_word(word: str) -> str:
+    cached = _TOKEN_CACHE.get(word)
+    if cached is not None:
+        return cached
+    value = _transliterate_urdu_word_uncached(word)
+    _remember_token(word, value)
+    return value
+
+
+def _transliterate_hindi_word_uncached(word: str) -> str:
     """Converts a single Devanagari word into natural Latin Hinglish."""
     clean_devanagari = word.strip()
     if clean_devanagari in COMMON_LOANWORDS:
@@ -331,7 +369,7 @@ def _transliterate_hindi_word(word: str) -> str:
     return ascii_str
 
 
-def _transliterate_urdu_word(word: str) -> str:
+def _transliterate_urdu_word_uncached(word: str) -> str:
     """Converts a single Perso-Arabic / Urdu word into natural Latin Hinglish."""
     clean_urdu = word.strip()
     if clean_urdu in URDU_WORD_MAP:
