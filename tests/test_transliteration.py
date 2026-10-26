@@ -330,6 +330,33 @@ class TestNasalFinal:
         assert word_to_hinglish("अमेन") == "amen"
 
 
+class TestProbedLoanwords:
+    """Gaps found by running the shipped pipeline over an independent eval set.
+
+    The hinglish-tts eval sentences (30 sentences, 4 registers) surfaced these;
+    each one was then checked in our own corpus before being added. Counts are
+    occurrences out of 6,632 tokens, one ASR run per clip. The last two change no
+    card under the shipped runs: they are coherence guards, kept so a covered word
+    never has an uncovered spelling twin.
+    """
+
+    @pytest.mark.parametrize("deva,expected", [
+        ("इवेंट", "event"),      # 1 occurrence; was 'ivent'
+        ("नेक्स", "next"),       # 1 occurrence; was 'knicks'
+        ("रिप्लाई", "reply"),    # 1 occurrence; was 'riplaai'
+        ("रिव्यू", "review"),    # 1 occurrence; was 'rivyu'
+        ("रिव्यूज", "reviews"),  # 1 occurrence; was 'refuge'
+        ("मेसेज", "message"),    # 0 in the shipped runs (3 in medium); twin of मैसेज
+        ("फ़ोन", "phone"),       # 0 anywhere; nukta twin of फोन, already covered
+    ])
+    def test_probed_words_take_their_english_spelling(self, deva, expected):
+        assert word_to_hinglish(deva) == expected
+
+    def test_the_nukta_twin_never_diverges_from_its_base(self):
+        # फोन -> phone already existed; फ़ोन must not fall through to 'fon'.
+        assert word_to_hinglish("फ़ोन") == word_to_hinglish("फोन") == "phone"
+
+
 
 class TestSentenceLevel:
     def test_what_the_user_reads(self):

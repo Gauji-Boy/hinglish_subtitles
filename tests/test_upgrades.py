@@ -147,14 +147,22 @@ class TestLoanwordRecovery:
 
     def test_two_dropped_consonants_add_no_false_positive(self, recoverer):
         # The wider pool is a superset for every query, so it has to be pinned in
-        # both directions. Measured on 5 clips / 2,150 distinct tokens: the delete-2
-        # index changed 4 tokens, all of them the performance family, and produced
-        # no other recovery. The *reverse* direction (a query with two extra
-        # consonants) was rejected because it turned हाटब्रेकिंग -- 'heartbreaking'
-        # -- into 'outbreak'.
+        # both directions. Measured on 5 clips / 2,087 distinct tokens (6,632 tokens,
+        # one ASR run each): the delete-2 index changed 4 distinct tokens -- 9
+        # occurrences, all the performance family, all in legion's medium run -- and
+        # produced no other recovery. Under the shipped turbo run it changes nothing.
+        # The *reverse* direction (a query with two extra consonants) was rejected
+        # because it turned हाटब्रेकिंग -- 'heartbreaking' -- into 'outbreak'.
         assert recoverer.recover("हाटब्रेकिंग") is None
         assert recoverer.recover("कमरा") is None
         assert recoverer.recover("तितली") is None
+
+    def test_curated_words_never_reach_the_recoverer(self, recoverer):
+        # COMMON_LOANWORDS is passed as `curated`, so a table entry always wins.
+        # रिव्यूज is a perfect 0.067 tie between 'refuge' and 'reviews' and the
+        # recoverer used to pick the wrong one; the table makes it deterministic.
+        assert recoverer.recover("रिव्यूज") is None
+        assert recoverer.recover("नेक्स") is None
 
 
 # =============================================================================

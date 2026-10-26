@@ -63,6 +63,7 @@ COMMON_LOANWORDS = {
     'टाइम': 'time',
     'पोस्ट': 'post',
     'मैसेज': 'message',
+    'मेसेज': 'message',
     'कृपया': 'kripya',
     'नीचे': 'neeche',
     'ऊपर': 'upar',
@@ -155,6 +156,25 @@ COMMON_LOANWORDS = {
     'आफिस': 'office',
     'अफिस': 'office',
     'आफतर': 'after',
+
+    # Gaps found by running the shipped pipeline over the hinglish-tts eval set
+    # (30 sentences, 4 registers) and then checking each hit in our own corpus.
+    # Counts are occurrences out of 6,632 tokens, one ASR run per clip (the run the
+    # cards were built from: large-v3-turbo for kaashvi/legion, large-v3 for
+    # traffic/uuid, medium for fashion).
+    'इवेंट': 'event',        # 1 -- was 'ivent'
+    'नेक्स': 'next',         # 1 -- was 'knicks'; next scores 0.210 vs knicks 0.037,
+                             #      so no frequency prior could reach it, only a table can
+    'रिप्लाई': 'reply',      # 1 -- was 'riplaai'
+    'रिव्यू': 'review',      # 1 -- was 'rivyu'
+    'रिव्यूज': 'reviews',    # 1 -- recoverer gave 'refuge' (a perfect 0.067 tie with
+                             #      'reviews', broken the wrong way)
+    # The two below are coherence guards, not corpus finds: they change no card under
+    # the shipped runs. मेसेज appears 3x in kaashvi's *medium* run only, and मैसेज is
+    # already covered above; फ़ोन never appears, but its nukta-less twin फोन -> phone
+    # is already covered and must not leak 'fon'.
+    'मेसेज': 'message',
+    'फ़ोन': 'phone',
 }
 
 # Hindustani words of Perso-Arabic origin that are pronounced with /f/ but written

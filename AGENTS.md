@@ -32,3 +32,12 @@ invisible in the source and in unit tests.
 - PowerShell: a pipeline ending in `Select-Object -First N` reports exit code 1
   falsely. Redirect to a file and check `$LASTEXITCODE` instead.
 - Timing evidence: `python tools/measure_timing.py` (read-only)
+
+## Corpus counting
+
+`%TEMP%\opencode\asr_diag_out\*.json` holds more than one ASR run per clip (`medium`
+*and* `large-v3-turbo`), each repeating its text in `segments`, plus `*_largev3.json`
+duplicates. Count `runs[*].words` for **one** run per clip — the one `pipeline_model`
+names, else `large-v3-turbo` → `large-v3` → `medium` — and skip `*_before.json` /
+`*_largev3.json`. That is 6,632 tokens / 2,087 distinct over 6 clips. Scanning the raw
+JSON inflates every count by ~3.6×.

@@ -502,11 +502,14 @@ class LoanwordRecoverer:
         #   dele   : candidate has 1 extra consonant  (देवाइसे -> device)
         #   dele2  : candidate has 2 extra consonants (पर्फॉमेस prpms -> performance prprmns)
         # plus the reverse of `exact` for the rarer case of a query with one extra
-        # consonant. Measured on 5 clips / 2,150 distinct tokens: `dele2` changes
-        # exactly 4 tokens, all of them the performance family, and adds no other
-        # recovery -- so the wider pool is purely additive. The *reverse* delete-2
-        # (query has 2 extra consonants) was measured too and rejected: it dragged
-        # हाटब्रेकिंग ('heartbreaking') to 'outbreak'.
+        # consonant. Measured on 5 clips / 2,087 distinct tokens (6,632 tokens, one
+        # ASR run each): `dele2` changes exactly 4 distinct tokens -- 9 occurrences,
+        # all of them the performance family, all in legion's *medium* run -- and adds
+        # no other recovery, so the wider pool is purely additive. Under the shipped
+        # default (large-v3-turbo) those misspelled spellings never occur and the
+        # index changes nothing; it is recall insurance, not a current fix. The
+        # *reverse* delete-2 (query has 2 extra consonants) was measured too and
+        # rejected: it dragged हाटब्रेकिंग ('heartbreaking') to 'outbreak'.
         self.exact: Dict[str, List[str]] = {}
         self.dele: Dict[str, List[str]] = {}
         self.dele2: Dict[str, List[str]] = {}
