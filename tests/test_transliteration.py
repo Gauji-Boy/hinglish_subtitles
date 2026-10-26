@@ -297,6 +297,29 @@ class TestFAndW:
         assert word_to_hinglish(deva) == expected
 
 
+class TestEnglishFLoans:
+    """English /f/ words written in Devanagari come out as English, not 'ph'."""
+
+    @pytest.mark.parametrize("deva,expected", [
+        ("फोन", "phone"),
+        ("फेमस", "famous"),
+        ("फुल", "full"),
+        ("फील", "feel"),
+        ("लाइफ", "life"),
+        ("फाइल", "file"),
+        ("आफ", "off"),
+        ("फैमिली", "family"),
+        ("फाइनल", "final"),
+    ])
+    def test_loanwords_take_their_english_spelling(self, deva, expected):
+        assert word_to_hinglish(deva) == expected
+
+    def test_long_oo_is_the_flower_not_the_adjective(self):
+        # फूल (long ū) is the Hindi flower; फुल (short u) is English 'full'.
+        assert word_to_hinglish("फूल") == "phool"
+        assert word_to_hinglish("फुल") == "full"
+
+
 class TestNasalFinal:
     def test_men_is_mein_only_when_the_source_ends_in_a_nasal(self):
         # में and its compounds carry the anusvara.

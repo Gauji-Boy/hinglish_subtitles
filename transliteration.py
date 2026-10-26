@@ -104,6 +104,57 @@ COMMON_LOANWORDS = {
     'लाख': 'lakh',
     'प्लस': 'plus',
     'पलस': 'plus',
+
+    # English /f/ loanwords. These are the second half of the फ split: the words
+    # that are /f/ *because they are English*, not because they are Persian. They
+    # belong here rather than in F_WORDS (which holds the Hinglish spellings
+    # saaf/kaafi/taraf) and they cannot be left to LoanwordRecoverer, because
+    # they are frequent enough in Hindi to sit in `protected`.
+    #
+    # Selection rule: the Devanagari spelling occurs >= 2 times in the 5-clip
+    # corpus, identifies exactly one English word, and has no native homograph.
+    # फूल (phool) and फुल (full) are different tokens and stay different.
+    # Deliberately absent: the misspelled long tail (परफॉमेस, पर्फॉमैस,
+    # परफॉर्मेंस ... ten spellings of 'performance'). A word list cannot fix a
+    # spelling the ASR invents per utterance; that needs the recovery layer.
+    'फील': 'feel',
+    'आफ': 'off',
+    'ओफ': 'off',
+    'औफ': 'off',
+    'फोन': 'phone',
+    'फुल': 'full',
+    'फेवरेट': 'favourite',
+    'फ़ेवरेट': 'favourite',
+    'फेवर': 'favour',
+    'फ़ेस': 'face',
+    'फेस': 'face',
+    'एफ़ेस': 'face',
+    'आउटफिट': 'outfit',
+    'लाइफ': 'life',
+    'फैमिली': 'family',
+    'फिनिश': 'finish',
+    'फाइल': 'file',
+    'फाइनली': 'finally',
+    'फाइनल': 'final',
+    'वाइफाई': 'wifi',
+    'फ़ीस': 'fees',
+    'डिफरेंट': 'different',
+    'एफिशेंट': 'efficient',
+    'फेमस': 'famous',
+    'कफी': 'coffee',
+    'हैडफोन': 'headphone',
+    'फोटो': 'photo',
+    'फोटों': 'photos',
+    'फियर': 'fear',
+    'फिंगर': 'finger',
+    'देफिनेटली': 'definitely',
+    'डेफिनेटली': 'definitely',
+    'कंफूजन': 'confusion',
+    'ऐफोन': 'iPhone',
+    'इंफॉरमेशन': 'information',
+    'आफिस': 'office',
+    'अफिस': 'office',
+    'आफतर': 'after',
 }
 
 # Hindustani words of Perso-Arabic origin that are pronounced with /f/ but written
