@@ -1,50 +1,23 @@
-# Task List: Recess Caption Style
+# Task List: 9:16 Safe Zones & Dead Space Indicator Polish
 
 Plan: `tasks/plan.md`
 
-## Phase 1: Foundation
+## Phase 1: Indicator Discoverability & Auto-On
+- [x] Task 1: Auto-enable dead space overlay & clarify button label (`index.html`, `app.js`, `components.css`)
 
-- [x] Task 1: Add the `recess` preset and its new schema fields (pill, reveal, size scale, grouping)
-- [x] Task 2: Add `"punch"` phrase grouping and widen the `accent_scale` clamp to 210
+## Phase 2: Calibrated 2026 Geometry & Collisions
+- [x] Task 2: Calibrate dead-space constants and collision thresholds (`app.js`, `components.css`, `tests/js/safe_zone_test.js`)
 
-### Checkpoint: Foundation
-- [x] `resolve_style("recess")` clamps every field
-- [x] Reference sentence groups into 12 cards: HEY / DID YOU HEAR ABOUT THE / BAKERY / IN / WILLOW / CREEK / THE / SWEET / SPOT? / IT'S RUN BY / EMMA / ?
-- [x] Full test suite passes (112)
+### Checkpoint: Indicator & Geometry Verification
+- [x] Safe-zone overlay opens automatically on portrait video
+- [x] Overlay dimensions match 11.5% / 23.5% / 15.2%
+- [x] All JS tests in `safe_zone_test.js` pass
 
-## Phase 2: ASS renderer
-
-- [x] Task 3: Expose per-word layout boxes from `_kinetic_lines`
-- [x] Task 4: Emit the gradient pill as coalesced layer-0 drawing events
-- [x] Task 5: Add the reveal envelope (fade + 110→100 spring) and pill slide
-- [x] Task 6: Centre the block vertically with `\an5`
-
-### Checkpoint: ASS
-- [x] `BAKERY` frame matches reference within 2 % (ink box, pill box, centre)
-- [x] `THE` line-2 pill matches 201 px height / 32 px radius
-- [x] Honey Punch ASS unchanged
-
-## Phase 3: Live overlay
-
-- [x] Task 7: Add the Recess CSS variant (centring, pill element, entrance)
-- [x] Task 8: Drive pill position/slide/fade and the word spring from `app.js`
-
-### Checkpoint: Live
-- [x] Live layout matches ASS at 860×480 and 480×860
-- [x] Honey Punch live overlay unchanged
-- [x] `node --check static/app.js` clean
-- [x] `tests/js/recess_overlay_test.js` green (wrapped by `tests/test_recess_overlay.py`)
-
-## Phase 4: Verification and docs
-
-- [x] Task 9: Burn the reference sentence with `h264_mf` and compare frames
-- [x] Task 10: Update `README.md` + `memory.md`, restore `launch_config.json`
+## Phase 3: "Sweet Spot" Placement & Docs
+- [x] Task 3: Add one-click placement chips under POSITION slider (`index.html`, `app.js`, `components.css`)
+- [x] Task 4: Persistent Memory & Documentation update (`memory.md`)
 
 ### Checkpoint: Complete
-- [x] `python -m pytest tests -q` passes (112)
-- [x] Burned frames verified against reference (pill ≤4 %, centre ≤3 px; ink carries the Arial Black substitution error)
-- [x] All changes uncommitted
-
-## Phase 5 (optional — gated on the font decision)
-
-- [ ] Task 11: Select and bundle a geometric heavy sans, then recalibrate the ASS constants
+- [x] Full regression test suite (`pytest`) passes (332/332)
+- [x] `node safe_zone_test.js` passes
+- [x] Working tree clean

@@ -400,6 +400,12 @@
                 <label class="style-field">POSITION
                   <span class="style-field-label">VERTICAL <b id="editorStyleMarginValue">88%</b></span>
                   <input type="range" id="editorStyleMargin" min="0" max="100" step="1">
+                  <div class="position-chips" id="positionChips">
+                    <button type="button" class="position-chip" data-pos="20" title="Top (20%)">TOP 20%</button>
+                    <button type="button" class="position-chip" data-pos="50" title="Center (50%)">MID 50%</button>
+                    <button type="button" class="position-chip is-sweet" data-pos="68" title="Safe Zone Sweet Spot (68%)">SWEET 68%</button>
+                    <button type="button" class="position-chip" data-pos="80" title="Bottom (80%)">BOT 80%</button>
+                  </div>
                 </label>
               </div>
               <div class="style-editor-toggles">
@@ -522,7 +528,7 @@
               </button>
               <input type="range" class="player-volume-slider" id="playerVolumeSlider" min="0" max="1" value="1" step="0.05" aria-label="Volume">
             </div>
-            <button type="button" class="player-btn-sm player-safe-btn" id="safeZoneBtn" title="Show 9:16 safe zones (Reels / Shorts)" aria-pressed="false" disabled>9:16</button>
+            <button type="button" class="player-btn-sm player-safe-btn" id="safeZoneBtn" title="Toggle 9:16 Safe Zones & Dead Space Overlay (Reels / Shorts / TikTok)" aria-pressed="false" disabled>🛡️ SAFE ZONE</button>
             <button type="button" class="player-btn-sm" id="playerFullscreenBtn" title="Toggle Fullscreen" aria-label="Fullscreen">
               <svg class="icon-fs-enter" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
               <svg class="icon-fs-exit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display: none;"><path d="M4 14h6m0 0v6m0-6L3 21m17-7h-6m0 0v6m0-6l7 7M10 10H4m6 0V4m0 6L3 3m17 7h-6m0 0V4m0 6l7-7"/></svg>

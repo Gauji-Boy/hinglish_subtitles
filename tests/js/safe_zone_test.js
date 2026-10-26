@@ -113,8 +113,11 @@ t.applyKineticTop(null, { anchor_y: 40 });
 // anchor_y + the 1.5% glyph nudge = 41.5% of 480 = 199.2 px.
 check("kinetic top follows anchor_y", t.getOverlay().style.top, "199.2px");
 
-// --- Safe-zone collisions --------------------------------------------------
+// --- Safe-zone collisions (calibrated 2026 specs: 11.5% top, 23.5% bottom, 15.2% right) -
 console.log("\ncase: safe-zone collisions");
+check("SAFE_ZONE_TOP is calibrated to 11.5%", t.SAFE_ZONE_TOP, 11.5);
+check("SAFE_ZONE_BOTTOM is calibrated to 23.5%", t.SAFE_ZONE_BOTTOM, 23.5);
+check("SAFE_ZONE_RIGHT is calibrated to 15.2%", t.SAFE_ZONE_RIGHT, 15.2);
 const frame = { left: 0, top: 0, right: 540, bottom: 960 };
 check(
   "a centred block is clear",
@@ -122,17 +125,17 @@ check(
   "[]"
 );
 check(
-  "the top 10% is flagged",
+  "the top 11.5% is flagged",
   JSON.stringify(t.safeZoneCollisions({ left: 150, top: 20, right: 390, bottom: 80 }, frame)),
   '["top bar"]'
 );
 check(
-  "the bottom 25% is flagged",
+  "the bottom 23.5% is flagged",
   JSON.stringify(t.safeZoneCollisions({ left: 150, top: 800, right: 390, bottom: 860 }, frame)),
   '["bottom rail"]'
 );
 check(
-  "the right 15% is flagged",
+  "the right 15.2% is flagged",
   JSON.stringify(t.safeZoneCollisions({ left: 430, top: 450, right: 520, bottom: 510 }, frame)),
   '["action rail"]'
 );

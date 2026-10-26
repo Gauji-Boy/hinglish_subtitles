@@ -230,6 +230,10 @@ function updateStylePositionReadout() {
   const value = Number(editorStyleMargin.value);
   const text = Number.isFinite(value) ? `${Math.round(value * 10) / 10}%` : "0%";
   if (editorStyleMarginValue.textContent !== text) editorStyleMarginValue.textContent = text;
+  document.querySelectorAll(".position-chip").forEach(chip => {
+    const chipVal = Number(chip.dataset.pos);
+    chip.classList.toggle("is-active", Math.abs(chipVal - value) < 1.0);
+  });
 }
 
 // The video's own box inside the stage. The stage also holds the control bar
@@ -2410,10 +2414,13 @@ function updateVideoOrientation() {
 
   if (h > w) {
     videoPlayer.classList.add("video-portrait");
+    safeZoneOn = true;
   } else if (w === h) {
     videoPlayer.classList.add("video-square");
+    safeZoneOn = false;
   } else {
     videoPlayer.classList.add("video-landscape");
+    safeZoneOn = false;
   }
 
   // Format label update
@@ -2442,6 +2449,7 @@ function updateVideoOrientation() {
     fileMetaLabel.textContent = `${sizeMB} MB • ${w}×${h} • ${formatName}`;
   }
   refreshCaptionTop();
+  syncSafeZoneMask();
   // The slider range depends on the aspect the burn will use, so a new clip
   // can widen or narrow it. Re-read it while the editor may be open.
   syncStyleEditor();
@@ -2529,9 +2537,9 @@ function hideCaptionOverlay() {
 // bottom profile / caption / sound rail, and the right like-comment-share rail.
 // These are constants, not measurements, so they are drawn with their names on.
 // --------------------------------------------------------------------------
-const SAFE_ZONE_TOP = 10;
-const SAFE_ZONE_BOTTOM = 25;
-const SAFE_ZONE_RIGHT = 15;
+const SAFE_ZONE_TOP = 11.5;
+const SAFE_ZONE_BOTTOM = 23.5;
+const SAFE_ZONE_RIGHT = 15.2;
 let safeZoneOn = false;
 
 // Pure geometry so the rules can be tested without a layout engine. `block`
@@ -3015,8 +3023,21 @@ if (playerFullscreenBtn && videoStage) {
     if (exitIcon) exitIcon.style.display = isFs ? "block" : "none";
     // The stage changes size when it becomes the fullscreen element.
     refreshCaptionTop();
+  syncSafeZoneMask();
   });
 }
+
+document.querySelectorAll(".position-chip").forEach(chip => {
+  chip.addEventListener("click", () => {
+    if (!editorStyleMargin || !activeCaptionStyle) return;
+    const target = Number(chip.dataset.pos);
+    if (!Number.isFinite(target)) return;
+    const range = stylePositionRange(activeCaptionStyle);
+    const clamped = Math.max(range.min, Math.min(range.max, target));
+    editorStyleMargin.value = String(clamped);
+    editorStyleMargin.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+});
 
 if (safeZoneBtn) {
   safeZoneBtn.addEventListener("click", (e) => {

@@ -551,3 +551,12 @@
    - **Deleted**: the pre-existing dead legacy style panel (`#styleFont` … `#styleBox` do not exist in `index.html`; `readStyleEditor`/`queueStyleSave`/`styleSaveTimer` came with it).
    - **Deliberately not done**: the burn is not auto-inset to the 15% rail (it would silently change existing reel exports; the guide warns instead), and the live kinetic wrap width (+26 portrait) still differs from ASS (+18).
    - **Verified**: **332 tests**, `node --check static/app.js`, four browser sweeps (kinetic, classic, Recess, guide, aspect swap), and three real `h264_mf` burns measured above.
+
+54. **2026 Safe-Zone Calibration, Auto-On for Portrait, & Sweet-Spot Placement (2026-10-26)**:
+   - **Discoverability fix**: The safe-zone guide previously required clicking an ambiguous `9:16` button that initialized to `false` and looked like a static aspect ratio tag. Button is now clearly labeled `🛡️ SAFE ZONE` with active golden highlighting, and automatically initializes to `true` whenever a vertical 9:16 clip (`video-portrait`) is loaded.
+   - **Calibrated to 2026 platform reality (BlitzCut guide)**: Dead space percentages in `app.js` and `components.css` were updated from rough guesses (10% / 25% / 15%) to BlitzCut cross-platform universal safe zone measurements:
+     - `SAFE_ZONE_TOP = 11.5%` (~220 px on 1080×1920, clears Instagram/TikTok search headers and following tabs).
+     - `SAFE_ZONE_BOTTOM = 23.5%` (~450 px, clears Reels' late-2025 expanded audio attribution bar and TikTok sound row).
+     - `SAFE_ZONE_RIGHT = 15.2%` (~164 px, clears TikTok's Jan 2026 expanded action rail with the new "Add to Playlist" button).
+   - **One-click "Sweet Spot" positioning snap**: Added 4 quick preset chips under the POSITION slider (`Top 20%`, `Center 50%`, `Sweet Spot 68%`, `Bottom 80%`). Clicking `Sweet Spot 68%` snaps both kinetic (`anchor_y`) and classic (`margin_v`) into the optimal lower-middle third ($Y=1200\text{--}1550\text{px}$) clearing speaker faces and bottom chrome.
+   - **Verified**: **332 pytest tests pass**, `node hinglish_subtitles/tests/js/safe_zone_test.js` 100% green with calibrated constants, clean syntax via `node --check`.
