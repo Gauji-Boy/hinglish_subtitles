@@ -136,6 +136,26 @@ class TestLoanwordRecovery:
         for deva, want in expected.items():
             assert bare.recover(deva) == want, f"{deva} should recover as {want!r}"
 
+    def test_two_dropped_consonants_still_recover(self, recoverer):
+        # Whisper writes 'performance' with the reph and the nasal sometimes gone, so
+        # the skeleton collapses prprmns -> prpms. With a delete-1 index only,
+        # 'performance' was not a candidate at all and 'promise' won instead (0.155,
+        # inside the 0.20 signal limit). The delete-2 index fixes the recall, not
+        # the threshold -- so the distance gates below are unchanged.
+        for deva in ("पर्फॉमेस", "परफॉमेस", "पर्फॉमैस", "पर्फॉमेज"):
+            assert recoverer.recover(deva) == "performance", deva
+
+    def test_two_dropped_consonants_add_no_false_positive(self, recoverer):
+        # The wider pool is a superset for every query, so it has to be pinned in
+        # both directions. Measured on 5 clips / 2,150 distinct tokens: the delete-2
+        # index changed 4 tokens, all of them the performance family, and produced
+        # no other recovery. The *reverse* direction (a query with two extra
+        # consonants) was rejected because it turned हाटब्रेकिंग -- 'heartbreaking'
+        # -- into 'outbreak'.
+        assert recoverer.recover("हाटब्रेकिंग") is None
+        assert recoverer.recover("कमरा") is None
+        assert recoverer.recover("तितली") is None
+
 
 # =============================================================================
 # 2. VARIANT UNIFICATION TESTS

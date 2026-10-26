@@ -494,22 +494,39 @@ class LoanwordRecoverer:
         self.protected = protected or set()
         self.curated = curated or set()
         self.t_sig, self.t_plain, self.min_phones = accept_with_signal, accept_plain, min_phones
-        # SymSpell-style delete-1 index on the consonant skeleton => cheap candidate retrieval
+        # SymSpell-style delete index on the consonant skeleton => cheap candidate retrieval.
+        # The ASR spelling of an English word usually *drops* consonants (पर्फॉमेस for
+        # 'performance'), so the query skeleton is normally shorter than the lexicon
+        # skeleton and the useful lookups are "candidate has N extra consonants":
+        #   exact  : candidate and query agree
+        #   dele   : candidate has 1 extra consonant  (देवाइसे -> device)
+        #   dele2  : candidate has 2 extra consonants (पर्फॉमेस prpms -> performance prprmns)
+        # plus the reverse of `exact` for the rarer case of a query with one extra
+        # consonant. Measured on 5 clips / 2,150 distinct tokens: `dele2` changes
+        # exactly 4 tokens, all of them the performance family, and adds no other
+        # recovery -- so the wider pool is purely additive. The *reverse* delete-2
+        # (query has 2 extra consonants) was measured too and rejected: it dragged
+        # हाटब्रेकिंग ('heartbreaking') to 'outbreak'.
         self.exact: Dict[str, List[str]] = {}
         self.dele: Dict[str, List[str]] = {}
+        self.dele2: Dict[str, List[str]] = {}
         for w, ph in lexicon.items():
             sk = _skeleton(ph)
             if not sk:
                 continue
             self.exact.setdefault(sk, []).append(w)
             for k in range(len(sk)):
-                self.dele.setdefault(sk[:k] + sk[k + 1:], []).append(w)
+                one = sk[:k] + sk[k + 1:]
+                self.dele.setdefault(one, []).append(w)
+                for j in range(len(one)):
+                    self.dele2.setdefault(one[:j] + one[j + 1:], []).append(w)
         self._cache: Dict[str, Optional[str]] = {}
         self.decisions: List[Tuple[str, str]] = []  # (devanagari, english) -- review this to grow `protected`
 
     def _candidates(self, sk: str) -> Set[str]:
         cands: Set[str] = set(self.exact.get(sk, ()))
         cands.update(self.dele.get(sk, ()))                       # candidate has 1 extra consonant
+        cands.update(self.dele2.get(sk, ()))                      # candidate has 2 extra consonants
         for k in range(len(sk)):                                   # query has 1 extra consonant
             cands.update(self.exact.get(sk[:k] + sk[k + 1:], ()))
         return cands
