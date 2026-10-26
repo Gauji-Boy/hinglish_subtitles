@@ -360,6 +360,12 @@ function loadApp() {
   setSafeZoneOn(on) { safeZoneOn = Boolean(on); },
   isSafeZoneOn() { return safeZoneOn; },
   syncSafeZoneMask,
+  setSafeZonePreset(preset) {
+    currentSafeZonePreset = preset;
+    safeZoneOn = (preset !== "off");
+  },
+  getSafeZonePreset() { return currentSafeZonePreset; },
+  SAFE_ZONE_PRESETS,
   SAFE_ZONE_TOP,
   SAFE_ZONE_BOTTOM,
   SAFE_ZONE_RIGHT,

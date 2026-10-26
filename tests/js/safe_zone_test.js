@@ -158,25 +158,49 @@ check("no frame means no collisions", t.safeZoneCollisions({}, null).length, 0);
 
 // --- Guide chrome ----------------------------------------------------------
 console.log("\ncase: the 9:16 guide only appears on portrait video");
-const btn = t.document.getElementById("safeZoneBtn");
 const mask = t.document.getElementById("safeZoneMask");
 const warning = t.document.getElementById("safeZoneWarning");
+const stageSafePill = t.document.getElementById("stageSafePill");
+
 player.classList.remove("video-portrait");
-t.setSafeZoneOn(true);
+t.setSafeZonePreset("universal");
 t.syncSafeZoneMask();
-check("button disabled on landscape", btn.disabled, true);
+check("pill hidden on landscape", stageSafePill.style.display, "none");
 check("mask hidden on landscape", mask.classList.contains("visible"), false);
 
 player.classList.add("video-portrait");
 t.syncSafeZoneMask();
-check("button enabled on portrait", btn.disabled, false);
+check("pill visible on portrait", stageSafePill.style.display, "flex");
 check("mask follows the frame", mask.style.width, "860px");
 check("mask follows the frame height", mask.style.height, "480px");
 check("mask visible while toggled on", mask.classList.contains("visible"), true);
 
-t.setSafeZoneOn(false);
-t.refreshSafeZoneWarning();
-check("warning hidden while the guide is off", warning.hidden, true);
+t.setSafeZonePreset("off");
+t.syncSafeZoneMask();
+check("mask hidden while preset is off", mask.classList.contains("visible"), false);
+
+// --- Platform presets ------------------------------------------------------
+console.log("\ncase: platform preset calibrations");
+check("universal preset exists", Boolean(t.SAFE_ZONE_PRESETS.universal), true);
+check("reels preset exists", Boolean(t.SAFE_ZONE_PRESETS.reels), true);
+check("shorts preset exists", Boolean(t.SAFE_ZONE_PRESETS.shorts), true);
+check("tiktok preset removed", Boolean(t.SAFE_ZONE_PRESETS.tiktok), false);
+
+// Test Shorts right rail tolerance (4.4% = 23.76 px on 540 width)
+t.setSafeZonePreset("shorts");
+check(
+  "shorts generous right edge is clear at right=510",
+  JSON.stringify(t.safeZoneCollisions({ left: 450, top: 400, right: 510, bottom: 460 }, frame)),
+  "[]"
+);
+
+// But on Universal (15.2% = 82px margin, right edge: 457.92), right: 510 collides with action rail!
+t.setSafeZonePreset("universal");
+check(
+  "universal flags collision at right=510",
+  JSON.stringify(t.safeZoneCollisions({ left: 450, top: 400, right: 510, bottom: 460 }, frame)),
+  '["action rail"]'
+);
 
 console.log(
   failures === 0

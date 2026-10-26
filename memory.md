@@ -560,3 +560,14 @@
      - `SAFE_ZONE_RIGHT = 15.2%` (~164 px, clears TikTok's Jan 2026 expanded action rail with the new "Add to Playlist" button).
    - **One-click "Sweet Spot" positioning snap**: Added 4 quick preset chips under the POSITION slider (`Top 20%`, `Center 50%`, `Sweet Spot 68%`, `Bottom 80%`). Clicking `Sweet Spot 68%` snaps both kinetic (`anchor_y`) and classic (`margin_v`) into the optimal lower-middle third ($Y=1200\text{--}1550\text{px}$) clearing speaker faces and bottom chrome.
    - **Verified**: **332 pytest tests pass**, `node hinglish_subtitles/tests/js/safe_zone_test.js` 100% green with calibrated constants, clean syntax via `node --check`.
+
+55. **Uncluttered Floating Safe-Zone Toolbar & Multi-Platform Presets (2026-10-26)**:
+   - **Clutter Elimination**: Removed the wide text button from `.custom-media-controls`. The playback transport bar (play, timecode, scrubber, volume slider, fullscreen) now has full breathing room and zero text truncation.
+   - **Option 1 Floating Stage Toolbar**: Added `#stageSafePill` inside `#videoStage` at the top-right corner (`top: 10px; right: 10px; z-index: 15`). Styled with frosted-glass backdrop blur (`rgba(14, 18, 27, 0.84)`, `backdrop-filter: blur(12px)`), high contrast mono chips, and smooth transitions. Only displayed on portrait video.
+   - **Platform Presets (TikTok Removed per User Direction)**: Added 1-click platform switching chips:
+     - `ALL` (Universal Cross-Platform: Top 11.5%, Bottom 23.5%, Right 15.2%).
+     - `REELS` (Instagram Reels: Top 11.5%, Bottom 23.4% [450 px audio bar], Right 11.1%).
+     - `SHORTS` (YouTube Shorts: Top 6.3%, Bottom 15.6%, Right 4.4% [48 px rail]).
+     - `OFF` (Disables guides and collision warnings).
+   - **Dynamic Collision & Geometry**: `safeZoneCollisions()` and band styles dynamically read from `SAFE_ZONE_PRESETS[currentSafeZonePreset]`, with collision alerts adapting instantly to the active platform's margins.
+   - **Verified**: **332 pytest tests pass**, `node hinglish_subtitles/tests/js/safe_zone_test.js` 100% green with platform preset checks and Shorts tolerance tests, clean syntax via `node --check`.

@@ -505,11 +505,20 @@
             </div>
           </div>
           <div class="video-safe-zones" id="safeZoneMask" aria-hidden="true">
-            <div class="safe-zone-band safe-zone-top"><span>TOP BAR</span></div>
-            <div class="safe-zone-band safe-zone-bottom"><span>PROFILE · CAPTION · SOUND</span></div>
-            <div class="safe-zone-band safe-zone-right"><span>LIKE<br>COMMENT<br>SHARE</span></div>
+            <div class="safe-zone-band safe-zone-top" id="safeZoneTop"><span>TOP BAR</span></div>
+            <div class="safe-zone-band safe-zone-bottom" id="safeZoneBottom"><span>PROFILE · CAPTION · SOUND</span></div>
+            <div class="safe-zone-band safe-zone-right" id="safeZoneRight"><span>ACTION RAIL</span></div>
           </div>
           <div class="safe-zone-warning" id="safeZoneWarning" hidden></div>
+          <div class="stage-safe-pill" id="stageSafePill" style="display: none;">
+            <span class="stage-safe-shield" title="Safe Zone Guides">🛡️</span>
+            <div class="stage-safe-chips">
+              <button type="button" class="stage-safe-chip is-active" data-preset="universal" title="Cross-Platform Universal (900×1400)">ALL</button>
+              <button type="button" class="stage-safe-chip" data-preset="reels" title="Instagram Reels (450px Bottom Audio)">REELS</button>
+              <button type="button" class="stage-safe-chip" data-preset="shorts" title="YouTube Shorts (Minimal 48px Rail)">SHORTS</button>
+              <button type="button" class="stage-safe-chip" data-preset="off" title="Disable Safe Zone Guides">OFF</button>
+            </div>
+          </div>
           <div class="custom-media-controls" id="customMediaControls">
             <button type="button" class="player-btn" id="playerPlayBtn" title="Play / Pause (Space)" aria-label="Play or Pause">
               <svg class="icon-play" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg>
@@ -528,7 +537,7 @@
               </button>
               <input type="range" class="player-volume-slider" id="playerVolumeSlider" min="0" max="1" value="1" step="0.05" aria-label="Volume">
             </div>
-            <button type="button" class="player-btn-sm player-safe-btn" id="safeZoneBtn" title="Toggle 9:16 Safe Zones & Dead Space Overlay (Reels / Shorts / TikTok)" aria-pressed="false" disabled>🛡️ SAFE ZONE</button>
+
             <button type="button" class="player-btn-sm" id="playerFullscreenBtn" title="Toggle Fullscreen" aria-label="Fullscreen">
               <svg class="icon-fs-enter" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
               <svg class="icon-fs-exit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display: none;"><path d="M4 14h6m0 0v6m0-6L3 21m17-7h-6m0 0v6m0-6l7 7M10 10H4m6 0V4m0 6L3 3m17 7h-6m0 0V4m0 6l7-7"/></svg>

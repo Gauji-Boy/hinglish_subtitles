@@ -2537,22 +2537,34 @@ function hideCaptionOverlay() {
 // bottom profile / caption / sound rail, and the right like-comment-share rail.
 // These are constants, not measurements, so they are drawn with their names on.
 // --------------------------------------------------------------------------
+const SAFE_ZONE_PRESETS = {
+  universal: { name: "Universal", top: 11.5, bottom: 23.5, right: 15.2 },
+  reels:     { name: "Instagram Reels", top: 11.5, bottom: 23.4, right: 11.1 },
+  shorts:    { name: "YouTube Shorts", top: 6.3, bottom: 15.6, right: 4.4 },
+  off:       { name: "Off", top: 0, bottom: 0, right: 0 }
+};
 const SAFE_ZONE_TOP = 11.5;
 const SAFE_ZONE_BOTTOM = 23.5;
 const SAFE_ZONE_RIGHT = 15.2;
-let safeZoneOn = false;
+let currentSafeZonePreset = "universal";
+let safeZoneOn = true;
+
+function activeSafeZonePreset() {
+  return SAFE_ZONE_PRESETS[currentSafeZonePreset] || SAFE_ZONE_PRESETS.universal;
+}
 
 // Pure geometry so the rules can be tested without a layout engine. `block`
 // and `frame` are stage-relative boxes; only the overlap decides a hit.
 function safeZoneCollisions(block, frame) {
-  if (!block || !frame) return [];
+  if (!block || !frame || currentSafeZonePreset === "off") return [];
   const width = frame.right - frame.left;
   const height = frame.bottom - frame.top;
   if (!(width > 0) || !(height > 0)) return [];
+  const preset = activeSafeZonePreset();
   const hits = [];
-  const topEdge = frame.top + height * SAFE_ZONE_TOP / 100;
-  const bottomEdge = frame.bottom - height * SAFE_ZONE_BOTTOM / 100;
-  const rightEdge = frame.right - width * SAFE_ZONE_RIGHT / 100;
+  const topEdge = frame.top + height * preset.top / 100;
+  const bottomEdge = frame.bottom - height * preset.bottom / 100;
+  const rightEdge = frame.right - width * preset.right / 100;
   if (block.top < topEdge && block.bottom > frame.top) hits.push("top bar");
   if (block.bottom > bottomEdge && block.top < frame.bottom) hits.push("bottom rail");
   // The action rail runs between the top bar and the bottom rail, so a
@@ -2636,19 +2648,37 @@ function refreshSafeZoneWarning() {
 }
 
 function syncSafeZoneMask() {
-  if (!safeZoneMask) return;
+  const stageSafePill = document.getElementById("stageSafePill");
   const portrait = Boolean(videoPlayer && videoPlayer.classList.contains("video-portrait"));
+  if (stageSafePill) {
+    stageSafePill.style.display = portrait ? "flex" : "none";
+  }
+  document.querySelectorAll(".stage-safe-chip").forEach(chip => {
+    chip.classList.toggle("is-active", chip.dataset.preset === currentSafeZonePreset);
+  });
+  if (!safeZoneMask) return;
   const frame = portrait ? videoFrameRect() : null;
+  const isOff = (currentSafeZonePreset === "off" || !safeZoneOn);
   if (safeZoneBtn) {
     safeZoneBtn.disabled = !portrait;
-    const active = Boolean(safeZoneOn && portrait);
-    safeZoneBtn.classList.toggle("is-active", active);
-    safeZoneBtn.setAttribute("aria-pressed", String(active));
+    safeZoneBtn.classList.toggle("is-active", !isOff && portrait);
+    safeZoneBtn.setAttribute("aria-pressed", String(!isOff && portrait));
   }
-  if (!safeZoneOn || !frame) {
+  if (isOff || !frame) {
     safeZoneMask.classList.remove("visible");
     if (safeZoneWarning) safeZoneWarning.hidden = true;
     return;
+  }
+  const preset = activeSafeZonePreset();
+  const topBand = document.getElementById("safeZoneTop");
+  const bottomBand = document.getElementById("safeZoneBottom");
+  const rightBand = document.getElementById("safeZoneRight");
+  if (topBand) topBand.style.height = `${preset.top}%`;
+  if (bottomBand) bottomBand.style.height = `${preset.bottom}%`;
+  if (rightBand) {
+    rightBand.style.top = `${preset.top}%`;
+    rightBand.style.bottom = `${preset.bottom}%`;
+    rightBand.style.width = `${preset.right}%`;
   }
   safeZoneMask.style.left = `${frame.left}px`;
   safeZoneMask.style.top = `${frame.top}px`;
@@ -3036,6 +3066,18 @@ document.querySelectorAll(".position-chip").forEach(chip => {
     const clamped = Math.max(range.min, Math.min(range.max, target));
     editorStyleMargin.value = String(clamped);
     editorStyleMargin.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+});
+
+document.querySelectorAll(".stage-safe-chip").forEach(chip => {
+  chip.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const preset = chip.dataset.preset;
+    if (preset && SAFE_ZONE_PRESETS[preset]) {
+      currentSafeZonePreset = preset;
+      safeZoneOn = (preset !== "off");
+      syncSafeZoneMask();
+    }
   });
 });
 
