@@ -222,7 +222,26 @@ function overlayTop(t) {
   check("pill stays hidden", pill.style.opacity, "0");
   check("no row gap variable", text.style.getPropertyValue("--recess-row"), "");
   check("word margins are untouched", text.querySelectorAll(".kinetic-word")[0].style.marginBottom, "");
-  check("overlay keeps the anchor percentage", overlay.style.top, `${honey.anchor_y + 1.5}%`);
+  // The live anchor is resolved inside the video's own box now (the stage also
+  // holds the control bar), so it is emitted in pixels, not a stage percentage.
+  const videoHeightPx = t.document.getElementById("videoPlayer").getBoundingClientRect().height;
+  check(
+    "overlay keeps the anchor position",
+    overlay.style.top,
+    `${((honey.anchor_y + 1.5) * videoHeightPx / 100).toFixed(1)}px`
+  );
+}
+
+// --- The POSITION slider moves a centred Recess block ---------------------
+{
+  console.log("\ncase: recess follows anchor_y");
+  const t = harness({ ...STYLE, anchor_y: 40 });
+  show(t, 2.5);
+  const text = t.getCaptionText();
+  const punchEm = Number.parseFloat(text.querySelectorAll(".kinetic-word")[0].style.fontSize);
+  // 40% of the stub's 480 px frame, minus the cap lift. Recess centres the
+  // block with translateY(-50%), so its top is the anchor.
+  near("a 40% anchor moves the centred block", overlayTop(t), 0.40 * 480 - 0.035 * punchEm, 0.2);
 }
 
 console.log(

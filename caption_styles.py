@@ -499,7 +499,10 @@ def resolve_style(style: Optional[Any] = None) -> Dict[str, Any]:
     base["outline_width"] = _number(base.get("outline_width"), 3, 0, 40)
     base["shadow"] = _number(base.get("shadow"), 0, 0, 12)
     base["box"] = _bool(base.get("box"), False)
-    base["margin_v"] = _number(base.get("margin_v"), 180, 0, 900)
+    # 1600, not 900: a bottom-anchored caption needs to reach most of the way
+    # up the frame for the editor's POSITION slider to cover its range. 900 put
+    # everything above ~53% out of reach. (9:16 PlayResY is 1920.)
+    base["margin_v"] = _number(base.get("margin_v"), 180, 0, 1600)
     alignment = _number(base.get("alignment"), 2, 1, 9)
     base["alignment"] = alignment if alignment in (2, 5, 8) else 2
     base["animation"] = "fade" if str(base.get("animation")).lower() == "fade" else "none"

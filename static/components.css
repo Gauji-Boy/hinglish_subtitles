@@ -992,6 +992,10 @@ nav {
   border-radius: 0;
   box-shadow: none;
   object-fit: contain;
+  /* The stage is as wide as the control bar. Without this the portrait video
+     stretches to that width and object-fit letterboxes inside a box that no
+     longer equals the picture, so frame-relative caption math drifts. */
+  align-self: center;
   transition: max-height 0.25s ease, max-width 0.25s ease, width 0.25s ease, height 0.25s ease;
   vertical-align: bottom;
 }
@@ -1042,6 +1046,126 @@ nav {
 .video-caption-overlay.visible {
   opacity: 1;
   transform: translateY(0);
+}
+
+/* --------------------------------------------------------------------------
+   9:16 Safe Zones (TikTok / Reels / Shorts)
+   The native player chrome sits on top of the video. These bands mark where it
+   lands; the geometry is set from the video's own rect in app.js, so the guide
+   stays correct while the stage letterboxes or goes fullscreen.
+   -------------------------------------------------------------------------- */
+.video-safe-zones {
+  position: absolute;
+  /* Under the caption (z-index 10): the guide marks the rails, it must not tint
+     the words the user is judging. */
+  z-index: 9;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.video-safe-zones.visible {
+  opacity: 1;
+}
+
+.safe-zone-band {
+  position: absolute;
+  box-sizing: border-box;
+  border: 1px dashed rgba(255, 92, 149, 0.75);
+  background: rgba(255, 92, 149, 0.14);
+}
+
+.safe-zone-band span {
+  position: absolute;
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: 0.08em;
+  color: rgba(255, 190, 214, 0.95);
+  text-shadow: 0 1px 0 #000000;
+}
+
+.safe-zone-top {
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 10%;
+  border-top: none;
+}
+
+.safe-zone-top span {
+  left: 6px;
+  bottom: 3px;
+}
+
+.safe-zone-bottom {
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 25%;
+  border-bottom: none;
+}
+
+.safe-zone-bottom span {
+  left: 6px;
+  top: 4px;
+}
+
+.safe-zone-right {
+  top: 10%;
+  right: 0;
+  bottom: 25%;
+  width: 15%;
+  border-right: none;
+}
+
+.safe-zone-right span {
+  right: 4px;
+  top: 6px;
+  text-align: right;
+}
+
+.safe-zone-warning {
+  position: absolute;
+  z-index: 13;
+  left: 8px;
+  top: 8px;
+  max-width: calc(100% - 16px);
+  padding: 4px 8px;
+  background: rgba(20, 8, 14, 0.92);
+  border: 1px solid var(--pink);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--pink);
+  pointer-events: none;
+}
+
+.safe-zone-warning[hidden] {
+  display: none;
+}
+
+.player-safe-btn {
+  width: auto;
+  padding: 0 7px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.player-safe-btn.is-active {
+  border-color: var(--pink);
+  color: var(--pink);
+}
+
+.player-safe-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .caption-box {
@@ -4124,6 +4248,19 @@ body::-webkit-scrollbar-button,
 .style-field input[type="range"] {
   width: 100%;
   accent-color: var(--yellow);
+}
+
+.style-field-label {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.style-field-label b {
+  color: var(--yellow);
+  font-weight: 800;
 }
 
 .style-editor-toggles {

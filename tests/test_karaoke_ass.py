@@ -598,6 +598,18 @@ def test_kinetic_ass_falls_back_when_no_timed_words():
     assert "Bina shabd token" in ass
     assert r"\k" not in ass
 
+def test_kinetic_anchor_reaches_every_slider_position():
+    # The editor's POSITION slider writes `anchor_y` directly. These are the
+    # pixel values the burn must emit for 40% and 90% of a 9:16 frame; the old
+    # live overlay clamped at 80% and disagreed with both.
+    resolved = {"max_width": 54, "kinetic_layout": "center", "anchor_y": 40}
+    alignment, _, y = _kinetic_event_anchor(0, resolved, 1080, 1920)
+    assert alignment == 8
+    assert y == 1920 * 0.40
+    high = _kinetic_event_anchor(0, {**resolved, "anchor_y": 90}, 1080, 1920)
+    assert high[2] == 1728.0
+
+
 def test_kinetic_portrait_scaling_matches_live_overlay_rules():
     # 16:9 keeps the reference 8% cap height and 54% line box.
     assert _kinetic_base_size(1080, 128, 1920) == 86

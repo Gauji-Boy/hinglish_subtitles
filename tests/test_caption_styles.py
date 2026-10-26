@@ -99,6 +99,14 @@ def test_alignment_is_restricted_to_supported_positions():
     assert resolve_style({"id": "custom", "alignment": 5})["alignment"] == 5
 
 
+def test_margin_ceiling_covers_the_editor_slider():
+    # The POSITION slider can reach ~16.7% from the top in a 9:16 frame. The old
+    # 900 px ceiling stopped at ~53%, so the top half of the slider was dead and
+    # the ASS margin the slider wrote was silently clamped.
+    assert resolve_style({"id": "custom", "margin_v": 1600})["margin_v"] == 1600
+    assert resolve_style({"id": "custom", "margin_v": 5000})["margin_v"] == 1600
+
+
 def test_aspect_profiles_and_aliases():
     portrait = aspect_profile("9:16")
     landscape = aspect_profile("landscape")

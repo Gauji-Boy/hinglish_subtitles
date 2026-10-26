@@ -74,6 +74,9 @@ class El {
     this.offsetWidth = 0;
     this.offsetHeight = 0;
     this.clientTop = 0;
+    this.clientLeft = 0;
+    this.clientWidth = 860;
+    this.clientHeight = 480;
     this.value = "";
     this.checked = false;
     this.disabled = false;
@@ -344,6 +347,22 @@ function loadApp() {
   startCaptionLoop,
   stopCaptionLoop,
   isCaptionLoopRunning() { return captionLoopOn; },
+  stylePositionRange,
+  stylePositionValue,
+  stylePositionPatch,
+  styleIsKinetic,
+  safeZoneCollisions,
+  safeZoneFrameBox,
+  captionBlockBox,
+  applyClassicBottom,
+  applyKineticTop,
+  refreshSafeZoneWarning,
+  setSafeZoneOn(on) { safeZoneOn = Boolean(on); },
+  isSafeZoneOn() { return safeZoneOn; },
+  syncSafeZoneMask,
+  SAFE_ZONE_TOP,
+  SAFE_ZONE_BOTTOM,
+  SAFE_ZONE_RIGHT,
 };
 `;
   const context = vm.createContext(sandbox);

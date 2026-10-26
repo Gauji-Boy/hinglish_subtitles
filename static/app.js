@@ -24,7 +24,6 @@ let activeCaptionStyle = initialConfig.caption_style || null;
 let captionStyles = [];
 let captionFonts = [];
 let defaultCaptionStyleId = "hormozi";
-let styleSaveTimer = null;
 let stylePreviewTimer = null;
 let stylePreviewUrl = null;
 
@@ -53,14 +52,6 @@ const styleExportBtn = document.getElementById("styleExportBtn");
 const styleImportBtn = document.getElementById("styleImportBtn");
 const styleImportFile = document.getElementById("styleImportFile");
 const styleEditor = document.getElementById("styleEditor");
-const styleFont = document.getElementById("styleFont");
-const styleFontSize = document.getElementById("styleFontSize");
-const styleBaseColor = document.getElementById("styleBaseColor");
-const styleHighlightColor = document.getElementById("styleHighlightColor");
-const styleOutline = document.getElementById("styleOutline");
-const styleMargin = document.getElementById("styleMargin");
-const styleUppercase = document.getElementById("styleUppercase");
-const styleBox = document.getElementById("styleBox");
 const editorStylePresetGrid = document.getElementById("editorStylePresetGrid");
 const editorStyleFont = document.getElementById("editorStyleFont");
 const editorStyleFontSize = document.getElementById("editorStyleFontSize");
@@ -68,6 +59,7 @@ const editorStyleBaseColor = document.getElementById("editorStyleBaseColor");
 const editorStyleHighlightColor = document.getElementById("editorStyleHighlightColor");
 const editorStyleOutline = document.getElementById("editorStyleOutline");
 const editorStyleMargin = document.getElementById("editorStyleMargin");
+const editorStyleMarginValue = document.getElementById("editorStyleMarginValue");
 const editorStyleUppercase = document.getElementById("editorStyleUppercase");
 const editorStyleBox = document.getElementById("editorStyleBox");
 const editorStyleResetBtn = document.getElementById("editorStyleResetBtn");
@@ -137,6 +129,9 @@ const captionSyncLater = document.getElementById("captionSyncLater");
 const captionOverlay = document.getElementById("captionOverlay");
 const captionText = document.getElementById("captionText");
 const captionPill = document.getElementById("captionPill");
+const safeZoneMask = document.getElementById("safeZoneMask");
+const safeZoneBtn = document.getElementById("safeZoneBtn");
+const safeZoneWarning = document.getElementById("safeZoneWarning");
 let captionMode = "hinglish";
 
 // Keep these in sync with karaoke_ass.py. They decide which words become gold.
@@ -163,6 +158,166 @@ let kineticStyleKey = "";
 let kineticPillKey = "";
 let kineticPillTop = null;
 let kineticMeasureCtx = null;
+let kineticWarningKey = "";
+
+// --------------------------------------------------------------------------
+// Caption placement
+//
+// One POSITION slider drives every style. Kinetic styles store a top anchor
+// (`anchor_y`, % of the frame); classic styles store `margin_v` (px above the
+// bottom of the PlayRes frame). Both are the same number in disguise, so the
+// slider converts through the aspect profile the burn uses.
+// --------------------------------------------------------------------------
+const STYLE_ASPECT_PROFILES = {
+  "9:16": { play_res_y: 1920, margin_scale: 1.0 },
+  "16:9": { play_res_y: 1080, margin_scale: 0.375 },
+  "1:1": { play_res_y: 1080, margin_scale: 0.46 }
+};
+// Mirrors the `margin_v` clamp in caption_styles.resolve_style.
+const STYLE_MAX_MARGIN = 1600;
+
+function styleIsKinetic(style) {
+  return Boolean(style && style.motion === "word-pop");
+}
+
+function clampPercent(value, fallback = 50) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return fallback;
+  return Math.max(0, Math.min(100, num));
+}
+
+function styleAspectProfile() {
+  return STYLE_ASPECT_PROFILES[detectAspect()] || STYLE_ASPECT_PROFILES["9:16"];
+}
+
+// The slider range is the range the burn can actually draw. Classic styles are
+// bottom-anchored, so the top of their travel stops where `margin_v` runs out.
+function stylePositionRange(style) {
+  if (styleIsKinetic(style)) return { min: 0, max: 100 };
+  const profile = styleAspectProfile();
+  const min = 100 - (STYLE_MAX_MARGIN * profile.margin_scale * 100) / profile.play_res_y;
+  return { min: Math.min(100, Math.max(0, Math.round(min * 10) / 10)), max: 100 };
+}
+
+function stylePositionValue(style) {
+  if (!style) return 88;
+  if (styleIsKinetic(style)) return clampPercent(style.anchor_y, 50);
+  const profile = styleAspectProfile();
+  return clampPercent(
+    100 - (Number(style.margin_v || 0) * profile.margin_scale * 100) / profile.play_res_y,
+    88
+  );
+}
+
+// Returns only the fields the active style actually reads, so switching between
+// a kinetic and a classic style never leaves the other anchor stale.
+function stylePositionPatch(style, percent) {
+  const range = stylePositionRange(style);
+  const value = Math.min(range.max, Math.max(range.min, Number(percent)));
+  if (!Number.isFinite(value)) return {};
+  if (styleIsKinetic(style)) return { anchor_y: Math.round(value) };
+  const profile = styleAspectProfile();
+  return {
+    margin_v: Math.min(
+      STYLE_MAX_MARGIN,
+      Math.round(((100 - value) / 100) * profile.play_res_y / profile.margin_scale)
+    )
+  };
+}
+
+function updateStylePositionReadout() {
+  if (!editorStyleMargin || !editorStyleMarginValue) return;
+  const value = Number(editorStyleMargin.value);
+  const text = Number.isFinite(value) ? `${Math.round(value * 10) / 10}%` : "0%";
+  if (editorStyleMarginValue.textContent !== text) editorStyleMarginValue.textContent = text;
+}
+
+// The video's own box inside the stage. The stage also holds the control bar
+// and the audio banner, so a percentage of the stage is not the frame the burn
+// draws into. Everything anchored to the caption uses this rect.
+function videoFrameRect() {
+  if (!videoStage || !videoPlayer) return null;
+  const stageRect = videoStage.getBoundingClientRect();
+  const videoRect = videoPlayer.getBoundingClientRect();
+  if (!stageRect.width || !stageRect.height || !videoRect.width || !videoRect.height) return null;
+  // Absolutely positioned children are laid out against the padding box, so
+  // drop the stage's border before converting to overlay coordinates.
+  const borderLeft = videoStage.clientLeft || 0;
+  const borderTop = videoStage.clientTop || 0;
+  return {
+    left: videoRect.left - stageRect.left - borderLeft,
+    top: videoRect.top - stageRect.top - borderTop,
+    width: videoRect.width,
+    height: videoRect.height,
+    stageWidth: videoStage.clientWidth || stageRect.width,
+    stageHeight: videoStage.clientHeight || stageRect.height
+  };
+}
+
+// The overlay spans the video picture, not the stage. A portrait clip can be
+// narrower than the control bar, and the burn lays text out inside the frame.
+// When the picture already fills the stage width, clear the inline pins so the
+// stylesheet's per-orientation insets still apply.
+function applyCaptionFrameBox(insetPx = 0) {
+  if (!captionOverlay) return;
+  const frame = videoFrameRect();
+  if (!frame) return;
+  const leftGap = Math.round(frame.left);
+  const rightGap = Math.round(Math.max(0, frame.stageWidth - frame.left - frame.width));
+  if (leftGap <= 1 && rightGap <= 1) {
+    captionOverlay.style.left = "";
+    captionOverlay.style.right = "";
+    return;
+  }
+  captionOverlay.style.left = `${leftGap + insetPx}px`;
+  captionOverlay.style.right = `${rightGap + insetPx}px`;
+}
+
+// Classic styles are bottom-anchored: the burn puts the block `margin_v *
+// margin_scale` px above the bottom of the PlayRes frame. The overlay is
+// positioned against the stage, which also holds the control bar, so the gap
+// below the video has to be added to the frame's own inset.
+function applyClassicBottom(style) {
+  if (!captionOverlay || !style || typeof style.margin_v !== "number") return;
+  const profile = styleAspectProfile();
+  const frame = videoFrameRect();
+  if (!frame) {
+    captionOverlay.style.bottom = `${Math.max(40, Math.min(140, Math.round(style.margin_v * 0.28)))}px`;
+    return;
+  }
+  const frameInset = frame.height * style.margin_v * profile.margin_scale / profile.play_res_y;
+  const belowFrame = Math.max(0, frame.stageHeight - frame.top - frame.height);
+  captionOverlay.style.bottom = `${Math.round(belowFrame + frameInset)}px`;
+  // 10 px of breathing room inside the picture, as the stylesheet had.
+  applyCaptionFrameBox(10);
+}
+
+// Kinetic styles anchor the top of the block, in frame pixels for the live
+// preview so the burn's `anchor_y` is what the user sees.
+function applyKineticTop(state, style) {
+  if (!captionOverlay || !style) return;
+  const percent = kineticAnchorPercent(state, style);
+  const frame = videoFrameRect();
+  captionOverlay.style.top = frame
+    ? `${(frame.top + frame.height * percent / 100).toFixed(1)}px`
+    : `${percent}%`;
+}
+
+// Re-derive the placement after a layout change (resize, fullscreen, rotate)
+// without rebuilding the caption DOM.
+function refreshCaptionTop() {
+  if (activeCaptionStyle && captionOverlay) {
+    applyCaptionFrameBox(styleIsKinetic(activeCaptionStyle) ? 0 : 10);
+    if (styleIsKinetic(activeCaptionStyle)) {
+      if (!activeCaptionStyle.pill) {
+        applyKineticTop(kineticStateAt(videoPlayer ? videoPlayer.currentTime : 0), activeCaptionStyle);
+      }
+    } else if (captionOverlay.classList.contains("visible")) {
+      applyClassicBottom(activeCaptionStyle);
+    }
+  }
+  syncSafeZoneMask();
+}
 
 // Caption playback clock. Every style is driven from the same frame loop so a
 // card is painted on the frame its start time passes, not on the video's
@@ -776,15 +931,13 @@ async function loadCaptionStyles() {
 }
 
 function populateStyleFonts() {
-  [styleFont, editorStyleFont].forEach(select => {
-    if (!select) return;
-    select.textContent = "";
-    captionFonts.forEach(font => {
-      const option = document.createElement("option");
-      option.value = font;
-      option.textContent = font;
-      select.appendChild(option);
-    });
+  if (!editorStyleFont) return;
+  editorStyleFont.textContent = "";
+  captionFonts.forEach(font => {
+    const option = document.createElement("option");
+    option.value = font;
+    option.textContent = font;
+    editorStyleFont.appendChild(option);
   });
 }
 
@@ -1235,17 +1388,20 @@ function kineticAnchorPercent(state, style) {
   // The reference's two-line title sits slightly higher than the normal
   // four-line block. Keep the style anchor as the normal position.
   if (state && state.phraseTitle) percent -= 4.5;
-  return Math.max(6, Math.min(80, percent));
+  // No 6..80 window: the slider must reach the same pixel the burn's \pos does.
+  return Math.max(0, Math.min(100, percent));
 }
 
-function recessCentreTop(em) {
+function recessCentreTop(em, style, state) {
   // The overlay's containing block also holds the audio banner, so 50% is not
-  // the video's centre. Anchor to the video's own midline, minus the cap lift.
-  const parent = captionOverlay.offsetParent || captionOverlay.parentElement;
-  if (!parent || !videoPlayer) return null;
-  const parentRect = parent.getBoundingClientRect();
-  const videoRect = videoPlayer.getBoundingClientRect();
-  const centre = videoRect.top + videoRect.height / 2 - parentRect.top - (parent.clientTop || 0);
+  // the video's centre. Anchor to the style's own anchor_y inside the video
+  // box, minus the cap lift - the burn puts the \an5 centre at that percentage.
+  if (!style || !captionOverlay) return null;
+  const frame = videoFrameRect();
+  if (!frame) return null;
+  let percent = Number(style.anchor_y ?? 50);
+  if (state && state.phraseTitle) percent -= 4.5; // _KINETIC_TITLE_ANCHOR_OFFSET
+  const centre = frame.top + frame.height * percent / 100;
   return centre - RECESS_PILL_Y_NUDGE * em;
 }
 
@@ -1257,11 +1413,14 @@ function ensureKineticOverlay(style, state = null) {
   captionText.classList.add("kinetic");
   captionOverlay.classList.toggle("recess", pill);
   captionText.classList.toggle("recess", pill);
+  // Kinetic layouts centre inside the video frame; a classic style may have
+  // pinned inline left/right to a narrower box.
+  applyCaptionFrameBox(0);
   if (pill) {
     // The Recess CSS centres the block; an inline top/transform would win.
     captionOverlay.style.bottom = "auto";
     const em = kineticBaseSize(style);
-    const top = recessCentreTop(em);
+    const top = recessCentreTop(em, style, state);
     captionOverlay.style.top = top === null ? "50%" : `${top.toFixed(1)}px`;
     captionText.style.setProperty("--recess-row", `${RECESS_ROW_GAP * em}px`);
     if (captionPill) {
@@ -1269,7 +1428,7 @@ function ensureKineticOverlay(style, state = null) {
         `linear-gradient(180deg, ${style.pill_gradient_start || "#D2E860"}, ${style.pill_gradient_end || "#A793FF"})`;
     }
   } else {
-    captionOverlay.style.top = `${kineticAnchorPercent(state, style)}%`;
+    applyKineticTop(state, style);
     captionOverlay.style.bottom = "auto";
     captionText.style.removeProperty("--recess-row");
     if (captionPill) captionPill.style.opacity = "0";
@@ -1408,6 +1567,8 @@ function hideKineticCaption() {
   if (captionOverlay) captionOverlay.classList.remove("visible");
   hideRecessPill();
   kineticRenderKey = "";
+  kineticWarningKey = "";
+  if (safeZoneWarning) safeZoneWarning.hidden = true;
 }
 
 function updateKineticCaption() {
@@ -1463,7 +1624,10 @@ function updateKineticCaption() {
     if (flushRight) marginRight = flush;
     else marginLeft = flush;
   } else if (alignRight) {
-    marginRight = isPortrait ? "8%" : "20%";
+    // karaoke_ass._kinetic_event_anchor puts `right` at 80% of the frame width
+    // (a 20% margin), in every aspect. 8% here put the live text on the pool
+    // edge while the burn sat 12% further in.
+    marginRight = "20%";
   }
   captionText.style.marginLeft = marginLeft;
   captionText.style.marginRight = marginRight;
@@ -1549,13 +1713,20 @@ function updateKineticCaption() {
       (max, word) => Math.max(max, baseSize * wordScale(word)),
       baseSize
     );
-    const top = recessCentreTop(blockEm);
+    const top = recessCentreTop(blockEm, style, state);
     if (top !== null) captionOverlay.style.top = `${top.toFixed(1)}px`;
     placeRecessPill(style, state, activeLocal, baseSize);
   } else {
     hideRecessPill();
   }
   captionOverlay.classList.add("visible");
+  // Measuring the word boxes forces a layout, so only do it when the visible
+  // block changes - not on every frame of the caption clock.
+  const warningKey = `${state.phraseId}:${activeLocal}`;
+  if (warningKey !== kineticWarningKey) {
+    kineticWarningKey = warningKey;
+    refreshSafeZoneWarning();
+  }
 }
 
 // One clock for every style. `requestVideoFrameCallback` fires once per
@@ -1667,12 +1838,9 @@ function applyCaptionStyleToVideo() {
     ensureKineticOverlay(s);
     captionText.style.fontSize = `${kineticBaseSize(s)}px`;
     captionText.style.textTransform = s.uppercase ? "uppercase" : "none";
-    if (!s.pill) {
-      captionOverlay.style.top = `${kineticAnchorPercent(null, s)}%`;
-      captionOverlay.style.bottom = "auto";
-    }
     kineticStyleKey = "";
     kineticRenderKey = "";
+    kineticWarningKey = "";
     if (currentSegments && currentSegments.length && captionMode !== "off") {
       updateKineticCaption();
       if (!videoPlayer.paused && !videoPlayer.ended) startCaptionLoop();
@@ -1704,10 +1872,7 @@ function applyCaptionStyleToVideo() {
     captionBox.style.maxWidth = "";
   }
 
-  if (captionOverlay && typeof s.margin_v === "number") {
-    const bottomPx = Math.max(40, Math.min(140, Math.round(s.margin_v * 0.28)));
-    captionOverlay.style.bottom = `${bottomPx}px`;
-  }
+  applyClassicBottom(s);
 
   applyCaptionWordColors(videoPlayer ? videoPlayer.currentTime : 0);
 }
@@ -1785,16 +1950,6 @@ function hex6(value) {
 function syncStyleEditor() {
   if (!activeCaptionStyle) return;
   const s = activeCaptionStyle;
-  if (styleFont) {
-    styleFont.value = s.font;
-    styleFontSize.value = s.font_size;
-    styleBaseColor.value = hex6(s.base_color);
-    styleHighlightColor.value = hex6(s.highlight_color);
-    styleOutline.value = s.outline_width;
-    styleMargin.value = s.margin_v;
-    styleUppercase.checked = !!s.uppercase;
-    styleBox.checked = !!s.box;
-  }
 
   if (editorStyleFont) {
     editorStyleFont.value = s.font;
@@ -1802,27 +1957,14 @@ function syncStyleEditor() {
     editorStyleBaseColor.value = hex6(s.base_color);
     editorStyleHighlightColor.value = hex6(s.highlight_color);
     editorStyleOutline.value = s.outline_width;
-    editorStyleMargin.value = s.margin_v;
+    const range = stylePositionRange(s);
+    editorStyleMargin.min = String(range.min);
+    editorStyleMargin.max = String(range.max);
+    editorStyleMargin.value = String(stylePositionValue(s));
+    updateStylePositionReadout();
     editorStyleUppercase.checked = !!s.uppercase;
     editorStyleBox.checked = !!s.box;
   }
-}
-
-function readStyleEditor() {
-  const base = activeCaptionStyle || captionStyles[0] || {};
-  return {
-    ...base,
-    id: "custom",
-    name: "Custom",
-    font: styleFont.value,
-    font_size: Number(styleFontSize.value) || 60,
-    uppercase: styleUppercase.checked,
-    base_color: styleBaseColor.value,
-    highlight_color: styleHighlightColor.value,
-    outline_width: Number(styleOutline.value),
-    margin_v: Number(styleMargin.value),
-    box: styleBox.checked
-  };
 }
 
 function setEditorStyleStatus(message, isError = false) {
@@ -1831,9 +1973,9 @@ function setEditorStyleStatus(message, isError = false) {
   editorStyleStatus.style.color = isError ? "var(--pink)" : "var(--green)";
 }
 
-function readEditorStyleEditor() {
+function readEditorStyleEditor(positionChanged = false) {
   const base = activeCaptionStyle || captionStyles[0] || {};
-  return {
+  const draft = {
     ...base,
     id: "custom",
     name: "Custom",
@@ -1843,15 +1985,20 @@ function readEditorStyleEditor() {
     base_color: editorStyleBaseColor.value,
     highlight_color: editorStyleHighlightColor.value,
     outline_width: Number(editorStyleOutline.value),
-    margin_v: Number(editorStyleMargin.value),
     box: editorStyleBox.checked
   };
+  // Only the slider rewrites the anchor. Touching font or outline must not
+  // round-trip the position through the slider and shift a preset by a pixel.
+  if (!positionChanged) return draft;
+  return Object.assign(draft, stylePositionPatch(draft, Number(editorStyleMargin.value)));
 }
 
-function queueEditorStyleSave() {
+function queueEditorStyleSave(event) {
   if (!editorStyleFont || !activeCaptionStyle) return;
-  const draft = readEditorStyleEditor();
+  const fromPosition = Boolean(event && event.target === editorStyleMargin);
+  const draft = readEditorStyleEditor(fromPosition);
   activeCaptionStyle = draft;
+  if (fromPosition) updateStylePositionReadout();
   const idx = captionStyles.findIndex(s => s.id === "custom");
   if (idx >= 0) captionStyles[idx] = draft;
   else captionStyles.push(draft);
@@ -1872,25 +2019,6 @@ function markActiveStyle() {
       btn.setAttribute("aria-pressed", String(isActive));
     });
   });
-}
-
-function queueStyleSave() {
-  if (!styleFont) return;
-  const draft = readStyleEditor();
-  activeCaptionStyle = draft;
-
-  const idx = captionStyles.findIndex(s => s.id === "custom");
-  if (idx >= 0) {
-    captionStyles[idx] = draft;
-    markActiveStyle();
-    applyCaptionSample();
-  } else {
-    captionStyles.push(draft);
-    renderCaptionPresets();
-  }
-
-  clearTimeout(styleSaveTimer);
-  styleSaveTimer = setTimeout(() => saveCaptionStyle(draft), 400);
 }
 
 function detectAspect() {
@@ -2002,12 +2130,6 @@ if (styleImportBtn && styleImportFile) {
     }
   });
 }
-
-[styleFont, styleFontSize, styleBaseColor, styleHighlightColor, styleOutline, styleMargin, styleUppercase, styleBox].forEach(el => {
-  if (!el) return;
-  el.addEventListener("input", queueStyleSave);
-  el.addEventListener("change", queueStyleSave);
-});
 
 [editorStyleFont, editorStyleFontSize, editorStyleBaseColor, editorStyleHighlightColor, editorStyleOutline, editorStyleMargin, editorStyleUppercase, editorStyleBox].forEach(el => {
   if (!el) return;
@@ -2273,6 +2395,8 @@ function updateVideoOrientation() {
         : "";
       fileMetaLabel.textContent = `${sizeMB} MB • Audio Track (${ext.toUpperCase() || "AUDIO"})${dur}`;
     }
+    safeZoneOn = false;
+    syncSafeZoneMask();
     return;
   }
 
@@ -2317,6 +2441,10 @@ function updateVideoOrientation() {
     const sizeMB = (currentFile.size / (1024 * 1024)).toFixed(2);
     fileMetaLabel.textContent = `${sizeMB} MB • ${w}×${h} • ${formatName}`;
   }
+  refreshCaptionTop();
+  // The slider range depends on the aspect the burn will use, so a new clip
+  // can widen or narrow it. Re-read it while the editor may be open.
+  syncStyleEditor();
 }
 
 videoPlayer.addEventListener("loadedmetadata", updateVideoOrientation);
@@ -2391,6 +2519,135 @@ function hideCaptionOverlay() {
   if (captionRenderKey === "hidden") return;
   captionRenderKey = "hidden";
   captionOverlay.classList.remove("visible");
+  if (safeZoneWarning) safeZoneWarning.hidden = true;
+}
+
+// --------------------------------------------------------------------------
+// 9:16 safe zones (TikTok / Reels / Shorts)
+//
+// Approximate platform chrome as a share of the frame: the top tab bar, the
+// bottom profile / caption / sound rail, and the right like-comment-share rail.
+// These are constants, not measurements, so they are drawn with their names on.
+// --------------------------------------------------------------------------
+const SAFE_ZONE_TOP = 10;
+const SAFE_ZONE_BOTTOM = 25;
+const SAFE_ZONE_RIGHT = 15;
+let safeZoneOn = false;
+
+// Pure geometry so the rules can be tested without a layout engine. `block`
+// and `frame` are stage-relative boxes; only the overlap decides a hit.
+function safeZoneCollisions(block, frame) {
+  if (!block || !frame) return [];
+  const width = frame.right - frame.left;
+  const height = frame.bottom - frame.top;
+  if (!(width > 0) || !(height > 0)) return [];
+  const hits = [];
+  const topEdge = frame.top + height * SAFE_ZONE_TOP / 100;
+  const bottomEdge = frame.bottom - height * SAFE_ZONE_BOTTOM / 100;
+  const rightEdge = frame.right - width * SAFE_ZONE_RIGHT / 100;
+  if (block.top < topEdge && block.bottom > frame.top) hits.push("top bar");
+  if (block.bottom > bottomEdge && block.top < frame.bottom) hits.push("bottom rail");
+  // The action rail runs between the top bar and the bottom rail, so a
+  // caption in the top-right corner is not also under the like buttons.
+  if (
+    block.right > rightEdge &&
+    block.left < frame.right &&
+    block.bottom > topEdge &&
+    block.top < bottomEdge
+  ) {
+    hits.push("action rail");
+  }
+  return hits;
+}
+
+// The painted words, not the overlay / text box: a centred phrase leaves most
+// of its box empty, and a box-sized warning would fire on every frame.
+function captionBlockBox() {
+  if (!captionOverlay || !videoStage || !captionOverlay.classList.contains("visible")) return null;
+  const stageRect = videoStage.getBoundingClientRect();
+  const borderLeft = videoStage.clientLeft || 0;
+  const borderTop = videoStage.clientTop || 0;
+  let left = Infinity;
+  let top = Infinity;
+  let right = -Infinity;
+  let bottom = -Infinity;
+  const words = captionText ? captionText.querySelectorAll(".kinetic-word") : [];
+  words.forEach(word => {
+    // Hidden words still occupy a box; the guide is about painted ink.
+    if (word.style && word.style.visibility === "hidden") return;
+    const r = word.getBoundingClientRect();
+    if (!r.width || !r.height) return;
+    left = Math.min(left, r.left);
+    top = Math.min(top, r.top);
+    right = Math.max(right, r.right);
+    bottom = Math.max(bottom, r.bottom);
+  });
+  if (!Number.isFinite(left)) {
+    const el = captionText || document.getElementById("captionBox");
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    if (!r.width || !r.height) return null;
+    left = r.left;
+    top = r.top;
+    right = r.right;
+    bottom = r.bottom;
+  }
+  return {
+    left: left - stageRect.left - borderLeft,
+    top: top - stageRect.top - borderTop,
+    right: right - stageRect.left - borderLeft,
+    bottom: bottom - stageRect.top - borderTop
+  };
+}
+
+function safeZoneFrameBox() {
+  const frame = videoFrameRect();
+  if (!frame) return null;
+  return {
+    left: frame.left,
+    top: frame.top,
+    right: frame.left + frame.width,
+    bottom: frame.top + frame.height
+  };
+}
+
+function refreshSafeZoneWarning() {
+  if (!safeZoneWarning) return;
+  if (!safeZoneOn) {
+    safeZoneWarning.hidden = true;
+    return;
+  }
+  const hits = safeZoneCollisions(captionBlockBox(), safeZoneFrameBox());
+  if (!hits.length) {
+    safeZoneWarning.hidden = true;
+    return;
+  }
+  const text = `CAPTION IN ${hits.join(" + ").toUpperCase()}`;
+  if (safeZoneWarning.textContent !== text) safeZoneWarning.textContent = text;
+  safeZoneWarning.hidden = false;
+}
+
+function syncSafeZoneMask() {
+  if (!safeZoneMask) return;
+  const portrait = Boolean(videoPlayer && videoPlayer.classList.contains("video-portrait"));
+  const frame = portrait ? videoFrameRect() : null;
+  if (safeZoneBtn) {
+    safeZoneBtn.disabled = !portrait;
+    const active = Boolean(safeZoneOn && portrait);
+    safeZoneBtn.classList.toggle("is-active", active);
+    safeZoneBtn.setAttribute("aria-pressed", String(active));
+  }
+  if (!safeZoneOn || !frame) {
+    safeZoneMask.classList.remove("visible");
+    if (safeZoneWarning) safeZoneWarning.hidden = true;
+    return;
+  }
+  safeZoneMask.style.left = `${frame.left}px`;
+  safeZoneMask.style.top = `${frame.top}px`;
+  safeZoneMask.style.width = `${frame.width}px`;
+  safeZoneMask.style.height = `${frame.height}px`;
+  safeZoneMask.classList.add("visible");
+  refreshSafeZoneWarning();
 }
 
 // `force` re-renders even when the playhead is still inside the same card: used
@@ -2432,6 +2689,7 @@ function updateVideoCaption(force) {
     applyCaptionStyleToVideo();
     captionOverlay.classList.add("visible");
     captionRenderKey = cardKey;
+    refreshSafeZoneWarning();
   } else {
     applyCaptionWordColors(curTime);
   }
@@ -2755,7 +3013,26 @@ if (playerFullscreenBtn && videoStage) {
     const isFs = (document.fullscreenElement === videoStage);
     if (enterIcon) enterIcon.style.display = isFs ? "none" : "block";
     if (exitIcon) exitIcon.style.display = isFs ? "block" : "none";
+    // The stage changes size when it becomes the fullscreen element.
+    refreshCaptionTop();
   });
+}
+
+if (safeZoneBtn) {
+  safeZoneBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    safeZoneOn = !safeZoneOn;
+    syncSafeZoneMask();
+  });
+}
+
+// The picture box changes on window resize, fullscreen, and when the editor
+// panel is dragged wider. A window listener misses that last one, so observe
+// the stage itself; fall back to the window event where the API is absent.
+if (videoStage && typeof ResizeObserver !== "undefined") {
+  new ResizeObserver(refreshCaptionTop).observe(videoStage);
+} else if (typeof window !== "undefined" && window.addEventListener) {
+  window.addEventListener("resize", refreshCaptionTop);
 }
 
 if (videoStage) {
