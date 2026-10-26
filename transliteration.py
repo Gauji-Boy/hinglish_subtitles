@@ -106,6 +106,61 @@ COMMON_LOANWORDS = {
     'पलस': 'plus',
 }
 
+# Hindustani words of Perso-Arabic origin that are pronounced with /f/ but written
+# with फ (not फ़) in Devanagari, because ASR and everyday writing drop the nukta.
+# फ spells two sounds -- native /pʰ/ (phir, phool, phal) and borrowed /f/ (saaf,
+# kaafi, taraf) -- and the script does not separate them, so the Hinglish spelling
+# has to come from a word list. This list holds the /f/ words; native /pʰ/ words are
+# deliberately absent and keep their 'ph'. English /f/ loanwords (फोन, फिल्म) are a
+# different class: they belong in COMMON_LOANWORDS and come out as English.
+F_WORDS = {
+    'साफ': 'saaf',
+    'माफ': 'maaf',
+    'माफी': 'maafi',
+    'इंसाफ': 'insaaf',
+    'काफी': 'kaafi',
+    'काफि': 'kaafi',
+    'तरफ': 'taraf',
+    'तरफ़': 'taraf',
+    'सिर्फ': 'sirf',
+    'फायदा': 'fayda',
+    'फाइदा': 'fayda',
+    'फाइडा': 'fayda',
+    'फायदे': 'fayde',
+    'फुर्सत': 'fursat',
+    'फौज': 'fauj',
+    'फौरन': 'fauran',
+    'सफर': 'safar',
+}
+
+# व is /ʋ/, and Hinglish splits it by etymology: 'w' in native words (wala, wapas,
+# wo, sawaal) and 'v' in the English loans that keep their spelling (video, viral,
+# device). Devanagari writes both with व, so -- exactly like /f/ above -- the split
+# cannot be derived from the spelling and needs a word list. These are the native
+# words that occur in speech; everything else is left to the general rules.
+W_WORDS = {
+    'वो': 'wo',
+    'वही': 'wahi',
+    'वहीं': 'wahin',
+    'वहाँ': 'wahaan',
+    'वहां': 'wahaan',
+    'वाला': 'wala',
+    'वाली': 'wali',
+    'वाले': 'wale',
+    'वालों': 'walon',
+    'वापस': 'wapas',
+    'वजह': 'wajah',
+    'वक्त': 'waqt',
+    'वरना': 'warna',
+    'वादा': 'wada',
+    'वाह': 'waah',
+    'सवाल': 'sawaal',
+    'वगेरा': 'wagera',
+    'वगरा': 'wagera',
+    'वागरा': 'wagera',
+    'वागरे': 'wagere',
+}
+
 # Common Hindi conversational word mappings to produce natural social-media Hinglish
 # instead of formal Sanskritized Roman spellings
 HINDI_CONVERSATIONAL_MAP = {
@@ -342,6 +397,29 @@ def _flatten_flaps(word: str) -> str:
         word = word.replace(flap, stop)
     return word
 
+
+# Anusvara (ं) and candrabindu (ँ) before a consonant are written 'n' in Hinglish,
+# except before a labial, where the nasal assimilates to 'm':
+#   ज़िंदगी zindagi, अंदाज andaz, इंसान insaan, पसंद pasand, रंग rang
+#   अंबानी Ambani, संभव sambhav, कंपनी company
+# The ISO transliteration renders both marks as 'm' and the old final-only cleanup
+# only fixed the last letter, so every medial one leaked: zimdagi, amdaaj, ramgeen.
+# Substituting the nasal *consonant* the mark stands for, before transliterating,
+# keeps the rule in one place and leaves a genuine म (कमरा, नमक) untouched.
+_NASAL_MARKS = ("\u0901", "\u0902")
+_LABIAL_CONSONANTS = "पफबभमव"
+
+
+def _assimilate_nasals(word: str) -> str:
+    """Spell a medial anusvara/candrabindu as the nasal consonant it sounds like."""
+    out = []
+    for i, ch in enumerate(word):
+        if ch in _NASAL_MARKS and i + 1 < len(word):
+            out.append("\u092e\u094d" if word[i + 1] in _LABIAL_CONSONANTS else "\u0928\u094d")
+        else:
+            out.append(ch)
+    return "".join(out)
+
 _CONSONANTS = "bcdfghjklmnpqrstvwxyz"
 _VOWELS = "aeiou"
 
@@ -390,10 +468,6 @@ def _naturalise_hinglish(ascii_str: str) -> str:
             ascii_str = ascii_str[:i] + ascii_str[i + 1:]
             break
 
-    # में and its compounds: उसमें -> usmein, not usmen. This function only ever
-    # receives Devanagari-derived text, so an English word 'men' cannot land here.
-    ascii_str = re.sub(r"men$", "mein", ascii_str)
-
     # Colloquial finals: kaa -> ka, bolatee -> bolti, too -> tu. A single letter
     # is left alone: आ on its own stays 'aa'.
     if len(ascii_str) > 1:
@@ -411,8 +485,18 @@ def _transliterate_hindi_word_uncached(word: str) -> str:
     clean_devanagari = word.strip()
     if clean_devanagari in COMMON_LOANWORDS:
         return COMMON_LOANWORDS[clean_devanagari]
+    if clean_devanagari in F_WORDS:
+        return F_WORDS[clean_devanagari]
+    if clean_devanagari in W_WORDS:
+        return W_WORDS[clean_devanagari]
+
+    # में and its compounds end in a nasal mark: उसमें -> usmein, not usmen. Only
+    # a word that really carries the mark is rewritten -- रमेन is 'ramen', and the
+    # old unguarded rule turned every word ending in 'men' into 'mein'.
+    ends_with_nasal = bool(re.search(r"[\u0901\u0902]$", clean_devanagari))
 
     clean_devanagari = _flatten_flaps(clean_devanagari)
+    clean_devanagari = _assimilate_nasals(clean_devanagari)
 
     # Aksharamukha ISO transliteration
     iso = transliterate.process('Devanagari', 'ISO', clean_devanagari)
@@ -463,6 +547,9 @@ def _transliterate_hindi_word_uncached(word: str) -> str:
     # A one-letter word is a bare vowel: आ stays 'aa', it is not a shortened final.
     if len(clean_devanagari) > 1:
         ascii_str = _naturalise_hinglish(ascii_str)
+
+    if ends_with_nasal:
+        ascii_str = re.sub(r"men$", "mein", ascii_str)
 
     return ascii_str
 

@@ -185,6 +185,129 @@ class TestLoanwords:
         assert word_to_hinglish(deva) == expected
 
 
+class TestAnusvara:
+    """Anusvara/candrabindu before a consonant is 'n' -- 'm' only before a labial."""
+
+    @pytest.mark.parametrize("deva,expected", [
+        # The old final-only cleanup wrote ISO's 'm' straight through mid-word:
+        # zimdagi, amdaaj, imsaan, ramgeen.
+        ("ज़िंदगी", "zindagi"),
+        ("अंदाज", "andaaj"),
+        ("इंसान", "insaan"),
+        ("संगीत", "sangeet"),
+        ("रंग", "rang"),
+        ("रंगीन", "rangeen"),
+        ("जंगल", "jangal"),
+        ("मंदिर", "mandir"),
+        ("बंद", "band"),
+        ("पसंद", "pasand"),
+        ("हिंदी", "hindi"),
+        ("गंदा", "ganda"),
+        ("कंधा", "kandha"),
+        ("अंत", "ant"),
+        ("अंतर", "antar"),
+        ("संसार", "sansaar"),
+        ("इंतजार", "intajaar"),
+        ("घंटे", "ghante"),
+        ("पंजाब", "panjaab"),
+        ("इंच", "inch"),
+    ])
+    def test_medial_anusvara_becomes_n(self, deva, expected):
+        assert word_to_hinglish(deva) == expected
+
+    @pytest.mark.parametrize("deva,expected", [
+        # Before a labial the nasal is /m/: Ambani, sambhav, company.
+        ("अंबानी", "ambaani"),
+        ("संभव", "sambhav"),
+        ("कंपनी", "kampani"),
+        ("संपर्क", "sampark"),
+    ])
+    def test_anusvara_before_a_labial_stays_m(self, deva, expected):
+        assert word_to_hinglish(deva) == expected
+
+    def test_candrabindu_is_a_nasal_too(self):
+        # पहुँच has a candrabindu (not an anusvara) and must still lose the 'm'.
+        assert word_to_hinglish("पहुँच") == "pahunch"
+
+    def test_a_real_ma_is_never_touched(self):
+        # कमरा and नमक spell म with a real letter: the rule must not see them.
+        assert word_to_hinglish("कमरा") == "kamra"
+        assert word_to_hinglish("नमक") == "namak"
+
+
+class TestFAndW:
+    """/f/ and /v~w/ are two Hinglish spellings of one Devanagari letter each."""
+
+    @pytest.mark.parametrize("deva,expected", [
+        ("साफ", "saaf"),
+        ("माफ", "maaf"),
+        ("माफी", "maafi"),
+        ("इंसाफ", "insaaf"),
+        ("काफी", "kaafi"),
+        ("तरफ", "taraf"),
+        ("सिर्फ", "sirf"),
+        ("फायदा", "fayda"),
+        ("फुर्सत", "fursat"),
+        ("फौज", "fauj"),
+        ("सफर", "safar"),
+    ])
+    def test_f_words_are_spelled_with_f(self, deva, expected):
+        assert word_to_hinglish(deva) == expected
+
+    @pytest.mark.parametrize("deva,expected", [
+        # Native /pʰ/ keeps 'ph'; these must not be swept up by the f rule.
+        ("फिर", "phir"),
+        ("फूल", "phool"),
+        ("फल", "phal"),
+        ("फंस", "phans"),
+        ("फटाफट", "phataaphat"),
+        ("सफल", "saphal"),
+    ])
+    def test_native_ph_is_not_converted_to_f(self, deva, expected):
+        assert word_to_hinglish(deva) == expected
+
+    @pytest.mark.parametrize("deva,expected", [
+        ("वाला", "wala"),
+        ("वाली", "wali"),
+        ("वाले", "wale"),
+        ("वालों", "walon"),
+        ("वापस", "wapas"),
+        ("वो", "wo"),
+        ("वही", "wahi"),
+        ("वहीं", "wahin"),
+        ("वहाँ", "wahaan"),
+        ("वजह", "wajah"),
+        ("वक्त", "waqt"),
+        ("वरना", "warna"),
+        ("सवाल", "sawaal"),
+        ("वगेरा", "wagera"),
+    ])
+    def test_native_va_is_spelled_with_w(self, deva, expected):
+        assert word_to_hinglish(deva) == expected
+
+    @pytest.mark.parametrize("deva,expected", [
+        # English loans keep 'v': the w list must not leak into them.
+        ("वीडियो", "video"),
+        ("विचार", "vichaar"),
+        ("विदेश", "videsh"),
+        ("व्यक्ति", "vyakti"),
+        ("वीर", "veer"),
+    ])
+    def test_loan_v_is_not_converted_to_w(self, deva, expected):
+        assert word_to_hinglish(deva) == expected
+
+
+class TestNasalFinal:
+    def test_men_is_mein_only_when_the_source_ends_in_a_nasal(self):
+        # में and its compounds carry the anusvara.
+        assert word_to_hinglish("उसमें") == "usmein"
+        assert word_to_hinglish("में") == "mein"
+        # रमेन ends in a real न: it is 'ramen', never 'ramein'.
+        assert word_to_hinglish("रमेन") == "ramen"
+        assert word_to_hinglish("अमेन") == "amen"
+
+
+
 class TestSentenceLevel:
     def test_what_the_user_reads(self):
         # The exact caption that used to read 'white cooperation tight band'.
