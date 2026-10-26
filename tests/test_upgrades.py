@@ -24,13 +24,14 @@ from hinglish_upgrades import (
     semantic_chunk,
     pad_display_times,
     words_to_cards,
+    sanitize_words,
     _word_edit_dist,
     _latin_skeleton,
     deva_to_phones,
     _skeleton,
     _HINDI_INFLECTION,
 )
-from transliteration import convert_to_hinglish, COMMON_LOANWORDS, HINDI_CONVERSATIONAL_MAP
+from transliteration import convert_to_hinglish, COMMON_LOANWORDS
 
 
 # =============================================================================
@@ -40,7 +41,7 @@ class TestLoanwordRecovery:
     @pytest.fixture(scope="class")
     def recoverer(self):
         lex = load_cmudict_lexicon(min_zipf=3.6)
-        prot = set(HINDI_CONVERSATIONAL_MAP) | hindi_protect_list(n=10000)
+        prot = hindi_protect_list(n=10000)
         cur = set(COMMON_LOANWORDS)
         return LoanwordRecoverer(lex, protected=prot, curated=cur)
 
@@ -84,10 +85,91 @@ class TestLoanwordRecovery:
         assert len(healed) == 1
         assert healed[0]["text"] == "revenue"
 
+    def test_never_merges_real_hindi_words(self, recoverer):
+        # Measured on real audio: the merge path ignored `protected` and rewrote
+        # ordinary Hindi bigrams into unrelated English words. Each of these pairs
+        # was actually observed in a 54 s clip.
+        pairs = [
+            ("है", "देखो", "headache"),
+            ("अगर", "आप", "grape"),
+            ("कपड़े", "से", "cooperation"),
+            ("का", "लोगो", "colleague"),
+            ("के", "डाल", "cattle"),
+            ("में", "भी", "maybe"),
+        ]
+        for a, b, wrong in pairs:
+            words = [
+                {"start": 0.0, "end": 0.4, "text": a},
+                {"start": 0.45, "end": 0.9, "text": b},
+            ]
+            healed = recoverer.merge_split_words(words)
+            assert [x["text"] for x in healed] == [a, b], f"{a}+{b} must not become {wrong}"
+
+        # And the full pass must leave the sentence alone.
+        sentence = [{"start": i * 0.5, "end": i * 0.5 + 0.4, "text": t}
+                    for i, t in enumerate(["है", "देखो", "अगर", "आप", "कपड़े", "से"])]
+        assert [w["text"] for w in recoverer.apply(sentence)] == [w["text"] for w in sentence]
+
+    def test_nukta_is_not_an_english_signal(self, recoverer):
+        # ज़/फ़ are ordinary Hindi consonants, but they used to count as an English
+        # spelling signal -- which skipped `protected` and allowed the lenient
+        # distance, so ज़रूर became 'server' and ज़्यादा became 'shadow'.
+        # An empty protected set isolates the signal decision: only the signal can
+        # stop these words now.
+        bare = LoanwordRecoverer(recoverer.lex, protected=set(), curated=set())
+        for deva in ("ज़रूर", "ज़्यादा", "चीज़", "चीज़े", "इज़त", "फ़र्क", "ज़िंदगी"):
+            assert bare.recover(deva) is None, f"{deva} is Hindi and must not become English"
+
+    def test_english_shaped_spellings_still_recover(self, recoverer):
+        # ॉ and -िंग really are English-shaped. कॉलिटी and टॉपलेट sit between the
+        # old 0.34 threshold and the current 0.20, so they also pin the limit:
+        # lowering it to 0.15 would silently lose both.
+        bare = LoanwordRecoverer(recoverer.lex, protected=set(), curated=set())
+        expected = {
+            "कॉंटेंट": "content",
+            "कॉलिटी": "quality",
+            "टॉपलेट": "tablet",
+            "बॉस": "boss",
+            "नॉस्टाइल्जिया": "nostalgia",
+            "फिल्मिंग": "filming",
+        }
+        for deva, want in expected.items():
+            assert bare.recover(deva) == want, f"{deva} should recover as {want!r}"
+
 
 # =============================================================================
 # 2. VARIANT UNIFICATION TESTS
 # =============================================================================
+class TestUnrenderableTokens:
+    def test_a_lone_replacement_character_never_reaches_a_card(self):
+        # Whisper emitted exactly this in a real clip: a 0.1 s token at 0.917
+        # probability sitting between two real words.
+        words = [
+            {"start": 0.0, "end": 0.5, "text": "सकता"},
+            {"start": 0.5, "end": 0.6, "text": "\ufffd"},
+            {"start": 0.6, "end": 1.0, "text": "गाड़ी"},
+        ]
+        kept = sanitize_words(words)
+        assert [w["text"] for w in kept] == ["सकता", "गाड़ी"]
+
+        cards = words_to_cards(words, lambda s: s, pacing="short")
+        joined = " ".join(c["original_text"] + c["hinglish_text"] for c in cards)
+        assert "\ufffd" not in joined
+
+    def test_invisible_marks_are_stripped_but_the_word_survives(self):
+        words = [{"start": 0.0, "end": 1.0, "text": "गा\u200dड़ी"}]
+        kept = sanitize_words(words)
+        assert [w["text"] for w in kept] == ["गाड़ी"]
+
+    def test_visible_punctuation_is_not_touched(self):
+        words = [
+            {"start": 0.0, "end": 1.0, "text": "&"},
+            {"start": 1.0, "end": 2.0, "text": "H&M,"},
+            {"start": 2.0, "end": 3.0, "text": "19"},
+        ]
+        assert [w["text"] for w in sanitize_words(words)] == ["&", "H&M,", "19"]
+
+
 class TestVariantUnification:
     def test_latin_variant_clustering(self):
         words = [
@@ -228,6 +310,24 @@ class TestTransliterationCache:
         second = convert_to_hinglish(text)
         assert first == second
         assert re.search(r"[\u0900-\u097F]", first) is None
+
+    def test_a_danda_does_not_corrupt_the_final_word(self):
+        # The danda is fed to Aksharamukha as part of the token, so the anusvara
+        # rules anchored at the end of the word never match: "हैं।" became
+        # "haim." and "लोग।" became "loga.". Every Hindi card ends on a danda,
+        # so this hit most sentences.
+        assert convert_to_hinglish("हैं।") == "hain."
+        assert convert_to_hinglish("हूं।") == "hoon."
+        assert convert_to_hinglish("लोग।") == "log."
+
+        # Mid-sentence dandas convert too, and the final word stays clean.
+        phrase = convert_to_hinglish("बात। क्या है।")
+        assert "\u0964" not in phrase
+        assert phrase.startswith("baat. ")
+        assert phrase.endswith("hai."), phrase
+
+        # A comma already took the correct path; the danda must agree with it.
+        assert convert_to_hinglish("हैं।") == convert_to_hinglish("हैं,").replace(",", ".")
 
     def test_urdu_tokens_are_cached_too(self):
         import transliteration

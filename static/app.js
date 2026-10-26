@@ -14,7 +14,7 @@ let editorStyleSaveTimer = null;
 const initialConfig = window.__INITIAL_CONFIG__ || {};
 let selectedLanguage = initialConfig.selected_language || localStorage.getItem("selectedLanguage") || "mixed";
 let selectedDevice = initialConfig.selected_device || localStorage.getItem("selectedDevice") || "auto";
-let selectedModel = initialConfig.selected_model || localStorage.getItem("selectedModel") || "medium";
+let selectedModel = initialConfig.selected_model || localStorage.getItem("selectedModel") || "large-v3-turbo";
 let selectedPacing = initialConfig.selected_pacing || localStorage.getItem("selectedPacing") || "short";
 const storedDiarization = localStorage.getItem("isDiarizationEnabled");
 let isDiarizationEnabled = storedDiarization === null

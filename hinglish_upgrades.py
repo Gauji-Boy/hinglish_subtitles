@@ -413,19 +413,27 @@ _HINDI_INFLECTION = re.compile(r"(ते|ता|ती|गा|गे|गी|े�
 
 
 def _has_english_signal(word: str) -> bool:
-    """Spelling habits that almost only occur in Devanagari-written English."""
+    """Spelling habits that almost only occur in Devanagari-written English.
+
+    ज़ and फ़ used to be in here and that was wrong: they are ordinary Hindi
+    consonants (ज़रूर, ज़िंदगी, ज़्यादा, फ़र्क), not English spelling habits.
+    Treating them as a signal meant native Hindi skipped the protected list and
+    went through the lenient 0.34 path, which on real audio turned ज़रूर into
+    'server', बॉलिवुड into 'believed' and ज़्यादा into 'shadow'.
+
+    What is left really is English-shaped: ॉ/ऑ (the /ɒ/ of बॉस, कॉंटेंट,
+    नॉर्मल) and the -िंग gerund ending.
+    """
     if re.search(r"[ऑॉऍॅ]", word):
         return True
     if re.search(r"िंग$", word):
-        return True
-    if re.search(r"[\u095b\u095e]|ज़|फ़", word):
         return True
     return False
 
 
 def hindi_protect_list(n: int = 25000, extra_file: str = "protected_extra.txt") -> Set[str]:
     """Top-n Hindi words (Devanagari) from wordfreq: real Hindi that must never be 'recovered' as English.
-    Tokens with an English spelling signal (ऑ, -िंग, ज़/फ़) bypass this protection.
+    Tokens with an English spelling signal (ॉ/ऑ/ऍ/ॅ, -िंग) bypass this protection.
     Also loads extra words from protected_extra.txt if present."""
     words: Set[str] = set()
     try:
@@ -448,18 +456,40 @@ def hindi_protect_list(n: int = 25000, extra_file: str = "protected_extra.txt") 
     return words
 
 
+def _deva_core(text: str) -> str:
+    """Devanagari letters only, without the danda.
+
+    U+0964/U+0965 sit INSIDE the Devanagari block, so 'strip everything that is
+    not Devanagari' keeps them. Every dictionary lookup then misses on a
+    sentence-final word: 'है।' is not 'है'. That let the merge path rewrite
+    two ordinary Hindi words, and it stopped `protected` from covering the last
+    word of every sentence.
+    """
+    return re.sub(r"[^\u0900-\u097F]", "", text).replace("\u0964", "").replace("\u0965", "")
+
+
 class LoanwordRecoverer:
     """
     lexicon  : {english_word: [phones]}  (see load_cmudict_lexicon)
     protected: set of Devanagari words that are real Hindi -> never converted
-               (pass set(transliteration.HINDI_CONVERSATIONAL_MAP) | your own)
+               (HINDI_CONVERSATIONAL_MAP is keyed on Latin spellings, so it is
+               applied at transliteration time, not here -- see convert_to_hinglish)
     curated  : Devanagari words your hand-written COMMON_LOANWORDS already handles -> always skipped,
                so the curated dictionary stays the first trust layer (pass set(COMMON_LOANWORDS))
     """
 
     def __init__(self, lexicon: Dict[str, List[str]], protected: Optional[Set[str]] = None,
                  curated: Optional[Set[str]] = None,
-                 accept_with_signal: float = 0.34, accept_plain: float = 0.07, min_phones: int = 4):
+                 accept_with_signal: float = 0.20, accept_plain: float = 0.07, min_phones: int = 4):
+        """accept_with_signal is the distance allowed when the Devanagari spelling is
+        English-shaped. It was 0.34, loose enough to rewrite ॉ words into whatever
+        phonetically-nearest English word existed: पॉइंट -> 'paint', बॉलिवुड ->
+        'believed', एमॉलेट -> 'hamlet'. Measured on two full clips (6,150 tokens),
+        every *correct* signal recovery sits at <=0.136 (नॉस्टाइल्जिया 0.136,
+        बॉस 0.05, कॉंटेंट 0.043) while the wrong ones start at 0.15. 0.15 itself is
+        too tight -- it costs कॉलिटी -> 'quality' and टॉपलेट -> 'tablet' -- so 0.20
+        keeps the correct set and drops the tail beyond it.
+        """
         self.lex = lexicon
         self.protected = protected or set()
         self.curated = curated or set()
@@ -493,7 +523,7 @@ class LoanwordRecoverer:
         return res
 
     def _recover(self, w: str) -> Optional[str]:
-        core = re.sub(r"[^\u0900-\u097F]", "", w)
+        core = _deva_core(w)
         signal = _has_english_signal(core)
         if not core or core in self.curated:
             return None
@@ -535,14 +565,29 @@ class LoanwordRecoverer:
             w = words[i]
             if i + 1 < len(words):
                 n = words[i + 1]
-                a = re.sub(r"[^\u0900-\u097F]", "", w["text"])
-                b = re.sub(r"[^\u0900-\u097F]", "", n["text"])
-                if a and b and n["start"] - w["end"] <= max_gap:
+                a = _deva_core(w["text"])
+                b = _deva_core(n["text"])
+                # A merge rewrites BOTH tokens, so it needs the same guard the single-word
+                # path has. Merging two real Hindi words is what went wrong on real audio:
+                # 'है देखो' -> 'headache', 'अगर आप' -> 'grape', 'कपड़े से' -> 'cooperation',
+                # 'का लोगो' -> 'colleague', 'के डाल' -> 'cattle', 'में भी' -> 'maybe'.
+                # One fragment is enough to allow the heal: 'रेवे' + 'न्यू' is legitimate
+                # even though 'न्यू' is a dictionary word on its own.
+                if (a and b and n["start"] - w["end"] <= max_gap
+                        and not (self._is_hindi_word(a) and self._is_hindi_word(b))):
                     joined = deva_to_phones(a) + deva_to_phones(b)
                     sk = _skeleton(joined)
                     if len(sk) >= 3:
                         scored = sorted((phone_distance(joined, self.lex[c]), c) for c in self._candidates(sk))
-                        if scored and scored[0][0] <= 0.15:
+                        # A split word is one word the aligner cut in two, so joining the
+                        # pieces must explain the audio BETTER than either piece does alone.
+                        # Without this test the guard above is not enough: measured on real
+                        # audio, one side was usually already a clean English match, and the
+                        # merge only destroyed it ('के परसन' -> 'cooperation', 'वो इंस्टेग्राम'
+                        # -> 'instagram', 'ये वर्डिक्ट' -> 'verdict'). A genuine heal still
+                        # passes: 'रेवे'+'न्यू' scores 0.086 against 0.100 for either half.
+                        if scored and scored[0][0] <= 0.15 and \
+                                scored[0][0] < min(self._best_distance(a), self._best_distance(b)):
                             merged = {"start": w["start"], "end": n["end"], "text": scored[0][1]}
                             tail = float(w.get("tail") or 0.0) + float(n.get("tail") or 0.0)
                             if tail > 0:
@@ -553,6 +598,18 @@ class LoanwordRecoverer:
             out.append(w)
             i += 1
         return out
+
+    def _is_hindi_word(self, token: str) -> bool:
+        """True for a real Hindi word: no recovery path may rewrite it."""
+        return (token in self.protected or token in self.curated
+                or bool(_HINDI_INFLECTION.search(token)))
+
+    def _best_distance(self, core: str) -> float:
+        """Closest English match for one token's phones alone (inf when none)."""
+        phones = deva_to_phones(core)
+        sk = _skeleton(phones)
+        return min((phone_distance(phones, self.lex[c]) for c in self._candidates(sk)),
+                   default=float("inf"))
 
     def apply(self, words: List[dict]) -> List[dict]:
         """Full word-level pass: heal splits, then swap Devanagari loanwords for English spelling."""
@@ -603,7 +660,7 @@ def snap_to_terms(words: List[dict], terms: Iterable[str]) -> List[dict]:
     index = [(t, s) for t, s in index if len(s) >= 3]
     res = []
     for w in words:
-        core = re.sub(r"[^\u0900-\u097F]", "", w["text"])
+        core = _deva_core(w["text"])
         if core:
             sk = _skeleton(deva_to_phones(core))
             for t, ts in index:
@@ -737,7 +794,7 @@ def unify_variants(words: List[dict],
             out.append(dict(w, text=new_text))
             continue
 
-        core_deva = re.sub(r"[^\u0900-\u097F]", "", t)
+        core_deva = _deva_core(t)
         if core_deva and core_deva not in protected and not _HINDI_INFLECTION.search(core_deva):
             ph = deva_to_phones(core_deva)
             sk = _skeleton(ph)
@@ -978,6 +1035,30 @@ def pad_display_times(cards: List[dict], min_dur: float = 1.0, hold: float = 0.3
 # =============================================================================
 # GLUE: words -> final cards (what generate_subtitles() should call)
 # =============================================================================
+_UNRENDERABLE = re.compile(
+    "[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f\u00ad\ufeff\ufffd"
+    "\u200b-\u200f\u202a-\u202e\u2066-\u2069]"
+)
+
+
+def sanitize_words(words: List[dict]) -> List[dict]:
+    """Strip characters no caption can render, and drop words left empty.
+
+    Whisper occasionally emits a lone U+FFFD as a word of its own: in a 58 s clip
+    it produced one 0.1 s token at 0.917 probability between two real words. It
+    survived every later stage and appeared inside a burned caption. Zero-width
+    and bidirectional control marks get the same treatment; anything a person
+    cannot see has no business occupying a word slot.
+    """
+    cleaned = []
+    for w in words:
+        text = _UNRENDERABLE.sub("", str(w.get("text", ""))).strip()
+        if not text:
+            continue
+        cleaned.append(w if text == w.get("text") else {**w, "text": text})
+    return cleaned
+
+
 def words_to_cards(words: List[dict], to_hinglish: Callable[[str], str],
                    recoverer: Optional[LoanwordRecoverer] = None,
                    hint_terms: Iterable[str] = (),
@@ -989,6 +1070,9 @@ def words_to_cards(words: List[dict], to_hinglish: Callable[[str], str],
     pacing       : 'short' (reels) or 'long' (youtube/16:9)
     Returns [{'start','end','original_text','hinglish_text'}]
     """
+    # 0. Nothing unrenderable reaches a caption (see sanitize_words)
+    words = sanitize_words(words)
+
     if hint_terms:
         words = snap_to_terms(words, hint_terms)
 

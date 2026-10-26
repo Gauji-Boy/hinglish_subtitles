@@ -426,7 +426,7 @@ def save_preferences_dict(prefs: Dict[str, Any]) -> Dict[str, Any]:
     """Safely updates launch_config.json with user preferences."""
     with _CONFIG_LOCK:
         data = {
-            "selected_model": "medium",
+            "selected_model": "large-v3-turbo",
             "selected_language": "mixed",
             "selected_device": "auto",
             "selected_pacing": "short",
@@ -450,7 +450,7 @@ def save_preferences_dict(prefs: Dict[str, Any]) -> Dict[str, Any]:
 def api_get_preferences():
     """Returns saved user preferences (model, language, device, pacing, caption style)."""
     prefs = {
-        "selected_model": "medium",
+        "selected_model": "large-v3-turbo",
         "selected_language": "mixed",
         "selected_device": "auto",
         "selected_pacing": "short",
@@ -710,7 +710,7 @@ MODEL_DISPLAY_NAMES = {
 def read_root():
     import re
     prefs = {
-        "selected_model": "medium",
+        "selected_model": "large-v3-turbo",
         "selected_language": "mixed",
         "selected_device": "auto",
         "selected_pacing": "short",

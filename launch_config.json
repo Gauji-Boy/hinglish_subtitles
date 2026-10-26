@@ -1,6 +1,0 @@
-{
-  "selected_model": "large-v3-turbo",
-  "selected_language": "mixed",
-  "selected_device": "cuda",
-  "selected_pacing": "long"
-}

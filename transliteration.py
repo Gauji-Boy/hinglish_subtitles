@@ -27,6 +27,8 @@ COMMON_LOANWORDS = {
     'कंप्यूटर': 'computer',
     'इंटरनेट': 'internet',
     'मोबाइल': 'mobile',
+    'मूवी': 'movie',
+    'मुवी': 'movie',
     'स्क्रीन': 'screen',
     'क्लिक': 'click',
     'डाउनलोड': 'download',
@@ -119,14 +121,16 @@ HINDI_CONVERSATIONAL_MAP = {
     'eka': 'ek',
     'aja': 'aaj',
     'aura': 'aur',
-    'bata': 'baat',
     'kama': 'kaam',
     'nama': 'naam',
     'loga': 'log',
     'bahuta': 'bahut',
     'yaha': 'yeh',
+    'yah': 'yeh',
     'vaha': 'woh',
+    'vah': 'woh',
     'kucha': 'kuch',
+    'kuchh': 'kuch',
     'saba': 'sab',
     'apana': 'apna',
     'apani': 'apni',
@@ -318,19 +322,106 @@ def _transliterate_urdu_word(word: str) -> str:
     return value
 
 
+# Devanagari flaps ड़/ढ़ are /ɽ/ /ɽʱ/, which Hinglish writes as d / dh:
+# kapde, thoda, ladka, karod, padhna. ISO renders them ṛ / ṛh, and the NFKD
+# strip then turns ṛ into a plain r -- that is where 'kapare', 'karor',
+# 'larakee' and 'parhanaa' came from. Mapping them to the plain retroflex
+# stop first lets the existing transliteration produce d / dh.
+# They arrive both precomposed (U+095C/095D) and as stop + nukta, and ASR
+# output uses the decomposed form.
+_FLAP_REPLACEMENTS = (
+    ("\u0921\u093c", "\u0921"),
+    ("\u0922\u093c", "\u0922"),
+    ("\u095c", "\u0921"),
+    ("\u095d", "\u0922"),
+)
+
+
+def _flatten_flaps(word: str) -> str:
+    for flap, stop in _FLAP_REPLACEMENTS:
+        word = word.replace(flap, stop)
+    return word
+
+_CONSONANTS = "bcdfghjklmnpqrstvwxyz"
+_VOWELS = "aeiou"
+
+# Two- and three-letter spellings of a single Hindi consonant. Needed to know
+# whether the syllable before a schwa is open: 'cha' in चला is one consonant
+# plus a vowel, so dropping its schwa gives the illegal onset 'chl'.
+_CONSONANT_UNITS = ("chh", "ch", "sh", "kh", "gh", "jh", "th", "dh", "ph",
+                    "bh", "rh", "lh")
+
+
+def _unit_length_before(word: str, index: int) -> int:
+    """Length of the consonant spelling ending just before `index`."""
+    for unit in _CONSONANT_UNITS:
+        if word[max(0, index - len(unit)):index] == unit:
+            return len(unit)
+    return 1
+
+
+def _naturalise_hinglish(ascii_str: str) -> str:
+    """Apply the reductions Hindi speakers actually make when writing Hinglish.
+
+    The ISO transliteration is a faithful *spelling*, so it keeps every inherent
+    vowel and every long final vowel. Nobody writes that: भाषा-style spelling
+    gave 'aapako', 'usake', 'isane', 'bolatee', 'karanaa', 'honaa'. Speech drops
+    the medial schwa and shortens the final vowel, and romanised Hinglish follows
+    speech: aapko, uske, isne, bolti, karna, hona.
+
+    Kept deliberately conservative: exactly one medial schwa (the rightmost), only
+    when the syllable before it is open, and never before a glide, because
+    'banaya' must not become 'banya' and 'chala' must not become 'chla'.
+    """
+    # च्छ is written 'chh' in Hinglish, not the 'ch' + 'chh' the letter map emits.
+    ascii_str = ascii_str.replace("chchh", "chh")
+
+    # किजिए -> kijiye (इए is written iye, not ie).
+    ascii_str = re.sub(r"ie$", "iye", ascii_str)
+
+    # Drop the rightmost medial schwa.
+    for i in range(len(ascii_str) - 3, 1, -1):
+        if (ascii_str[i] == "a"
+                and ascii_str[i - 1] in _CONSONANTS
+                and ascii_str[i + 1] in _CONSONANTS and ascii_str[i + 1] != "y"
+                and ascii_str[i + 2] in _VOWELS
+                and i - _unit_length_before(ascii_str, i) - 1 >= 0
+                and ascii_str[i - _unit_length_before(ascii_str, i) - 1] in _VOWELS):
+            ascii_str = ascii_str[:i] + ascii_str[i + 1:]
+            break
+
+    # में and its compounds: उसमें -> usmein, not usmen. This function only ever
+    # receives Devanagari-derived text, so an English word 'men' cannot land here.
+    ascii_str = re.sub(r"men$", "mein", ascii_str)
+
+    # Colloquial finals: kaa -> ka, bolatee -> bolti, too -> tu. A single letter
+    # is left alone: आ on its own stays 'aa'.
+    if len(ascii_str) > 1:
+        ascii_str = re.sub(r"aa$", "a", ascii_str)
+        ascii_str = re.sub(r"ee$", "i", ascii_str)
+        ascii_str = re.sub(r"oo$", "u", ascii_str)
+        # बनाया: 'aaya' is written 'aya' -- but only after a consonant. Word-initial
+        # आया is 'aaya', and the plain rule was turning it into 'aya'.
+        ascii_str = re.sub(r"(?<=[bcdfghjklmnpqrstvwxyz])aay([aeiou])", r"ay\1", ascii_str)
+    return ascii_str
+
+
 def _transliterate_hindi_word_uncached(word: str) -> str:
     """Converts a single Devanagari word into natural Latin Hinglish."""
     clean_devanagari = word.strip()
     if clean_devanagari in COMMON_LOANWORDS:
         return COMMON_LOANWORDS[clean_devanagari]
 
+    clean_devanagari = _flatten_flaps(clean_devanagari)
+
     # Aksharamukha ISO transliteration
     iso = transliterate.process('Devanagari', 'ISO', clean_devanagari)
     
     # In ISO transliteration, Devanagari 'च' is 'c' and 'छ' is 'ch'.
     # In English/Hinglish, 'ch' is used for 'च' and 'chh' for 'छ'.
-    iso = re.sub(r'ch', 'chh', iso)
-    iso = re.sub(r'(?<!c)c', 'ch', iso)
+    # One pass, because the first rule's output ('chh') was being re-matched by
+    # the second, which is why पिछले came out as 'pichhhale' with three h's.
+    iso = re.sub(r'ch|c', lambda m: 'chh' if m.group() == 'ch' else 'ch', iso)
     
     # Map long vowels and specific letters
     iso = (
@@ -357,14 +448,21 @@ def _transliterate_hindi_word_uncached(word: str) -> str:
     # Verbs ending in -naa or -na (e.g. seekhanaa -> seekhna, dekhanaa -> dekhna)
     ascii_str = re.sub(r'([bdfghjklmnpqrstvwxyz])a([bdfghjklmnpqrstvwxyz])naa?$', r'\1\2na', ascii_str)
     
-    # Trailing schwa deletion for words ending in consonant + single 'a'
-    if ascii_str.endswith('a') and len(ascii_str) > 2 and not ascii_str.endswith(('aa', 'ia', 'ya', 'ha')):
+    # Trailing schwa deletion for words ending in consonant + single 'a'.
+    # 'ha' is NOT exempt: the old exception left कुछ as 'kuchha', साथ as 'saatha'
+    # and देख as 'dekha' -- 40 words on four clips. यह/वह are handled by the
+    # curated map instead, which is where a judgement call belongs.
+    if ascii_str.endswith('a') and len(ascii_str) > 2 and not ascii_str.endswith(('aa', 'ia', 'ya')):
         ascii_str = ascii_str[:-1]
 
-    # Check conversational map
+    # Check conversational map (curated first, keyed on the spelling form)
     lower = ascii_str.lower()
     if lower in HINDI_CONVERSATIONAL_MAP:
         return HINDI_CONVERSATIONAL_MAP[lower]
+
+    # A one-letter word is a bare vowel: आ stays 'aa', it is not a shortened final.
+    if len(clean_devanagari) > 1:
+        ascii_str = _naturalise_hinglish(ascii_str)
 
     return ascii_str
 
@@ -417,6 +515,14 @@ def convert_to_hinglish(text: str) -> str:
     """
     if not text:
         return ""
+
+    # The danda (।) and double danda (॥) are sentence marks, but Aksharamukha
+    # renders them as a period *inside* the word, which defeats the anusvara
+    # rules anchored at the end of the token: "हैं।" came out "haim." and
+    # "लोग।" came out "loga." while the same words without the mark were
+    # correct. The punctuation below is already split off, so normalise the
+    # Devanagari marks to a period first and let that handling do the rest.
+    text = text.replace("\u0964", ".").replace("\u0965", ".")
 
     # Split while preserving delimiters (spaces, punctuation, symbols)
     tokens = re.split(r'(\s+|[.,!?:;\"\'\(\)\[\]{}<>\\/`~@#$%^&*+=_-]+)', text)

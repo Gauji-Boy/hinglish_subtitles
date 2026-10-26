@@ -186,9 +186,12 @@ def get_recoverer():
     if _RECOVERER is None:
         try:
             from hinglish_upgrades import LoanwordRecoverer, load_cmudict_lexicon, hindi_protect_list
-            from transliteration import COMMON_LOANWORDS, HINDI_CONVERSATIONAL_MAP
+            from transliteration import COMMON_LOANWORDS
             lex = load_cmudict_lexicon(min_zipf=3.6)
-            prot = set(HINDI_CONVERSATIONAL_MAP) | hindi_protect_list()
+            # HINDI_CONVERSATIONAL_MAP is keyed on Latin spellings, so it can never
+            # match a Devanagari core here -- the map is applied inside
+            # convert_to_hinglish() instead.
+            prot = hindi_protect_list()
             cur = set(COMMON_LOANWORDS)
             _RECOVERER = LoanwordRecoverer(lex, protected=prot, curated=cur)
         except Exception as e:
@@ -245,7 +248,7 @@ def get_sensevoice_model():
 def generate_subtitles(
     video_path: str,
     language_choice: str = "mixed",
-    model_size: str = "medium",
+    model_size: str = "large-v3-turbo",
     device: str = "auto",
     compute_type: Optional[str] = None,
     topic_hint: str = "",
