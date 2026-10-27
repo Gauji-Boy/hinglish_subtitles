@@ -571,3 +571,11 @@
      - `OFF` (Disables guides and collision warnings).
    - **Dynamic Collision & Geometry**: `safeZoneCollisions()` and band styles dynamically read from `SAFE_ZONE_PRESETS[currentSafeZonePreset]`, with collision alerts adapting instantly to the active platform's margins.
    - **Verified**: **332 pytest tests pass**, `node hinglish_subtitles/tests/js/safe_zone_test.js` 100% green with platform preset checks and Shorts tolerance tests, clean syntax via `node --check`.
+
+56. **Safe-Zone Pill Verified in a Real Browser + Narrow-Rail Label (2026-10-26)**:
+   - **Playwright run on the real app** (`540x960` portrait clip, viewport `1440x1000`): pill visible on portrait at 197x27 px, 12 px inside the stage border (10 px + the 2 px border), above the transport bar; hidden on the `640x360` landscape clip; no console errors.
+   - **Preset math measured from the DOM bands, not just the constants**: ALL 11.5 / 23.5 / 15.2 %, REELS 11.5 / 23.4 / 11.1 %, SHORTS 6.3 / 15.6 / 4.4 % of the picture box; the guide stays pinned to the video frame, not the stage.
+   - **User-off is honest**: `OFF` hides the bands and the collision warning, the pill stays reachable, and loading a landscape clip then a portrait clip does **not** resurrect the guide (`currentSafeZonePreset === "off"` wins over the auto-enable write).
+   - **Fixed**: on SHORTS the 4.4 % rail is 23 px wide, so the 8 px "ACTION RAIL" label spilled left over the picture; `.video-safe-zones.is-narrow` now sets it `writing-mode: vertical-rl`, toggled when `preset.right < 8`.
+   - **Fixed**: chip tooltips now quote the measured percentages instead of the blog's "900x1400 universal" claim, which contradicts its own 450 px Reels figure. Chips also expose `aria-pressed`.
+   - **Verified**: 332 pytest, `safe_zone_test.js` green (6 new preset/band/narrow-label checks), `verify_safe_pill.py` 34/34 browser checks.

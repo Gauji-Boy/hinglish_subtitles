@@ -202,6 +202,19 @@ check(
   '["action rail"]'
 );
 
+// The band heights come from the active preset, not the static CSS defaults.
+player.classList.add("video-portrait");
+t.setSafeZonePreset("shorts");
+t.syncSafeZoneMask();
+check("shorts top band is 6.3%", t.document.getElementById("safeZoneTop").style.height, "6.3%");
+check("shorts bottom band is 15.6%", t.document.getElementById("safeZoneBottom").style.height, "15.6%");
+check("shorts rail is 4.4%", t.document.getElementById("safeZoneRight").style.width, "4.4%");
+// A 48px rail is too narrow for the horizontal label, so it turns vertical.
+check("shorts turns the rail label vertical", mask.classList.contains("is-narrow"), true);
+t.setSafeZonePreset("universal");
+t.syncSafeZoneMask();
+check("universal keeps the rail label horizontal", mask.classList.contains("is-narrow"), false);
+
 console.log(
   failures === 0
     ? "\nAll caption placement and safe-zone checks passed."

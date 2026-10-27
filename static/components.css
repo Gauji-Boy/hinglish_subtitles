@@ -1126,6 +1126,13 @@ nav {
   text-align: right;
 }
 
+/* YouTube Shorts' 48px rail is too tight for the label set horizontally. */
+.video-safe-zones.is-narrow .safe-zone-right span {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  letter-spacing: 0.14em;
+}
+
 .safe-zone-warning {
   position: absolute;
   z-index: 13;

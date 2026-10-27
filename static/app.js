@@ -2654,7 +2654,9 @@ function syncSafeZoneMask() {
     stageSafePill.style.display = portrait ? "flex" : "none";
   }
   document.querySelectorAll(".stage-safe-chip").forEach(chip => {
-    chip.classList.toggle("is-active", chip.dataset.preset === currentSafeZonePreset);
+    const active = chip.dataset.preset === currentSafeZonePreset;
+    chip.classList.toggle("is-active", active);
+    chip.setAttribute("aria-pressed", String(active));
   });
   if (!safeZoneMask) return;
   const frame = portrait ? videoFrameRect() : null;
@@ -2670,6 +2672,9 @@ function syncSafeZoneMask() {
     return;
   }
   const preset = activeSafeZonePreset();
+  // A 4.4% rail is too narrow for "ACTION RAIL" set horizontally: the label
+  // spills over the picture. Set it vertically so it stays inside its band.
+  safeZoneMask.classList.toggle("is-narrow", preset.right < 8);
   const topBand = document.getElementById("safeZoneTop");
   const bottomBand = document.getElementById("safeZoneBottom");
   const rightBand = document.getElementById("safeZoneRight");
