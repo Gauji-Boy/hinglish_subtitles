@@ -235,3 +235,14 @@ hinglish_subtitles/
 │── tools/measure_timing.py # Opt-in timing measurement (read-only)
 └── README.md               # Documentation
 ```
+
+
+---
+
+## ⚖️ License & Disclaimer
+
+This project is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)** — see the [LICENSE](LICENSE) file for details.
+
+### Third-Party Utilities & Downloader Notice
+- **yt-dlp**: Licensed under [The Unlicense](https://unlicense.org/) (Public Domain dedication). You do not need special permission to use it.
+- **Fair Use Notice**: The URL media download feature is intended solely for personal, research, and educational archival purposes. Users remain solely responsible for adhering to the terms of service of third-party platforms and applicable copyright legislation.
