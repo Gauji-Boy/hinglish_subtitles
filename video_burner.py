@@ -32,7 +32,7 @@ def get_available_h264_encoder() -> Tuple[str, list]:
         try:
             cmd = [
                 "ffmpeg", "-y", "-f", "lavfi", "-i", "color=c=black:s=64x64:d=0.05",
-                "-c:v", enc, "-f", "mp4", "nul"
+                "-c:v", enc, "-f", "null", "-"
             ]
             res = subprocess.run(
                 cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
@@ -43,7 +43,7 @@ def get_available_h264_encoder() -> Tuple[str, list]:
                 return _CACHED_ENCODER
         except Exception:
             pass
-    _CACHED_ENCODER = ("h264_mf", ["-c:v", "h264_mf", "-b:v", "3M"])
+    _CACHED_ENCODER = ("libx264", ["-c:v", "libx264", "-preset", "ultrafast", "-crf", "22"])
     return _CACHED_ENCODER
 
 
