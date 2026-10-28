@@ -35,15 +35,17 @@ jobs:
           pip install . pytest httpx
 
       - name: Run Pytest test suite
-        shell: bash
         run: |
-          python -m pytest tests -v --tb=short 2>&1 | tee test_log.txt || {
-            echo "### Pytest Output" >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            cat test_log.txt >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            exit 1
-          }
+          python -m pytest tests -v --tb=short 2>&1 | Out-File -FilePath pytest_log.txt -Encoding utf8
+          Get-Content pytest_log.txt
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+
+      - name: Upload Pytest Log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-log
+          path: pytest_log.txt
 
       - name: Run JavaScript safe-zone tests
         run: |
