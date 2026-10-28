@@ -579,3 +579,8 @@
    - **Fixed**: on SHORTS the 4.4 % rail is 23 px wide, so the 8 px "ACTION RAIL" label spilled left over the picture; `.video-safe-zones.is-narrow` now sets it `writing-mode: vertical-rl`, toggled when `preset.right < 8`.
    - **Fixed**: chip tooltips now quote the measured percentages instead of the blog's "900x1400 universal" claim, which contradicts its own 450 px Reels figure. Chips also expose `aria-pressed`.
    - **Verified**: 332 pytest, `safe_zone_test.js` green (6 new preset/band/narrow-label checks), `verify_safe_pill.py` 34/34 browser checks.
+
+57. **Public GitHub Release & GNU AGPLv3 Licensing (2026-10-28)**:
+   - **Repository Published**: Pushed to GitHub at `https://github.com/Gauji-Boy/hinglish_subtitles` on branch `main`.
+   - **License Configured**: Added GNU Affero General Public License v3.0 (`LICENSE`), providing strong copyleft protection against closed-source proprietary forks while keeping code open for the community.
+   - **Disclaimers**: Added third-party downloader notice (`yt-dlp` Unlicense notice + Fair Use guidance) to `README.md`.
