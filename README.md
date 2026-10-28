@@ -1,5 +1,9 @@
 # 🎬 Hinglish Subtitle Generator (GPU Accelerated)
 
+[![PyPI version](https://img.shields.io/pypi/v/hinglish-subtitles.svg?color=blue)](https://pypi.org/project/hinglish-subtitles/)
+[![Python versions](https://img.shields.io/pypi/pyversions/hinglish-subtitles.svg)](https://pypi.org/project/hinglish-subtitles/)
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE)
+
 A high-performance tool that generates **Hinglish subtitles** (Hindi written in English alphabet / Romanized Hindi) for videos with **NVIDIA GPU Acceleration**.
 
 Supports:
@@ -21,9 +25,16 @@ Supports:
 
 ## 🚀 Quickstart
 
-**Prerequisites:** Python 3.13, FFmpeg on `PATH`, then `pip install -r requirements.txt`.
+### 1. Install via pip (Recommended)
+```bash
+pip install hinglish-subtitles
+hinglish-subtitles
+```
 
-### 1. Launch the Standalone Desktop Application
+### 2. Or Run from Source
+**Prerequisites:** Python 3.10+, FFmpeg on `PATH`, then `pip install -r requirements.txt`.
+
+#### Launch the Standalone Desktop Application
 Double-click `run_app.bat` or run:
 ```bash
 python server.py
