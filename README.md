@@ -5,7 +5,9 @@
 [![CI](https://github.com/Gauji-Boy/hinglish_subtitles/actions/workflows/ci.yml/badge.svg)](https://github.com/Gauji-Boy/hinglish_subtitles/actions)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE)
 
-A high-performance tool that generates **Hinglish subtitles** (Hindi written in English alphabet / Romanized Hindi) for videos with **NVIDIA GPU Acceleration**.
+I built **Hinglish Subtitles** to make captions for videos where people speak Hindi and English mixed together. It runs completely on your own computer using `faster-whisper` for speech recognition, so there are no monthly subscription fees or API costs.
+
+It writes Hindi words in Latin/English alphabet, adds animated karaoke-style captions that bounce in sync with speech, and automatically keeps them inside Instagram Reels and YouTube Shorts 2026 safe zones. Built for creators who want clean, accurate Hinglish captions without paying for a cloud API.
 
 Supports:
 - **Mixed / Code-Switched Speech** (Hindi + English in the same video or sentence)
