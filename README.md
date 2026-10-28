@@ -2,6 +2,7 @@
 
 [![PyPI version](https://img.shields.io/pypi/v/hinglish-subtitles.svg?color=blue)](https://pypi.org/project/hinglish-subtitles/)
 [![Python versions](https://img.shields.io/pypi/pyversions/hinglish-subtitles.svg)](https://pypi.org/project/hinglish-subtitles/)
+[![CI](https://github.com/Gauji-Boy/hinglish_subtitles/actions/workflows/ci.yml/badge.svg)](https://github.com/Gauji-Boy/hinglish_subtitles/actions)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE)
 
 A high-performance tool that generates **Hinglish subtitles** (Hindi written in English alphabet / Romanized Hindi) for videos with **NVIDIA GPU Acceleration**.
