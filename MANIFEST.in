@@ -1,0 +1,5 @@
+recursive-include static *
+include app_icon.ico
+include launch_config.json
+include LICENSE
+include README.md

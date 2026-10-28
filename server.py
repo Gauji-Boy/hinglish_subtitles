@@ -7,6 +7,11 @@ video upload and GPU-accelerated transcription endpoints.
 import os
 import sys
 
+# Ensure local package directory is on sys.path for direct sibling imports
+_dir = os.path.dirname(os.path.abspath(__file__))
+if _dir not in sys.path:
+    sys.path.insert(0, _dir)
+
 # Ensure model cache lives on D: drive to protect C: drive disk space
 DEFAULT_MODELS_DIR = r"D:\Hinglish_subtitles\models\huggingface"
 if not os.environ.get("HF_HOME"):
@@ -831,7 +836,7 @@ window.__INITIAL_CONFIG__ = {json.dumps(prefs)};
 app.mount("/", StaticFiles(directory=STATIC_DIR), name="static")
 
 
-if __name__ == "__main__":
+def main():
     import uvicorn
     import webbrowser
     import threading
@@ -948,4 +953,9 @@ if __name__ == "__main__":
         except Exception:
             open_browser_fallback(active_port)
             server_thread.join()
+
+
+if __name__ == "__main__":
+    main()
+
 

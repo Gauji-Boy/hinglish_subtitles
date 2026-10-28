@@ -7,3 +7,6 @@ temp_media/
 test_pytest_burn.ass
 test_pytest_burned.mp4
 launch_config.json
+dist/
+build/
+*.egg-info/

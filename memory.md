@@ -584,3 +584,10 @@
    - **Repository Published**: Pushed to GitHub at `https://github.com/Gauji-Boy/hinglish_subtitles` on branch `main`.
    - **License Configured**: Added GNU Affero General Public License v3.0 (`LICENSE`), providing strong copyleft protection against closed-source proprietary forks while keeping code open for the community.
    - **Disclaimers**: Added third-party downloader notice (`yt-dlp` Unlicense notice + Fair Use guidance) to `README.md`.
+
+58. **PyPI Package Specification & Build (2026-10-28)**:
+   - **Modern Packaging Architecture**: Built standard `pyproject.toml` (PEP 517/518/621) targeting PyPI distribution under name `hinglish-subtitles`. Configured with SPDX license expression `AGPL-3.0-or-later`, complete metadata, authors, dependencies, and classifiers.
+   - **Namespace & Asset Preservation**: Setuptools packages under `hinglish_subtitles` namespace, preserving root files for backward compatibility with `HinglishSubtitles.exe` and `run_app.bat`. Configured `MANIFEST.in` and `[tool.setuptools.package-data]` so all UI assets (`static/` HTML/CSS/JS/icons) and `launch_config.json` are bundled into the distribution wheel.
+   - **Entry Points**: Wrapped `server.py` startup logic in `def main():` and registered CLI console script `hinglish-subtitles = "hinglish_subtitles.server:main"`, plus `__main__.py` enabling `python -m hinglish_subtitles`. Added automatic `sys.path` registration for reliable resolution of sibling modules in both local dev and installed wheel environments.
+   - **Build Validation**: Built with `uv build` -> produced `hinglish_subtitles-1.0.0.tar.gz` (6.78 MB) and `hinglish_subtitles-1.0.0-py3-none-any.whl` (6.75 MB).
+   - **Verification**: **332/332 pytest pass**, all JS safe zone tests pass. Build artifacts (`dist/`, `build/`, `*.egg-info/`) added to `.gitignore`.
