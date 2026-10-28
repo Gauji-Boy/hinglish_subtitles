@@ -35,8 +35,15 @@ jobs:
           pip install . pytest httpx
 
       - name: Run Pytest test suite
+        shell: bash
         run: |
-          python -m pytest tests -v --tb=short
+          python -m pytest tests -v --tb=short 2>&1 | tee test_log.txt || {
+            echo "### Pytest Output" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat test_log.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            exit 1
+          }
 
       - name: Run JavaScript safe-zone tests
         run: |
