@@ -37,8 +37,16 @@ jobs:
       - name: Run Pytest test suite
         run: |
           python -m pytest tests -v --tb=short 2>&1 | Out-File -FilePath pytest_log.txt -Encoding utf8
+          $code = $LASTEXITCODE
           Get-Content pytest_log.txt
-          if ($LASTEXITCODE -ne 0) { exit 1 }
+          $failed = Select-String -Path pytest_log.txt -Pattern "^FAILED |^ERROR "
+          if ($failed) {
+            "### Pytest failures" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+            '```' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+            $failed | ForEach-Object { $_.Line } | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+            '```' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          }
+          if ($code -ne 0) { exit 1 }
 
       - name: Upload Pytest Log
         if: always()

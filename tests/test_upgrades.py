@@ -564,11 +564,16 @@ class TestCustomPlayerControlsAndUI:
         assert 'data-model="sravaani-1.0"' in html
         assert 'data-model="sensevoice-small"' in html
 
-        # 3. Model status works and sees cached models from D:
+        # 3. Model status works and reports the cache state of the configured
+        #    models directory. The `cached` flags describe *this* machine: a
+        #    clean CI runner has no models downloaded, so asserting True there
+        #    would test the runner's disk rather than the code.
         status = get_models_status()
         assert "base" not in status
         assert "tiny" not in status
         assert "large-v3-turbo" in status
+        if not any(entry["cached"] for entry in status.values()):
+            pytest.skip("no ASR models downloaded on this machine")
         assert status["large-v3-turbo"]["cached"] is True
         assert status["indic-conformer"]["cached"] is True
         assert status["sravaani-1.0"]["cached"] is True
