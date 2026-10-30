@@ -602,6 +602,48 @@ def api_burn_video(
         raise
 
 
+@app.post("/api/export/overlay-video")
+def api_export_overlay_video(
+    video: UploadFile = File(...),
+    subtitles: str = Form(...),
+):
+    """
+    Renders the captions alone on a transparent canvas at the uploaded video's
+    display size, frame rate and duration, encoded losslessly as qtrle .mov.
+    Editors drop the file on a track above the original footage.
+    """
+    from overlay_export import export_alpha_overlay
+    suffix = os.path.splitext(video.filename or "video.mp4")[1] or ".mp4"
+    if not suffix.startswith("."):
+        suffix = f".{suffix}"
+
+    work_dir = tempfile.mkdtemp(prefix="ovl_")
+    temp_vid_path = os.path.join(work_dir, f"input{suffix}")
+    temp_sub_path = os.path.join(work_dir, "sub.ass")
+    temp_out_path = os.path.join(work_dir, "overlay.mov")
+
+    try:
+        with open(temp_vid_path, "wb") as f:
+            shutil.copyfileobj(video.file, f)
+        with open(temp_sub_path, "w", encoding="utf-8") as f:
+            f.write(subtitles)
+
+        res = export_alpha_overlay(temp_vid_path, temp_sub_path, temp_out_path)
+        if not res.get("success"):
+            raise HTTPException(status_code=500, detail=res.get("error", "Alpha overlay render failed"))
+
+        base_name = os.path.splitext(os.path.basename(video.filename or "video"))[0]
+        return FileResponse(
+            temp_out_path,
+            media_type="video/quicktime",
+            filename=f"{base_name}_overlay.mov",
+            background=BackgroundTask(shutil.rmtree, work_dir, ignore_errors=True),
+        )
+    except Exception:
+        shutil.rmtree(work_dir, ignore_errors=True)
+        raise
+
+
 @app.get("/api/models")
 def api_models():
     """Returns cache and download status for all supported Whisper models."""

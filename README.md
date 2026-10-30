@@ -203,6 +203,7 @@ The Settings drawer can pin **Caption Style**, **Speaker Diarization**, ASR Mode
 - The canvas is detected from the source video: **16:9**, **9:16**, or **1:1**.
 - ASS export and burn-in always regenerate from the active style.
 - Burning uses FFmpeg with hardware H.264 (`h264_mf`) when available.
+- **Alpha overlay (.mov)** exports the captions alone on a transparent canvas at the source's display size, frame rate and duration, so you can drop it on a track above the footage in any editor. It is lossless QuickTime Animation (`qtrle` + `argb`), audio-free, and never falls back to an opaque codec. Sparse captions at 1080 × 1920 measure ~15 MB per minute and render faster than realtime; a rotated source is probed for its display matrix, so the canvas matches what you actually see.
 
 ### Timing and sync
 

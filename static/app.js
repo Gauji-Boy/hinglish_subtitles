@@ -417,6 +417,7 @@ const floatingCopyAllText = document.getElementById("floatingCopyAllText");
 const downloadHinglishBtn = document.getElementById("downloadHinglishBtn");
 const downloadAssBtn = document.getElementById("downloadAssBtn");
 const burnVideoBtn = document.getElementById("burnVideoBtn");
+const overlayVideoBtn = document.getElementById("overlayVideoBtn");
 const downloadOrigBtn = document.getElementById("downloadOrigBtn");
 const downloadTxtBtn = document.getElementById("downloadTxtBtn");
 
@@ -4254,6 +4255,75 @@ if (burnVideoBtn) {
       alert("Video burning error: " + err.message);
       burnVideoBtn.innerHTML = origBtnText;
       burnVideoBtn.disabled = false;
+    }
+  });
+}
+
+if (overlayVideoBtn) {
+  overlayVideoBtn.addEventListener("click", async () => {
+    if (!currentFile) {
+      alert("Please upload or load a video file first to render an overlay.");
+      return;
+    }
+    const isAudio = currentFile.type.startsWith("audio/") || /\.(mp3|wav|m4a|aac|flac|ogg)$/i.test(currentFile.name);
+    if (isAudio) {
+      alert("The alpha overlay needs the source video: its size, frame rate and duration define the canvas.");
+      return;
+    }
+
+    const baseName = currentFile.name.replace(/\.[^/.]+$/, "");
+    const origBtnText = overlayVideoBtn.innerHTML;
+
+    try {
+      overlayVideoBtn.disabled = true;
+      overlayVideoBtn.innerHTML = `<span>⏳</span> RENDERING ALPHA...`;
+
+      const assRes = await fetch("/api/export/ass", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          segments: currentSegments || [],
+          title: `${baseName} - Overlay`,
+          style: activeCaptionStyle,
+          aspect: detectAspect()
+        })
+      });
+      if (!assRes.ok) {
+        throw new Error("Could not generate the ASS overlay source");
+      }
+
+      const formData = new FormData();
+      formData.append("video", currentFile);
+      formData.append("subtitles", await assRes.text());
+
+      const overlayRes = await fetch("/api/export/overlay-video", {
+        method: "POST",
+        body: formData
+      });
+
+      if (!overlayRes.ok) {
+        const errJson = await overlayRes.json().catch(() => ({}));
+        throw new Error(errJson.detail || "Alpha overlay render failed on server");
+      }
+
+      const blob = await overlayRes.blob();
+      const overlayUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = overlayUrl;
+      a.download = `${baseName}_overlay.mov`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(overlayUrl), 60000);
+
+      overlayVideoBtn.innerHTML = `<span>✓</span> OVERLAY READY!`;
+      setTimeout(() => { overlayVideoBtn.innerHTML = origBtnText; overlayVideoBtn.disabled = false; }, 3500);
+
+    } catch (err) {
+      console.error("Alpha overlay error:", err);
+      alert("Alpha overlay error: " + err.message);
+      overlayVideoBtn.innerHTML = origBtnText;
+      overlayVideoBtn.disabled = false;
     }
   });
 }
