@@ -45,6 +45,9 @@ jobs:
             '```' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
             $failed | ForEach-Object { $_.Line } | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
             '```' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+            # Annotations are readable on the public run page without auth; the
+            # uploaded log and the step summary both need a token.
+            $failed | ForEach-Object { Write-Output "::error title=Pytest failure::$($_.Line)" }
           }
           if ($code -ne 0) { exit 1 }
 
