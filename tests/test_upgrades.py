@@ -1101,6 +1101,8 @@ class TestPacingModeProperties:
         assert 'id="editorStyleBaseColor"' in html
         assert 'id="editorStyleHighlightColor"' in html
         assert 'id="editorStyleOutline"' in html
+        assert 'id="editorStyleShadow"' in html
+        assert 'id="editorStyleShadow" min="0" max="12"' in html
         assert 'id="editorStyleMargin"' in html
         assert 'id="editorStyleUppercase"' in html
         assert 'id="editorStyleBox"' in html

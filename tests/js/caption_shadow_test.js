@@ -1,14 +1,20 @@
 /*
- * Caption shadow regression test.
+ * Caption outline + shadow regression test.
  *
- * Bug: the live overlay drew its drop shadow with a blur ellipse
- * (`4px 4px 8px rgba(0,0,0,0.75)`) painted on top of the outline. At the 13-32 px
- * preview size that blur read as a grey smear over the glyph edge, while the ASS
- * burn used a hard `Shadow=4` in BackColour. Preview and burn disagreed, and the
- * preview looked dirty.
+ * Two user-visible bugs are pinned here:
  *
- * The overlay must now mirror ASS: a hard, un-blurred drop shadow in back_color,
- * painted *first* so the outline covers it.
+ * 1. The live overlay built its outline out of four offset copies of the glyph
+ *    (`text-shadow: -4px -4px 0, ...`). A copied glyph is painted behind the
+ *    real one, so at 13-32 px preview size the copies show through every
+ *    counter ("O", "P", "B", "R", "A") and the text reads as a black blob.
+ *    The outline must be a real stroke: `-webkit-text-stroke` with
+ *    `paint-order: stroke fill`, so the fill stays clean.
+ *
+ * 2. The OUTLINE slider was mapped with `round(outline_width / 1.5)` and then
+ *    clamped to 6 px, so every value from 9 to 30 produced the same preview:
+ *    most of the slider did nothing. The stroke must scale with the same
+ *    em ratio the ASS frame uses (previewSize / font_size), so every step of
+ *    the slider changes the overlay.
  *
  * Run with: node tests/js/caption_shadow_test.js
  */
@@ -46,73 +52,147 @@ function check(label, ok, detail) {
   }
 }
 
-function shadowFor(overrides) {
+function round2(value) {
+  return Math.round(value * 100) / 100;
+}
+
+function previewSize(style) {
+  return Math.max(13, Math.min(32, Math.round((style.font_size || 60) * 0.32)));
+}
+
+function expected(style) {
+  const size = previewSize(style);
+  const scale = size / Math.max(1, style.font_size || 60);
+  return {
+    size,
+    stroke: round2(2 * Math.max(0, style.outline_width || 0) * scale),
+    shadow: round2(Math.max(0, style.shadow || 0) * scale),
+  };
+}
+
+function strokeWidth(value) {
+  const match = /^(-?\d+(?:\.\d+)?)px/.exec(String(value || "").trim());
+  return match ? Number.parseFloat(match[1]) : NaN;
+}
+
+function overlay(overrides) {
   const t = loadApp();
   t.setStyle({ ...BASE, ...overrides });
   t.setMode("hinglish");
   t.applyCaptionStyleToVideo();
-  return t.getCaptionText().style.textShadow || "";
+  const text = t.getCaptionText();
+  return {
+    t,
+    text,
+    stroke: text.style.getPropertyValue("-webkit-text-stroke"),
+    paintOrder: text.style.getPropertyValue("paint-order"),
+    shadow: text.style.textShadow || "",
+  };
 }
 
-// Every layer is "<x> <y> <blur> <color>"; a blurred layer has a non-zero blur.
-function blurredLayers(value) {
-  return value
+function layers(value) {
+  return String(value || "")
     .split(/,(?![^(]*\))/)
     .map((layer) => layer.trim())
-    .filter(Boolean)
-    .filter((layer) => {
-      const parts = layer.split(/\s+/);
-      return Number.parseFloat(parts[2] || "0") !== 0;
-    });
+    .filter(Boolean);
 }
 
 // Case 1: outline + shadow, the style the user reported (Techwave).
 {
   console.log("\ncase: outline and shadow");
-  const value = shadowFor({});
-  check("not empty", value !== "none", value);
-  check("no blurred layer", blurredLayers(value).length === 0, value);
-  check("uses back_color on the drop shadow", value.includes("#00000080"), value);
-  check("no rgba(0,0,0,0.75) smear", !value.includes("0.75"), value);
-
-  const layers = value.split(/,(?![^(]*\))/).map((l) => l.trim());
-  check("drop shadow painted first (so the outline covers it)", layers[0].includes("#00000080"), layers[0]);
-  check("four outline corners follow", layers.length === 5, value);
-  check("outline layers use outline_color", layers.slice(1).every((l) => l.includes("#000000")), value);
-  // ASS shadow 4 at preview scale: half of it, never 0, never a blur radius.
-  check("drop offset is a hard pixel offset", /^2px 2px 0 /.test(layers[0]), layers[0]);
+  const o = overlay({});
+  const want = expected({ ...BASE });
+  check("has a stroke", o.stroke !== "", o.stroke);
+  check("stroke is 2x the visible outline (centred stroke)", strokeWidth(o.stroke) === want.stroke, o.stroke);
+  check("stroke uses outline_color", o.stroke.includes("#000000"), o.stroke);
+  check("stroke is painted behind the fill", o.paintOrder === "stroke fill", o.paintOrder);
+  check("shadow is one hard layer", layers(o.shadow).length === 1, o.shadow);
+  check("shadow offset scales with the ASS em", o.shadow === `${want.shadow}px ${want.shadow}px 0 #00000080`, o.shadow);
+  check("shadow uses back_color", o.shadow.includes("#00000080"), o.shadow);
 }
 
-// Case 2: shadow with no outline (Buzz / Heat / Neon) — one hard offset shadow.
+// Case 2: shadow with no outline (Buzz / Heat / Neon).
 {
   console.log("\ncase: shadow without outline");
-  const value = shadowFor({ outline_width: 0, outline_color: "#000000" });
-  check("single layer", value.split(/,(?![^(]*\))/).length === 1, value);
-  check("no blur", blurredLayers(value).length === 0, value);
-  check("back_color", value.includes("#00000080"), value);
+  const o = overlay({ outline_width: 0 });
+  const want = expected({ ...BASE, outline_width: 0 });
+  check("no stroke", strokeWidth(o.stroke) === 0, o.stroke);
+  check("single hard shadow", layers(o.shadow).length === 1, o.shadow);
+  check("shadow offset", o.shadow === `${want.shadow}px ${want.shadow}px 0 #00000080`, o.shadow);
 }
 
-// Case 3: no shadow, outline only — must not invent a drop shadow.
+// Case 3: no shadow, outline only.
 {
   console.log("\ncase: outline only");
-  const value = shadowFor({ shadow: 0 });
-  check("four layers", value.split(/,(?![^(]*\))/).length === 4, value);
-  check("no drop shadow", !value.includes("#00000080"), value);
-  check("no blur", blurredLayers(value).length === 0, value);
+  const o = overlay({ shadow: 0 });
+  const want = expected({ ...BASE, shadow: 0 });
+  check("stroke present", strokeWidth(o.stroke) === want.stroke, o.stroke);
+  check("no text shadow", o.shadow === "none", o.shadow);
 }
 
-// Case 4: neither — the text must fall back to the stylesheet shadow, not "none".
+// Case 4: neither outline nor shadow.
 {
   console.log("\ncase: neither outline nor shadow");
-  const value = shadowFor({ shadow: 0, outline_width: 0 });
-  check("no inline shadow", value === "none", value);
+  const o = overlay({ shadow: 0, outline_width: 0 });
+  check("no stroke", strokeWidth(o.stroke) === 0, o.stroke);
+  check("no text shadow", o.shadow === "none", o.shadow);
 }
 
-// Case 5: box styles draw no text shadow at all; the box carries the backdrop.
+// Case 5: box styles draw no outline or shadow; the box carries the backdrop.
 {
   console.log("\ncase: box style");
-  const value = shadowFor({ box: true, shadow: 4, outline_width: 18 });
-  check("no inline text shadow on a box style", value === "none", value);
+  const o = overlay({ box: true, shadow: 4, outline_width: 18 });
+  check("no stroke", strokeWidth(o.stroke) === 0, o.stroke);
+  check("no text shadow", o.shadow === "none", o.shadow);
+}
+
+// Case 6: the OUTLINE slider must move the overlay across its whole range.
+// The old /1.5 + clamp(6) mapping froze at 9, so 9..30 looked identical.
+{
+  console.log("\ncase: outline slider reaches the overlay");
+  const t = loadApp();
+  t.setStyle({ ...BASE, outline_width: 0 });
+  t.setMode("hinglish");
+  t.syncStyleEditor();
+  const editor = t.getEditor();
+  const widths = [];
+  for (const value of [0, 9, 18, 30]) {
+    editor.outline.value = String(value);
+    editor.outline.dispatch("input");
+    widths.push(strokeWidth(t.getCaptionText().style.getPropertyValue("-webkit-text-stroke")));
+  }
+  check("0 outline means no stroke", widths[0] === 0, widths.join(", "));
+  check("slider keeps changing past 9", widths[1] < widths[2] && widths[2] < widths[3], widths.join(", "));
+  const want = [0, 9, 18, 30].map((value) =>
+    expected({ ...BASE, outline_width: value }).stroke
+  );
+  check("each step matches the em scale", widths.join(",") === want.join(","), `${widths.join(", ")} vs ${want.join(", ")}`);
+}
+
+// Case 7: the SHADOW slider must exist and move the drop shadow. The style
+// schema always had `shadow`, but the editor exposed no control for it, so the
+// only "shadow" the user could drag was OUTLINE.
+{
+  console.log("\ncase: shadow slider reaches the overlay");
+  const t = loadApp();
+  t.setStyle({ ...BASE });
+  t.setMode("hinglish");
+  t.syncStyleEditor();
+  const editor = t.getEditor();
+  check("editor has a shadow control", !!editor.shadow, editor.shadow);
+  if (editor.shadow) {
+    editor.shadow.value = "0";
+    editor.shadow.dispatch("input");
+    check("0 removes the drop shadow", (t.getCaptionText().style.textShadow || "") === "none", t.getCaptionText().style.textShadow);
+    editor.shadow.value = "12";
+    editor.shadow.dispatch("input");
+    const want = expected({ ...BASE, shadow: 12 }).shadow;
+    check(
+      "12 reaches the overlay at the ASS em",
+      t.getCaptionText().style.textShadow === `${want}px ${want}px 0 #00000080`,
+      t.getCaptionText().style.textShadow
+    );
+  }
 }
 
 console.log(

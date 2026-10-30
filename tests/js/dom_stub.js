@@ -135,6 +135,9 @@ class El {
     this.childNodes.push(child);
     return child;
   }
+  append(...children) {
+    children.forEach((child) => this.appendChild(child));
+  }
   removeChild(child) {
     const i = this.childNodes.indexOf(child);
     if (i >= 0) this.childNodes.splice(i, 1);
@@ -321,6 +324,21 @@ function loadApp() {
   updateVideoCaption,
   applyCaptionStyleToVideo,
   applyCaptionWordColors,
+  syncStyleEditor,
+  queueEditorStyleSave,
+  getEditor() {
+    return {
+      font: editorStyleFont,
+      fontSize: editorStyleFontSize,
+      baseColor: editorStyleBaseColor,
+      highlightColor: editorStyleHighlightColor,
+      outline: editorStyleOutline,
+      shadow: editorStyleShadow,
+      margin: editorStyleMargin,
+      uppercase: editorStyleUppercase,
+      box: editorStyleBox,
+    };
+  },
   flattenKineticWords,
   posterLineCounts() {
     const style = activeCaptionStyle || {};

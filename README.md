@@ -182,7 +182,7 @@ is the way to close that gap.
 Open the **Left Subtitle Editor → Style** tab:
 
 1. Select a preset.
-2. Click **Edit Style** to change font, size, base/highlight colour, outline, vertical position, uppercase, and box.
+2. Click **Edit Style** to change font, size, base/highlight colour, outline, shadow, vertical position, uppercase, and box.
 3. Editing a built-in creates a saved **Custom** style. Built-ins stay read-only.
 4. **Reset** returns to the default preset.
 5. **Export JSON** / **Import JSON** to back up or share a style.
@@ -199,7 +199,7 @@ The Settings drawer can pin **Caption Style**, **Speaker Diarization**, ASR Mode
 ### True preview
 **Verify Render** produces a short silent MP4 through the same FFmpeg + libass path used for the final burn, on a dark gradient at the target canvas. Renders are cached by style and canvas in the system temp folder. The CSS sample above it is only an approximation.
 
-That approximation now follows the burn for shadows: the live overlay draws a hard, un-blurred drop shadow in `back_color` painted *under* the outline, because ASS draws `Shadow` offset in `BackColour` behind the glyphs with the outline on top. A blurred CSS shadow looked like grey dirt at preview sizes and disagreed with the burn.
+That approximation now follows the burn for both parts. The outline is a real `-webkit-text-stroke` with `paint-order: stroke fill`, not four offset copies of the glyph: at preview size the copies showed through every counter (`O`, `P`, `B`) and the text read as a black blob. The drop shadow is one hard offset in `back_color`, and both it and the stroke scale by `previewSize / font_size`, the same em ratio libass uses to map PlayRes to the video. The style editor exposes OUTLINE and SHADOW sliders so both can be changed live.
 
 ### Export and burn
 - The canvas is detected from the source video: **16:9**, **9:16**, or **1:1**.

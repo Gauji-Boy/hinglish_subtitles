@@ -58,6 +58,7 @@ const editorStyleFontSize = document.getElementById("editorStyleFontSize");
 const editorStyleBaseColor = document.getElementById("editorStyleBaseColor");
 const editorStyleHighlightColor = document.getElementById("editorStyleHighlightColor");
 const editorStyleOutline = document.getElementById("editorStyleOutline");
+const editorStyleShadow = document.getElementById("editorStyleShadow");
 const editorStyleMargin = document.getElementById("editorStyleMargin");
 const editorStyleMarginValue = document.getElementById("editorStyleMarginValue");
 const editorStyleUppercase = document.getElementById("editorStyleUppercase");
@@ -1788,6 +1789,48 @@ function stopCaptionLoop() {
   }
 }
 
+function captionStrokeMetrics(style, previewSize) {
+  // The preview is a schematic of the ASS frame: previewSize / font_size is the
+  // same em ratio the burn uses when it scales PlayRes to the video. Deriving
+  // the stroke and shadow from it keeps every slider step meaningful (the old
+  // /1.5 mapping clamped at 6 px, so 9..30 looked identical) and keeps the
+  // preview weight honest against libass.
+  const fontPx = Math.max(1, Number(style && style.font_size) || 60);
+  const scale = Math.max(0, Number(previewSize) || 0) / fontPx;
+  const round2 = (value) => Math.round(value * 100) / 100;
+  return {
+    // -webkit-text-stroke is centred, so 2x leaves `outline * scale` outside.
+    strokePx: round2(2 * Math.max(0, Number(style && style.outline_width) || 0) * scale),
+    shadowPx: round2(Math.max(0, Number(style && style.shadow) || 0) * scale),
+  };
+}
+
+function applyCaptionTextPaint(element, style, size) {
+  // One writer for both the live overlay and the preset tiles, so the two
+  // cannot drift. ASS draws its outline as a stroke centred on the glyph edge
+  // with the fill on top, and its shadow as one hard offset in BackColour.
+  // Four offset copies of the glyph (the old text-shadow outline) are not a
+  // stroke: at 13-32 px preview size the copies show through every counter and
+  // the text reads as a black blob.
+  if (!element || !style) return;
+  if (style.box) {
+    element.style.textShadow = "none";
+    element.style.setProperty("-webkit-text-stroke", "0px");
+    element.style.setProperty("paint-order", "fill");
+    return;
+  }
+  const metrics = captionStrokeMetrics(style, size);
+  element.style.setProperty(
+    "-webkit-text-stroke",
+    metrics.strokePx > 0 ? `${metrics.strokePx}px ${style.outline_color || "#000000"}` : "0px"
+  );
+  element.style.setProperty("paint-order", "stroke fill");
+  element.style.textShadow =
+    metrics.shadowPx > 0
+      ? `${metrics.shadowPx}px ${metrics.shadowPx}px 0 ${style.back_color || "#00000080"}`
+      : "none";
+}
+
 function applyCaptionStyleToVideo() {
   if (!captionText || !activeCaptionStyle) return;
   const s = activeCaptionStyle;
@@ -1804,6 +1847,7 @@ function applyCaptionStyleToVideo() {
   captionText.style.color = s.base_color || "#FFFFFF";
   captionText.style.textTransform = s.uppercase ? "uppercase" : "none";
 
+  applyCaptionTextPaint(captionText, s, previewSize);
   if (s.box) {
     if (captionBox) {
       captionBox.style.background = s.back_color ? s.back_color : "rgba(0, 0, 0, 0.88)";
@@ -1812,7 +1856,6 @@ function applyCaptionStyleToVideo() {
       captionBox.style.borderRadius = "8px";
       captionBox.style.padding = "6px 14px";
     }
-    captionText.style.textShadow = "none";
   } else {
     if (captionBox) {
       captionBox.style.background = "transparent";
@@ -1820,27 +1863,6 @@ function applyCaptionStyleToVideo() {
       captionBox.style.boxShadow = "none";
       captionBox.style.padding = "4px 8px";
     }
-    const outlinePx = Math.max(0, Math.min(6, Math.round((s.outline_width || 0) / 1.5)));
-    const shadowPx = Math.max(0, Math.min(8, Math.round(s.shadow || 0)));
-    const oc = s.outline_color || "#000000";
-    const shadows = [];
-    // ASS draws a hard `Shadow` offset in BackColour behind the glyphs, with the
-    // outline on top of it. CSS paints the first shadow at the bottom of the
-    // stack, so the drop shadow has to come first and must not be blurred: a
-    // blurred shadow at preview size smears over the outline and reads as dirt.
-    if (shadowPx > 0) {
-      const drop = Math.max(1, Math.round(shadowPx * 0.5));
-      shadows.push(`${drop}px ${drop}px 0 ${s.back_color || "#00000080"}`);
-    }
-    if (outlinePx > 0) {
-      shadows.push(
-        `-${outlinePx}px -${outlinePx}px 0 ${oc}`,
-        `${outlinePx}px -${outlinePx}px 0 ${oc}`,
-        `-${outlinePx}px ${outlinePx}px 0 ${oc}`,
-        `${outlinePx}px ${outlinePx}px 0 ${oc}`
-      );
-    }
-    captionText.style.textShadow = shadows.length ? shadows.join(", ") : "none";
   }
 
   if (isKinetic) {
@@ -1938,10 +1960,10 @@ function paintCaptionSample(container, textElement, scale, maxSize) {
   textElement.textContent = "";
   textElement.style.fontFamily = `"${s.font}", sans-serif`;
   textElement.style.fontWeight = s.bold ? "800" : "400";
-  textElement.style.fontSize = `${Math.max(12, Math.min(maxSize, Math.round((s.font_size || 60) * scale)))}px`;
+  const size = Math.max(12, Math.min(maxSize, Math.round((s.font_size || 60) * scale)));
+  textElement.style.fontSize = `${size}px`;
   textElement.style.color = s.base_color;
-  const outlinePx = Math.max(1, Math.min(6, Math.round((s.outline_width || 3) / 2)));
-  textElement.style.textShadow = box ? "none" : `${outlinePx}px ${outlinePx}px 0 ${s.outline_color}`;
+  applyCaptionTextPaint(textElement, s, size);
 
   const base = document.createElement("span");
   base.textContent = s.uppercase ? "CAPTION " : "Caption ";
@@ -1966,6 +1988,7 @@ function syncStyleEditor() {
     editorStyleBaseColor.value = hex6(s.base_color);
     editorStyleHighlightColor.value = hex6(s.highlight_color);
     editorStyleOutline.value = s.outline_width;
+    if (editorStyleShadow) editorStyleShadow.value = s.shadow;
     const range = stylePositionRange(s);
     editorStyleMargin.min = String(range.min);
     editorStyleMargin.max = String(range.max);
@@ -1994,6 +2017,7 @@ function readEditorStyleEditor(positionChanged = false) {
     base_color: editorStyleBaseColor.value,
     highlight_color: editorStyleHighlightColor.value,
     outline_width: Number(editorStyleOutline.value),
+    shadow: Number(editorStyleShadow ? editorStyleShadow.value : (base.shadow || 0)),
     box: editorStyleBox.checked
   };
   // Only the slider rewrites the anchor. Touching font or outline must not
@@ -2140,7 +2164,7 @@ if (styleImportBtn && styleImportFile) {
   });
 }
 
-[editorStyleFont, editorStyleFontSize, editorStyleBaseColor, editorStyleHighlightColor, editorStyleOutline, editorStyleMargin, editorStyleUppercase, editorStyleBox].forEach(el => {
+[editorStyleFont, editorStyleFontSize, editorStyleBaseColor, editorStyleHighlightColor, editorStyleOutline, editorStyleShadow, editorStyleMargin, editorStyleUppercase, editorStyleBox].forEach(el => {
   if (!el) return;
   el.addEventListener("input", queueEditorStyleSave);
   el.addEventListener("change", queueEditorStyleSave);
