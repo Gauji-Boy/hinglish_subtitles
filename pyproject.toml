@@ -56,6 +56,10 @@ dependencies = [
     "cmudict>=1.0.0",
     "wordfreq>=3.0.0",
     "yt-dlp>=2024.0.0",
+    # Kinetic line wrapping measures with real font metrics (karaoke_ass.py).
+    # Without Pillow it falls back to a character-count estimate and burns
+    # different line breaks than the machine that previewed the style.
+    "pillow>=10.0.0",
 ]
 
 [project.urls]

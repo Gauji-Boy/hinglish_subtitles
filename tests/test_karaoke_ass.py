@@ -638,6 +638,28 @@ def test_kinetic_accent_mode_all_and_none_are_honoured():
     assert not any(word["accent"] for word in none_words)
 
 
+def test_kinetic_wrap_measures_with_pillow_not_a_character_estimate():
+    # Line wrapping decides what the burn looks like: `_kinetic_lines` greedily
+    # packs words until the measured width reaches the line box. Without Pillow
+    # `_measure_kinetic_text` falls back to `len(text) * size * 0.58`, which is
+    # wider than the real face, so the same 24-word poster packed 5 words in 5
+    # lines on a fresh `pip install .` (CI) instead of 8 words. Pillow was never
+    # declared as a dependency even though karaoke_ass.py claims it is, so the
+    # burn changed with the machine. Pin both the runtime import and the
+    # declared dependency.
+    import karaoke_ass
+    from pathlib import Path
+
+    assert karaoke_ass.ImageFont is not None, (
+        "Pillow is missing, so kinetic wrapping fell back to the character estimate"
+    )
+
+    root = Path(__file__).resolve().parents[1]
+    pyproject = (root / "pyproject.toml").read_text(encoding="utf-8")
+    declared = pyproject.split("dependencies = [", 1)[1].split("]", 1)[0]
+    assert "pillow" in declared.lower(), declared
+
+
 def test_kinetic_long_utterance_splits_into_compact_portrait_posters():
     # Continuous 24-word speech without silence pauses becomes held posters, not
     # per-card flashes. Portrait posters are capped at 8 words and, because they
