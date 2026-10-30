@@ -1824,6 +1824,14 @@ function applyCaptionStyleToVideo() {
     const shadowPx = Math.max(0, Math.min(8, Math.round(s.shadow || 0)));
     const oc = s.outline_color || "#000000";
     const shadows = [];
+    // ASS draws a hard `Shadow` offset in BackColour behind the glyphs, with the
+    // outline on top of it. CSS paints the first shadow at the bottom of the
+    // stack, so the drop shadow has to come first and must not be blurred: a
+    // blurred shadow at preview size smears over the outline and reads as dirt.
+    if (shadowPx > 0) {
+      const drop = Math.max(1, Math.round(shadowPx * 0.5));
+      shadows.push(`${drop}px ${drop}px 0 ${s.back_color || "#00000080"}`);
+    }
     if (outlinePx > 0) {
       shadows.push(
         `-${outlinePx}px -${outlinePx}px 0 ${oc}`,
@@ -1831,10 +1839,6 @@ function applyCaptionStyleToVideo() {
         `-${outlinePx}px ${outlinePx}px 0 ${oc}`,
         `${outlinePx}px ${outlinePx}px 0 ${oc}`
       );
-    }
-    if (shadowPx > 0) {
-      const drop = Math.max(1, Math.round(shadowPx * 0.5));
-      shadows.push(`${drop}px ${drop}px ${shadowPx * 2}px rgba(0,0,0,0.75)`);
     }
     captionText.style.textShadow = shadows.length ? shadows.join(", ") : "none";
   }

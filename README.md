@@ -199,6 +199,8 @@ The Settings drawer can pin **Caption Style**, **Speaker Diarization**, ASR Mode
 ### True preview
 **Verify Render** produces a short silent MP4 through the same FFmpeg + libass path used for the final burn, on a dark gradient at the target canvas. Renders are cached by style and canvas in the system temp folder. The CSS sample above it is only an approximation.
 
+That approximation now follows the burn for shadows: the live overlay draws a hard, un-blurred drop shadow in `back_color` painted *under* the outline, because ASS draws `Shadow` offset in `BackColour` behind the glyphs with the outline on top. A blurred CSS shadow looked like grey dirt at preview sizes and disagreed with the burn.
+
 ### Export and burn
 - The canvas is detected from the source video: **16:9**, **9:16**, or **1:1**.
 - ASS export and burn-in always regenerate from the active style.

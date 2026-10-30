@@ -26,8 +26,8 @@ invisible in the source and in unit tests.
 
 - Python: `python -m pytest tests -q`
 - Browser side: `node tests/js/caption_clock_test.js`, `node tests/js/caption_sync_test.js`,
-  `node tests/js/recess_overlay_test.js <resolved-style.json>`; syntax check with
-  `node --check static/app.js`
+  `node tests/js/caption_shadow_test.js`, `node tests/js/recess_overlay_test.js <resolved-style.json>`;
+  syntax check with `node --check static/app.js`
 - Burn: this machine has no `libx264`; use `-c:v h264_mf -b:v 3M`
 - PowerShell: a pipeline ending in `Select-Object -First N` reports exit code 1
   falsely. Redirect to a file and check `$LASTEXITCODE` instead.
