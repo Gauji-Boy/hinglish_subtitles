@@ -22,7 +22,16 @@ jobs:
           cache: "pip"
 
       - name: Set up FFmpeg
-        uses: FedericoCarboni/setup-ffmpeg@v3
+        shell: pwsh
+        run: |
+          # FedericoCarboni/setup-ffmpeg@v3 fails on unauthenticated API limits
+          # ("Cannot get latest release"). Use the runner's FFmpeg if present,
+          # otherwise install it with the package manager that ships on Windows.
+          if (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue)) {
+            choco install ffmpeg -y --no-progress
+            "C:\ProgramData\chocolatey\bin" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+          }
+          ffmpeg -version | Select-Object -First 1
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
