@@ -1101,12 +1101,17 @@ class TestPacingModeProperties:
         assert 'id="editorStyleBaseColor"' in html
         assert 'id="editorStyleHighlightColor"' in html
         assert 'id="editorStyleOutline"' in html
+        assert 'id="editorStyleOutlineColor"' in html
         assert 'id="editorStyleShadow"' in html
         assert 'id="editorStyleShadow" min="0" max="12"' in html
         assert 'id="editorStyleMargin"' in html
         assert 'id="editorStyleUppercase"' in html
         assert 'id="editorStyleBox"' in html
         assert 'id="editorStyleResetBtn"' in html
+
+        # The panel is grouped, not one flat wall of controls.
+        for group in ("TYPE", "PAINT", "LAYOUT"):
+            assert f'<span class="style-group-title">{group}</span>' in html
 
         # The old right inspector is retired in favour of the left editor.
         assert 'id="drawerOverlay"' not in html

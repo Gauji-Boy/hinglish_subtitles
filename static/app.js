@@ -58,6 +58,7 @@ const editorStyleFontSize = document.getElementById("editorStyleFontSize");
 const editorStyleBaseColor = document.getElementById("editorStyleBaseColor");
 const editorStyleHighlightColor = document.getElementById("editorStyleHighlightColor");
 const editorStyleOutline = document.getElementById("editorStyleOutline");
+const editorStyleOutlineColor = document.getElementById("editorStyleOutlineColor");
 const editorStyleShadow = document.getElementById("editorStyleShadow");
 const editorStyleMargin = document.getElementById("editorStyleMargin");
 const editorStyleMarginValue = document.getElementById("editorStyleMarginValue");
@@ -1988,6 +1989,7 @@ function syncStyleEditor() {
     editorStyleBaseColor.value = hex6(s.base_color);
     editorStyleHighlightColor.value = hex6(s.highlight_color);
     editorStyleOutline.value = s.outline_width;
+    if (editorStyleOutlineColor) editorStyleOutlineColor.value = hex6(s.outline_color);
     if (editorStyleShadow) editorStyleShadow.value = s.shadow;
     const range = stylePositionRange(s);
     editorStyleMargin.min = String(range.min);
@@ -2017,6 +2019,7 @@ function readEditorStyleEditor(positionChanged = false) {
     base_color: editorStyleBaseColor.value,
     highlight_color: editorStyleHighlightColor.value,
     outline_width: Number(editorStyleOutline.value),
+    outline_color: editorStyleOutlineColor ? editorStyleOutlineColor.value : (base.outline_color || "#000000"),
     shadow: Number(editorStyleShadow ? editorStyleShadow.value : (base.shadow || 0)),
     box: editorStyleBox.checked
   };
@@ -2164,7 +2167,7 @@ if (styleImportBtn && styleImportFile) {
   });
 }
 
-[editorStyleFont, editorStyleFontSize, editorStyleBaseColor, editorStyleHighlightColor, editorStyleOutline, editorStyleShadow, editorStyleMargin, editorStyleUppercase, editorStyleBox].forEach(el => {
+[editorStyleFont, editorStyleFontSize, editorStyleBaseColor, editorStyleHighlightColor, editorStyleOutline, editorStyleOutlineColor, editorStyleShadow, editorStyleMargin, editorStyleUppercase, editorStyleBox].forEach(el => {
   if (!el) return;
   el.addEventListener("input", queueEditorStyleSave);
   el.addEventListener("change", queueEditorStyleSave);

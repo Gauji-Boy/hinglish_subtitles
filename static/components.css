@@ -4315,6 +4315,21 @@ body::-webkit-scrollbar-button,
   border-top: 1px dashed var(--border-color);
 }
 
+.style-group + .style-group {
+  margin-top: 12px;
+}
+
+.style-group-title {
+  display: block;
+  margin-bottom: 6px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--yellow);
+  opacity: 0.75;
+}
+
 .style-editor-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -4330,6 +4345,10 @@ body::-webkit-scrollbar-button,
   font-weight: 800;
   letter-spacing: 0.05em;
   color: var(--muted);
+}
+
+.style-field.is-wide {
+  grid-column: 1 / -1;
 }
 
 .style-field select,

@@ -381,39 +381,59 @@
                 <span class="editor-section-title">CUSTOM STYLE</span>
                 <span class="editor-scope">ALL CAPTIONS</span>
               </div>
-              <div class="style-editor-grid">
-                <label class="style-field">FONT
-                  <select id="editorStyleFont"></select>
-                </label>
-                <label class="style-field">SIZE
-                  <input type="number" id="editorStyleFontSize" min="24" max="140" step="1">
-                </label>
-                <label class="style-field">BASE
-                  <input type="color" id="editorStyleBaseColor">
-                </label>
-                <label class="style-field">HIGHLIGHT
-                  <input type="color" id="editorStyleHighlightColor">
-                </label>
-                <label class="style-field">OUTLINE
-                  <input type="range" id="editorStyleOutline" min="0" max="30" step="1">
-                </label>
-                <label class="style-field">SHADOW
-                  <input type="range" id="editorStyleShadow" min="0" max="12" step="1">
-                </label>
-                <label class="style-field">POSITION
-                  <span class="style-field-label">VERTICAL <b id="editorStyleMarginValue">88%</b></span>
-                  <input type="range" id="editorStyleMargin" min="0" max="100" step="1">
-                  <div class="position-chips" id="positionChips">
-                    <button type="button" class="position-chip" data-pos="20" title="Top (20%)">TOP 20%</button>
-                    <button type="button" class="position-chip" data-pos="50" title="Center (50%)">MID 50%</button>
-                    <button type="button" class="position-chip is-sweet" data-pos="68" title="Safe Zone Sweet Spot (68%)">SWEET 68%</button>
-                    <button type="button" class="position-chip" data-pos="80" title="Bottom (80%)">BOT 80%</button>
-                  </div>
-                </label>
+              <div class="style-group">
+                <span class="style-group-title">TYPE</span>
+                <div class="style-editor-grid">
+                  <label class="style-field">FONT
+                    <select id="editorStyleFont"></select>
+                  </label>
+                  <label class="style-field">SIZE
+                    <input type="number" id="editorStyleFontSize" min="24" max="140" step="1">
+                  </label>
+                </div>
+                <div class="style-editor-toggles">
+                  <label><input type="checkbox" id="editorStyleUppercase"> UPPERCASE</label>
+                </div>
               </div>
-              <div class="style-editor-toggles">
-                <label><input type="checkbox" id="editorStyleUppercase"> UPPERCASE</label>
-                <label><input type="checkbox" id="editorStyleBox"> BOX</label>
+
+              <div class="style-group">
+                <span class="style-group-title">PAINT</span>
+                <div class="style-editor-grid">
+                  <label class="style-field">BASE
+                    <input type="color" id="editorStyleBaseColor">
+                  </label>
+                  <label class="style-field">HIGHLIGHT
+                    <input type="color" id="editorStyleHighlightColor">
+                  </label>
+                  <label class="style-field">OUTLINE WIDTH
+                    <input type="range" id="editorStyleOutline" min="0" max="30" step="1">
+                  </label>
+                  <label class="style-field">OUTLINE COLOUR
+                    <input type="color" id="editorStyleOutlineColor">
+                  </label>
+                  <label class="style-field">SHADOW
+                    <input type="range" id="editorStyleShadow" min="0" max="12" step="1">
+                  </label>
+                </div>
+                <div class="style-editor-toggles">
+                  <label><input type="checkbox" id="editorStyleBox"> BOX</label>
+                </div>
+              </div>
+
+              <div class="style-group">
+                <span class="style-group-title">LAYOUT</span>
+                <div class="style-editor-grid">
+                  <label class="style-field is-wide">POSITION
+                    <span class="style-field-label">VERTICAL <b id="editorStyleMarginValue">88%</b></span>
+                    <input type="range" id="editorStyleMargin" min="0" max="100" step="1">
+                    <div class="position-chips" id="positionChips">
+                      <button type="button" class="position-chip" data-pos="20" title="Top (20%)">TOP 20%</button>
+                      <button type="button" class="position-chip" data-pos="50" title="Center (50%)">MID 50%</button>
+                      <button type="button" class="position-chip is-sweet" data-pos="68" title="Safe Zone Sweet Spot (68%)">SWEET 68%</button>
+                      <button type="button" class="position-chip" data-pos="80" title="Bottom (80%)">BOT 80%</button>
+                    </div>
+                  </label>
+                </div>
               </div>
               <div class="editor-style-actions">
                 <button type="button" class="style-action-btn" id="editorStyleResetBtn">RESET</button>
