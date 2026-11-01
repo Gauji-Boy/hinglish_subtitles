@@ -179,7 +179,9 @@ const STYLE_ASPECT_PROFILES = {
 const STYLE_MAX_MARGIN = 1600;
 
 function styleIsKinetic(style) {
-  return Boolean(style && style.motion === "word-pop");
+  return Boolean(
+    style && ["word-pop", "reveal", "punch", "bubble"].includes(style.motion)
+  );
 }
 
 function clampPercent(value, fallback = 50) {
@@ -923,7 +925,7 @@ async function loadCaptionStyles() {
     // Migrate a saved pre-kinetic Honey Punch selection to the new animated preset.
     if (activeCaptionStyle && activeCaptionStyle.id) {
       const preset = captionStyles.find(s => s.id === activeCaptionStyle.id);
-      if (preset && preset.motion === "word-pop" && !activeCaptionStyle.motion) {
+      if (preset && styleIsKinetic(preset) && !activeCaptionStyle.motion) {
         activeCaptionStyle = { ...preset };
       }
     }
@@ -1584,7 +1586,7 @@ function updateKineticCaption() {
     hideKineticCaption();
     return;
   }
-  if (activeCaptionStyle.motion !== "word-pop") return;
+  if (!styleIsKinetic(activeCaptionStyle)) return;
 
   const seconds = videoPlayer ? videoPlayer.currentTime : 0;
   const state = kineticStateAt(seconds);
@@ -1604,7 +1606,10 @@ function updateKineticCaption() {
   const baseSize = kineticBaseSize(style);
   const punchScale = Number(style.accent_scale || 150) / 100;
   const accentScale = Number(style.accent_size_scale || 100) / 100;
-  const wordScale = word => (word && word.punch ? punchScale : (word && word.accent ? accentScale : 1));
+  // Mirrors karaoke_ass: `word-pop` reads per-word flags, `reveal` is one flat
+  // tier, and `punch` scales whichever word is being spoken.
+  const modeMotion = style.motion;
+  const modePunch = Number(style.active_scale || 150) / 100;
   const widthPercent = kineticMaxWidthPercent(state, style);
   const rect = videoPlayer ? videoPlayer.getBoundingClientRect() : { width: 456, height: 600 };
   const isPortrait = (rect.height || 600) > (rect.width || 456) * 1.15;
@@ -1642,6 +1647,11 @@ function updateKineticCaption() {
   captionText.style.textAlign = alignRight ? "right" : (flushLeft ? "left" : "center");
 
   const activeLocal = state.activeIndex - state.phraseStart;
+  const wordScale = (word, index) => {
+    if (modeMotion === "reveal") return 1;
+    if (modeMotion === "punch") return index === activeLocal ? modePunch : 1;
+    return word && word.punch ? punchScale : (word && word.accent ? accentScale : 1);
+  };
   const renderKey = `${state.phraseId}:${signature}`;
   if (renderKey !== kineticRenderKey) {
     captionText.textContent = "";
@@ -1680,7 +1690,7 @@ function updateKineticCaption() {
     if (!word) return;
     const visible = index <= activeLocal;
     span.style.visibility = visible ? "visible" : "hidden";
-    let size = baseSize * wordScale(word);
+    let size = baseSize * wordScale(word, index);
     if (!style.pill && captionText.clientWidth > 0) {
       // Mirror karaoke_ass._kinetic_lines: a word wider than the line box is
       // shrunk to fit instead of running off the frame.
@@ -1717,7 +1727,7 @@ function updateKineticCaption() {
     // Punch words are isolated on their own line, so the tallest word sets the
     // block's em for the cap lift and the pill follows the same centre.
     const blockEm = state.phraseWords.reduce(
-      (max, word) => Math.max(max, baseSize * wordScale(word)),
+      (max, word, index) => Math.max(max, baseSize * wordScale(word, index)),
       baseSize
     );
     const top = recessCentreTop(blockEm, style, state);
@@ -1836,7 +1846,7 @@ function applyCaptionStyleToVideo() {
   if (!captionText || !activeCaptionStyle) return;
   const s = activeCaptionStyle;
   const captionBox = document.getElementById("captionBox");
-  const isKinetic = s.motion === "word-pop";
+  const isKinetic = styleIsKinetic(s);
   captionOverlay.classList.toggle("kinetic", isKinetic);
   captionText.classList.toggle("kinetic", isKinetic);
 
@@ -2736,7 +2746,7 @@ function updateVideoCaption(force) {
     return;
   }
 
-  if (activeCaptionStyle && activeCaptionStyle.motion === "word-pop") {
+  if (styleIsKinetic(activeCaptionStyle)) {
     captionRenderKey = "";
     updateKineticCaption();
     startCaptionLoop();

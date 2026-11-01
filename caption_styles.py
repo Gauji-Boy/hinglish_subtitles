@@ -508,8 +508,15 @@ def resolve_style(style: Optional[Any] = None) -> Dict[str, Any]:
     base["animation"] = "fade" if str(base.get("animation")).lower() == "fade" else "none"
 
     # Kinetic typography (v2). `none` keeps the classic one-card karaoke path.
+    # `word-pop` is the legacy kinetic emitter and must stay byte-identical;
+    # `reveal` and `punch` are the same emitter driven by mode instead of by
+    # per-word flags, so a style no longer has to bake its motion into data.
     motion = str(base.get("motion") or "none").strip().lower()
-    base["motion"] = motion if motion in ("none", "word-pop") else "none"
+    base["motion"] = (
+        motion
+        if motion in ("none", "static", "reveal", "punch", "bubble", "word-pop")
+        else "none"
+    )
     base["active_scale"] = _number(base.get("active_scale"), 150, 100, 220)
     base["accent_scale"] = _number(base.get("accent_scale"), 150, 100, 210)
     # Middle tier: gold words that are not punch. Default 100 keeps every
