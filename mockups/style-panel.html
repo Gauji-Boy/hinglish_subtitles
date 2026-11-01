@@ -1,0 +1,523 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Caption Style — proposed panel</title>
+<style>
+  :root{
+    --bg:#0a0b0d; --panel:#101113; --panel-2:#15171a; --panel-3:#1b1d21;
+    --line:#24262b; --ink:#e9eaec; --muted:#8b8f97; --accent:#ffd400;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);
+    font:13px/1.45 "Segoe UI",system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1160px;margin:0 auto;padding:22px 20px 40px}
+
+  /* ---------- header ---------- */
+  header{display:flex;align-items:baseline;gap:12px;margin-bottom:18px}
+  .kicker{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+  h1{margin:0;font-size:17px;letter-spacing:.02em}
+  .tag{font-size:10px;padding:2px 6px;border:1px solid var(--line);border-radius:4px;color:var(--muted)}
+
+  /* ---------- layout ---------- */
+  .grid{display:grid;grid-template-columns:320px 1fr;gap:22px;align-items:start}
+  @media (max-width:900px){.grid{grid-template-columns:1fr}}
+
+  /* ---------- stage ---------- */
+  .stage{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px}
+  .phone{
+    position:relative;width:100%;aspect-ratio:9/16;border-radius:8px;overflow:hidden;
+    background:
+      radial-gradient(120% 80% at 20% 0%,#2b3a4a 0%,#14181d 55%,#0b0d10 100%);
+    border:1px solid #1f2227;
+  }
+  .phone::after{
+    content:"";position:absolute;inset:0;pointer-events:none;
+    background:repeating-linear-gradient(115deg,rgba(255,255,255,.035) 0 2px,transparent 2px 9px);
+  }
+  .caption{
+    position:absolute;left:8%;right:8%;text-align:center;
+    display:flex;flex-wrap:wrap;justify-content:center;gap:0 .34em;
+    line-height:1.28;
+  }
+  .caption .w{display:inline-block;transition:color .12s,opacity .15s,transform .12s,background .12s;
+    padding:0 .06em;border-radius:.22em}
+  .boxed{padding:.22em .5em;border-radius:.34em}
+
+  .transport{display:flex;align-items:center;gap:10px;margin-top:12px}
+  .bar{flex:1;height:3px;background:#1c1f24;border-radius:2px;overflow:hidden}
+  .bar i{display:block;height:100%;width:0;background:var(--accent)}
+  .clock{font:11px/1 ui-monospace,Consolas,monospace;color:var(--muted);min-width:64px;text-align:right}
+  .spec{margin-top:12px;font:11px/1.6 ui-monospace,Consolas,monospace;color:var(--muted)}
+  .spec b{color:var(--ink);font-weight:600}
+
+  /* ---------- panel ---------- */
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .sect{border-bottom:1px solid var(--line);padding:14px 16px}
+  .sect:last-child{border-bottom:0}
+  .sect h2{
+    margin:0 0 10px;font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--muted);display:flex;justify-content:space-between;align-items:center;
+  }
+  .sect h2 span{letter-spacing:0;text-transform:none;font-weight:400;color:#5f636b}
+
+  /* motion tiles */
+  .modes{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+  .mode{
+    position:relative;background:var(--panel-2);border:1px solid var(--line);border-radius:8px;
+    padding:22px 6px 8px;cursor:pointer;text-align:center;transition:border-color .12s,background .12s;
+  }
+  .mode:hover{border-color:#3a3d44}
+  .mode[aria-pressed="true"]{border-color:var(--accent);background:#1a1708}
+  .mode .mini{display:block;font:900 11px/1.2 "Arial Black",sans-serif;color:#9aa0a8;margin-bottom:8px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mode .mini .w{display:inline-block;padding:0 1px}
+  .mode .name{display:block;font-size:10px;letter-spacing:.08em;text-transform:uppercase}
+  .mode .cost{display:block;font-size:9px;color:#5f636b;margin-top:2px;letter-spacing:0}
+
+  @keyframes t-karaoke{0%,18%{color:#5a5f68}38%,100%{color:var(--accent)}}
+  @keyframes t-reveal{0%,12%{opacity:0}34%,100%{opacity:1}}
+  @keyframes t-punch{0%,18%{transform:scale(1)}38%,64%{transform:scale(1.5)}100%{transform:scale(1)}}
+  @keyframes t-bubble{0%,18%{background:transparent;color:#5a5f68}38%,100%{background:var(--accent);color:#0a0b0d}}
+
+  /* look chips */
+  .looks{display:grid;grid-template-columns:repeat(8,1fr);gap:8px}
+  .look{
+    background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:8px 4px 6px;
+    cursor:pointer;text-align:center;transition:border-color .12s;
+  }
+  .look:hover{border-color:#3a3d44}
+  .look[aria-pressed="true"]{border-color:var(--accent);background:#1a1708}
+  .look .aa{display:block;font-size:17px;line-height:1;margin-bottom:6px}
+  .look .nm{display:block;font-size:9px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+  /* controls */
+  .groups{display:grid;grid-template-columns:repeat(3,1fr);gap:0}
+  @media (max-width:760px){.groups{grid-template-columns:1fr}.looks{grid-template-columns:repeat(4,1fr)}.modes{grid-template-columns:repeat(2,1fr)}}
+  .group{padding:14px 16px;border-right:1px solid var(--line)}
+  .group:last-child{border-right:0}
+  .group h3{margin:0 0 10px;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+  .field{display:block;margin-bottom:10px}
+  .field .lab{display:flex;justify-content:space-between;font-size:10px;letter-spacing:.06em;
+    text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+  .field .lab b{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
+  select,input[type="text"],input[type="color"]{
+    width:100%;background:var(--panel-3);color:var(--ink);border:1px solid var(--line);
+    border-radius:6px;padding:6px 8px;font:inherit;outline:none;
+  }
+  select:focus,input:focus{border-color:#4a4e57}
+  input[type="color"]{padding:2px;height:30px;cursor:pointer}
+  input[type="range"]{-webkit-appearance:none;width:100%;height:16px;background:transparent;cursor:pointer}
+  input[type="range"]::-webkit-slider-runnable-track{height:4px;background:#22252a;border-radius:2px}
+  input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;margin-top:-4px;
+    border-radius:50%;background:var(--accent);border:0}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .check{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--muted);margin-bottom:8px;cursor:pointer}
+  .check input{accent-color:var(--accent)}
+
+  .note{padding:12px 16px;font-size:11px;color:#6f747d;border-top:1px solid var(--line);background:#0d0e10}
+  .note b{color:#a9aeb6;font-weight:600}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="kicker">Caption Workbench</span>
+    <h1>Style</h1>
+    <span class="tag">proposal — not wired to the app</span>
+  </header>
+
+  <div class="grid">
+    <!-- ---------------- stage ---------------- -->
+    <section class="stage">
+      <div class="phone">
+        <div class="caption" id="caption"></div>
+      </div>
+      <div class="transport">
+        <div class="bar"><i id="progress"></i></div>
+        <span class="clock" id="clock">0.0 / 5.4s</span>
+      </div>
+      <div class="spec" id="spec"></div>
+    </section>
+
+    <!-- ---------------- panel ---------------- -->
+    <section class="panel">
+
+      <div class="sect">
+        <h2>Motion <span>how the line arrives</span></h2>
+        <div class="modes" id="modes"></div>
+      </div>
+
+      <div class="sect">
+        <h2>Look <span>type + paint only</span></h2>
+        <div class="looks" id="looks"></div>
+      </div>
+
+      <div class="groups">
+        <div class="group">
+          <h3>Type</h3>
+          <label class="field">
+            <span class="lab">Font</span>
+            <select id="font">
+              <option>Arial Black</option>
+              <option>Impact</option>
+              <option>Segoe UI</option>
+              <option>Consolas</option>
+              <option>Georgia</option>
+              <option>Verdana</option>
+              <option>Trebuchet MS</option>
+            </select>
+          </label>
+          <label class="field">
+            <span class="lab">Size <b id="sizeVal">34</b></span>
+            <input type="range" id="size" min="16" max="54" value="34">
+          </label>
+          <label class="check"><input type="checkbox" id="upper" checked> Uppercase</label>
+          <label class="field">
+            <span class="lab">Max words / line <b id="wordsVal">4</b></span>
+            <input type="range" id="words" min="2" max="8" value="4">
+          </label>
+        </div>
+
+        <div class="group">
+          <h3>Paint</h3>
+          <div class="row2">
+            <label class="field"><span class="lab">Base</span><input type="color" id="base" value="#ffffff"></label>
+            <label class="field"><span class="lab">Active</span><input type="color" id="highlight" value="#ffc700"></label>
+          </div>
+          <label class="field">
+            <span class="lab">Outline <b id="outlineVal">6</b></span>
+            <input type="range" id="outline" min="0" max="30" value="6">
+          </label>
+          <label class="field">
+            <span class="lab">Shadow <b id="shadowVal">4</b></span>
+            <input type="range" id="shadow" min="0" max="12" value="4">
+          </label>
+          <label class="field">
+            <span class="lab">Backdrop</span>
+            <select id="backdrop">
+              <option value="none">None</option>
+              <option value="box">Box</option>
+              <option value="pill">Pill</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="group">
+          <h3>Layout</h3>
+          <label class="field">
+            <span class="lab">Vertical <b id="vertVal">78%</b></span>
+            <input type="range" id="vertical" min="30" max="92" value="78">
+          </label>
+          <label class="field">
+            <span class="lab">Max width <b id="widthVal">82%</b></span>
+            <input type="range" id="width" min="40" max="92" value="82">
+          </label>
+          <label class="check"><input type="checkbox" id="loop" checked> Loop preview</label>
+        </div>
+      </div>
+
+      <div class="note">
+        <b>Five motions × eight looks = forty styles.</b> The panel edits three independent axes,
+        so a look never forces a motion. Tiles quote the cost: karaoke is one ASS event per card,
+        the other motions re-emit the block at 30 fps.
+      </div>
+    </section>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var SENTENCE = ["tumhare", "liye", "traffic", "parheshaanee", "hai"];
+  var WORD_SEC = 0.62;
+  var HOLD_SEC = 1.6;
+
+  var MODES = [
+    { id: "static",  name: "Static",  cost: "1 event/card" },
+    { id: "karaoke", name: "Karaoke", cost: "1 event/card" },
+    { id: "reveal",  name: "Reveal",  cost: "30 events/s" },
+    { id: "punch",   name: "Punch",   cost: "30 events/s" },
+    { id: "bubble",  name: "Bubble",  cost: "30 events/s" }
+  ];
+
+  var LOOKS = [
+    { id: "techwave", name: "Techwave",  font: "Arial Black",  base: "#ffffff", hi: "#ffffff", outline: 6, shadow: 4, backdrop: "none", upper: true },
+    { id: "hormozi",  name: "Hormozi",   font: "Impact",       base: "#ffffff", hi: "#ffd400", outline: 4, shadow: 3, backdrop: "none", upper: true },
+    { id: "vox",      name: "Vox Clean", font: "Segoe UI",     base: "#f2f2f2", hi: "#ffffff", outline: 0, shadow: 2, backdrop: "none", upper: false },
+    { id: "cyber",    name: "Cyber Lime",font: "Consolas",     base: "#c9ff3d", hi: "#ffffff", outline: 3, shadow: 4, backdrop: "none", upper: true },
+    { id: "editorial",name: "Editorial", font: "Georgia",      base: "#f5efe2", hi: "#ffd400", outline: 2, shadow: 3, backdrop: "none", upper: false },
+    { id: "buzz",     name: "Buzz",      font: "Arial Black",  base: "#ffffff", hi: "#c9b6ff", outline: 0, shadow: 4, backdrop: "none", upper: true },
+    { id: "blackout", name: "Blackout",  font: "Arial Black",  base: "#ffffff", hi: "#ffd400", outline: 0, shadow: 0, backdrop: "box",  upper: true },
+    { id: "neon",     name: "Neon",      font: "Segoe UI",     base: "#8ef4ff", hi: "#ffffff", outline: 2, shadow: 5, backdrop: "none", upper: true }
+  ];
+
+  var state = {
+    mode: "karaoke",
+    look: "techwave",
+    font: "Arial Black",
+    size: 34,
+    upper: true,
+    maxWords: 4,
+    base: "#ffffff",
+    highlight: "#ffc700",
+    outline: 6,
+    shadow: 4,
+    backdrop: "none",
+    vertical: 78,
+    width: 82,
+    loop: true
+  };
+
+  var $ = function (id) { return document.getElementById(id); };
+  var caption = $("caption");
+  var words = [];        // live spans
+  var duration = SENTENCE.length * WORD_SEC + HOLD_SEC;
+  var started = performance.now();
+
+  /* ---------------- build the two pickers ---------------- */
+
+  function buildModes() {
+    var host = $("modes");
+    MODES.forEach(function (m) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "mode";
+      b.dataset.mode = m.id;
+      b.setAttribute("aria-pressed", String(m.id === state.mode));
+      b.innerHTML =
+        '<span class="mini" data-mini="' + m.id + '">' +
+          '<span class="w">make</span> <span class="w">it</span> <span class="w">pop</span>' +
+        '</span>' +
+        '<span class="name">' + m.name + '</span>' +
+        '<span class="cost">' + m.cost + '</span>';
+      b.addEventListener("click", function () { setMode(m.id); });
+      host.appendChild(b);
+    });
+    applyMiniAnimations();
+  }
+
+  function applyMiniAnimations() {
+    MODES.forEach(function (m) {
+      var mini = document.querySelector('[data-mini="' + m.id + '"]');
+      if (!mini) return;
+      var spans = mini.querySelectorAll(".w");
+      spans.forEach(function (span, i) {
+        span.style.animation = "";
+        if (m.id === "static") return;
+        span.style.animation = "t-" + m.id + " 2.6s " + (i * 0.16) + "s infinite";
+      });
+    });
+  }
+
+  function buildLooks() {
+    var host = $("looks");
+    LOOKS.forEach(function (l) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "look";
+      b.dataset.look = l.id;
+      b.setAttribute("aria-pressed", String(l.id === state.look));
+      b.innerHTML =
+        '<span class="aa" style="font-family:\'' + l.font + '\',sans-serif;' +
+          'color:' + l.hi + ';text-shadow:0 0 1px ' + l.base + '">Aa</span>' +
+        '<span class="nm">' + l.name + '</span>';
+      b.addEventListener("click", function () { applyLook(l.id); });
+      host.appendChild(b);
+    });
+  }
+
+  /* ---------------- state changes ---------------- */
+
+  function setMode(id) {
+    state.mode = id;
+    document.querySelectorAll(".mode").forEach(function (b) {
+      b.setAttribute("aria-pressed", String(b.dataset.mode === id));
+    });
+    render();
+  }
+
+  function applyLook(id) {
+    var l = LOOKS.filter(function (x) { return x.id === id; })[0];
+    if (!l) return;
+    state.look = id;
+    state.font = l.font;
+    state.base = l.base;
+    state.highlight = l.hi;
+    state.outline = l.outline;
+    state.shadow = l.shadow;
+    state.backdrop = l.backdrop;
+    state.upper = l.upper;
+    document.querySelectorAll(".look").forEach(function (b) {
+      b.setAttribute("aria-pressed", String(b.dataset.look === id));
+    });
+    syncInputs();
+    render();
+  }
+
+  function syncInputs() {
+    $("font").value = state.font;
+    $("size").value = state.size;
+    $("upper").checked = state.upper;
+    $("words").value = state.maxWords;
+    $("base").value = state.base;
+    $("highlight").value = state.highlight;
+    $("outline").value = state.outline;
+    $("shadow").value = state.shadow;
+    $("backdrop").value = state.backdrop;
+    $("vertical").value = state.vertical;
+    $("width").value = state.width;
+    paintLabels();
+  }
+
+  function paintLabels() {
+    $("sizeVal").textContent = state.size;
+    $("wordsVal").textContent = state.maxWords;
+    $("outlineVal").textContent = state.outline;
+    $("shadowVal").textContent = state.shadow;
+    $("vertVal").textContent = state.vertical + "%";
+    $("widthVal").textContent = state.width + "%";
+  }
+
+  /* ---------------- render ---------------- */
+
+  // Same mapping the app uses: ASS units scaled by preview em / base em.
+  function metrics(size) {
+    var scale = size / 72;
+    return {
+      stroke: Math.round(2 * state.outline * scale * 100) / 100,
+      shadow: Math.round(state.shadow * scale * 100) / 100
+    };
+  }
+
+  // The app shrinks a word that cannot wrap rather than letting it run off the
+  // frame; the mockup does the same so the phone never clips.
+  function fitSize() {
+    var phone = document.querySelector(".phone");
+    var allowed = phone.clientWidth * (state.width / 100) - 4;
+    var size = state.size;
+    var guard = 0;
+    while (size > 14 && guard++ < 40) {
+      caption.style.fontSize = size + "px";
+      var widest = 0;
+      words.forEach(function (span) {
+        widest = Math.max(widest, span.getBoundingClientRect().width);
+      });
+      if (widest <= allowed) break;
+      size -= 1;
+    }
+    caption.style.fontSize = size + "px";
+    return size;
+  }
+
+  function render() {
+    var box = state.backdrop === "box";
+
+    caption.style.bottom = (100 - state.vertical) + "%";
+    caption.style.maxWidth = state.width + "%";
+    caption.style.left = "50%";
+    caption.style.right = "auto";
+    caption.style.transform = "translateX(-50%)";
+    caption.style.fontFamily = '"' + state.font + '",sans-serif';
+    caption.style.fontWeight = state.font === "Georgia" || state.font === "Segoe UI" ? 700 : 900;
+    caption.style.fontSize = state.size + "px";
+    caption.style.textTransform = state.upper ? "uppercase" : "none";
+
+    caption.classList.toggle("boxed", box);
+    caption.style.background = box ? "rgba(8,9,11,.92)" : "transparent";
+    caption.style.border = box ? "1px solid rgba(255,255,255,.16)" : "none";
+    caption.style.padding = box ? ".2em .45em" : "0";
+
+    caption.innerHTML = "";
+    words = SENTENCE.map(function (text) {
+      var span = document.createElement("span");
+      span.className = "w";
+      span.textContent = text;
+      span.style.color = state.base;
+      caption.appendChild(span);
+      return span;
+    });
+
+    var fitted = fitSize();
+    var m = metrics(fitted);
+    words.forEach(function (span) {
+      span.style.webkitTextStroke = m.stroke > 0 && !box ? m.stroke + "px #000" : "0";
+      span.style.paintOrder = "stroke fill";
+      span.style.textShadow = m.shadow > 0 && !box
+        ? m.shadow + "px " + m.shadow + "px 0 rgba(0,0,0,.5)"
+        : "none";
+    });
+
+    $("spec").innerHTML =
+      "mode <b>" + state.mode + "</b> · stroke <b>" + m.stroke + "px</b>" +
+      " · shadow <b>" + m.shadow + "px</b> · backdrop <b>" + state.backdrop + "</b>" +
+      (fitted < state.size ? " · shrunk to <b>" + fitted + "px</b>" : "");
+  }
+
+  /* ---------------- playback ---------------- */
+
+  function tick(now) {
+    var t = (now - started) / 1000;
+    if (t > duration) {
+      if (state.loop) { started = now; t = 0; }
+      else { t = duration; }
+    }
+
+    var active = Math.min(SENTENCE.length - 1, Math.floor(t / WORD_SEC));
+    var pill = state.mode === "bubble" || state.backdrop === "pill";
+    var revealed = state.mode === "reveal";
+
+    words.forEach(function (span, i) {
+      var isActive = i === active;
+      var visible = !revealed || i <= active;
+
+      span.style.opacity = visible ? "1" : "0";
+      span.style.color = isActive && state.mode !== "static" ? state.highlight : state.base;
+      span.style.transform = isActive && state.mode === "punch" ? "scale(1.4)" : "scale(1)";
+      span.style.background = isActive && pill ? state.highlight : "transparent";
+      span.style.padding = pill ? "0 .22em" : "0 .06em";
+      if (isActive && pill) span.style.color = "#0a0b0d";
+      if (state.mode === "static") span.style.color = state.base;
+    });
+
+    $("progress").style.width = Math.min(100, (t / duration) * 100) + "%";
+    $("clock").textContent = t.toFixed(1) + " / " + duration.toFixed(1) + "s";
+
+    requestAnimationFrame(tick);
+  }
+
+  /* ---------------- wiring ---------------- */
+
+  function on(id, evt, fn) {
+    var el = $(id);
+    if (el) el.addEventListener(evt, fn);
+  }
+
+  on("font", "change", function (e) { state.font = e.target.value; render(); });
+  on("size", "input", function (e) { state.size = +e.target.value; paintLabels(); render(); });
+  on("upper", "change", function (e) { state.upper = e.target.checked; render(); });
+  on("words", "input", function (e) { state.maxWords = +e.target.value; paintLabels(); });
+  on("base", "input", function (e) { state.base = e.target.value; render(); });
+  on("highlight", "input", function (e) { state.highlight = e.target.value; render(); });
+  on("outline", "input", function (e) { state.outline = +e.target.value; paintLabels(); render(); });
+  on("shadow", "input", function (e) { state.shadow = +e.target.value; paintLabels(); render(); });
+  on("backdrop", "change", function (e) { state.backdrop = e.target.value; render(); });
+  on("vertical", "input", function (e) { state.vertical = +e.target.value; paintLabels(); render(); });
+  on("width", "input", function (e) { state.width = +e.target.value; paintLabels(); render(); });
+  on("loop", "change", function (e) { state.loop = e.target.checked; });
+
+  buildModes();
+  buildLooks();
+  syncInputs();
+  render();
+  requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>
