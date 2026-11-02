@@ -4336,6 +4336,47 @@ body::-webkit-scrollbar-button,
   gap: 8px;
 }
 
+.style-motion-row {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.style-motion-chip {
+  padding: 5px 2px;
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+  background: var(--panel-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: color 100ms ease, background-color 100ms ease, border-color 100ms ease;
+}
+
+.style-motion-chip:hover {
+  color: var(--text);
+  border-color: var(--yellow);
+}
+
+.style-motion-chip[aria-pressed="true"],
+.style-motion-chip.active {
+  color: #000000;
+  background: var(--yellow);
+  border-color: var(--yellow);
+}
+
+.style-motion-note {
+  margin: 6px 0 0;
+  font-family: var(--font-mono);
+  font-size: 8px;
+  line-height: 1.4;
+  color: var(--muted);
+  opacity: 0.7;
+}
+
 .style-field {
   display: flex;
   flex-direction: column;

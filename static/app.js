@@ -69,6 +69,7 @@ const editorStyleExportBtn = document.getElementById("editorStyleExportBtn");
 const editorStyleImportBtn = document.getElementById("editorStyleImportBtn");
 const editorStyleImportFile = document.getElementById("editorStyleImportFile");
 const editorStyleStatus = document.getElementById("editorStyleStatus");
+const editorStyleMotionRow = document.getElementById("editorStyleMotionRow");
 const stylePreviewBtn = document.getElementById("stylePreviewBtn");
 const stylePreviewVideo = document.getElementById("stylePreviewVideo");
 const stylePreviewStatus = document.getElementById("stylePreviewStatus");
@@ -2006,6 +2007,54 @@ function hex6(value) {
   return /^#[0-9a-fA-F]{6}/.test(text) ? text.slice(0, 7) : "#FFFFFF";
 }
 
+// The motion axis, in panel order. `karaoke` is the schema's `none`: one card
+// per phrase with \k tags. The other four re-emit the block at 30 fps.
+// `word-pop` is the legacy emitter Honey Punch and Recess ship, so it is not
+// pickable and marks no chip.
+const MOTION_SCHEMA = {
+  static: "static",
+  karaoke: "none",
+  reveal: "reveal",
+  punch: "punch",
+  bubble: "bubble",
+};
+
+const MOTION_PICKABLE = {
+  none: "karaoke",
+  static: "static",
+  reveal: "reveal",
+  punch: "punch",
+  bubble: "bubble",
+};
+
+function markActiveMotion(motionId) {
+  if (!editorStyleMotionRow) return;
+  const id = String(motionId || "");
+  editorStyleMotionRow.dataset.activeMotion = id;
+  editorStyleMotionRow.querySelectorAll("[data-motion]").forEach(btn => {
+    const on = btn.dataset.motion === id;
+    btn.classList.toggle("active", on);
+    btn.setAttribute("aria-pressed", String(on));
+  });
+}
+
+function applyStyleMotion(motionId) {
+  const pick = MOTION_SCHEMA[motionId] ? motionId : "karaoke";
+  if (!activeCaptionStyle) return;
+  activeCaptionStyle = {
+    ...activeCaptionStyle,
+    motion: MOTION_SCHEMA[pick],
+    // The pill belongs to the motion: picking bubble brings it, picking any
+    // other motion takes it away. The emitter re-applies bubble's geometry.
+    pill: pick === "bubble",
+  };
+  // The controls mirror the style and queueEditorStyleSave builds its draft
+  // from them, so sync before saving. The emitter applies bubble's pill
+  // geometry itself; the draft only carries the motion.
+  syncStyleEditor();
+  queueEditorStyleSave();
+}
+
 function syncStyleEditor() {
   if (!activeCaptionStyle) return;
   const s = activeCaptionStyle;
@@ -2026,6 +2075,7 @@ function syncStyleEditor() {
     editorStyleUppercase.checked = !!s.uppercase;
     editorStyleBox.checked = !!s.box;
   }
+  markActiveMotion(MOTION_PICKABLE[s.motion] || "");
 }
 
 function setEditorStyleStatus(message, isError = false) {
@@ -2199,6 +2249,15 @@ if (styleImportBtn && styleImportFile) {
   el.addEventListener("input", queueEditorStyleSave);
   el.addEventListener("change", queueEditorStyleSave);
 });
+
+if (editorStyleMotionRow) {
+  editorStyleMotionRow.addEventListener("click", (event) => {
+    const btn = event.target && event.target.closest
+      ? event.target.closest("[data-motion]")
+      : null;
+    if (btn) applyStyleMotion(btn.dataset.motion);
+  });
+}
 
 if (editorStyleResetBtn) {
   editorStyleResetBtn.addEventListener("click", () => {

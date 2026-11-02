@@ -382,6 +382,18 @@
                 <span class="editor-scope">ALL CAPTIONS</span>
               </div>
               <div class="style-group">
+                <span class="style-group-title">MOTION</span>
+                <div class="style-motion-row" id="editorStyleMotionRow" role="group" aria-label="Caption motion">
+                  <button type="button" class="style-motion-chip" data-motion="static" aria-pressed="false" title="Hold the whole phrase, nothing lights up">STATIC</button>
+                  <button type="button" class="style-motion-chip" data-motion="karaoke" aria-pressed="false" title="Words light up as spoken (one event per card)">KARAOKE</button>
+                  <button type="button" class="style-motion-chip" data-motion="reveal" aria-pressed="false" title="Every word appears as spoken, no size change">REVEAL</button>
+                  <button type="button" class="style-motion-chip" data-motion="punch" aria-pressed="false" title="The spoken word grows and the line settles around it">PUNCH</button>
+                  <button type="button" class="style-motion-chip" data-motion="bubble" aria-pressed="false" title="A pill in the look's accent colour follows the spoken word">BUBBLE</button>
+                </div>
+                <p class="style-motion-note">Motion is independent of the look. Static and karaoke emit one event per card; the rest re-emit at 30 fps.</p>
+              </div>
+
+              <div class="style-group">
                 <span class="style-group-title">TYPE</span>
                 <div class="style-editor-grid">
                   <label class="style-field">FONT

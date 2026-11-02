@@ -327,6 +327,8 @@ function loadApp() {
   applyCaptionWordColors,
   syncStyleEditor,
   queueEditorStyleSave,
+  applyStyleMotion,
+  motionRow() { return editorStyleMotionRow; },
   getEditor() {
     return {
       font: editorStyleFont,

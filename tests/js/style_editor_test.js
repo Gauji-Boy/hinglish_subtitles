@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Style editor regression test.
  *
  * The panel used to be one flat "CUSTOM STYLE" block of nine controls, so the
@@ -92,9 +92,64 @@ function check(label, ok, detail) {
   check("outline width saves", t.getStyle().outline_width === 20, t.getStyle().outline_width);
 }
 
+// Case 4: the MOTION row shows the motion the style already carries.
+{
+  console.log("\ncase: motion row syncs from the style");
+  const t = loadApp();
+  t.setStyle({ ...BASE, motion: "none" });
+  t.setMode("hinglish");
+  t.syncStyleEditor();
+  check("karaoke is the pickable name for `none`", t.motionRow().dataset.activeMotion === "karaoke", t.motionRow().dataset.activeMotion);
+
+  t.setStyle({ ...BASE, motion: "reveal" });
+  t.syncStyleEditor();
+  check("reveal marks itself", t.motionRow().dataset.activeMotion === "reveal", t.motionRow().dataset.activeMotion);
+
+  // Honey Punch and Recess ship `word-pop`; it is not a pickable motion, so no
+  // chip may claim to be active.
+  t.setStyle({ ...BASE, motion: "word-pop" });
+  t.syncStyleEditor();
+  check("word-pop marks no chip", t.motionRow().dataset.activeMotion === "", t.motionRow().dataset.activeMotion);
+}
+
+// Case 5: picking a motion writes the schema's own name for it.
+{
+  console.log("\ncase: picking a motion writes the schema value");
+  const t = loadApp();
+  t.setStyle({ ...BASE, motion: "none" });
+  t.setMode("hinglish");
+  t.syncStyleEditor();
+  t.applyStyleMotion("bubble");
+  check("bubble", t.getStyle().motion === "bubble", t.getStyle().motion);
+  t.applyStyleMotion("punch");
+  check("punch", t.getStyle().motion === "punch", t.getStyle().motion);
+  t.applyStyleMotion("static");
+  check("static", t.getStyle().motion === "static", t.getStyle().motion);
+  t.applyStyleMotion("karaoke");
+  check("karaoke writes `none`", t.getStyle().motion === "none", t.getStyle().motion);
+}
+
+// Case 6: leaving bubble takes the pill with it.
+{
+  console.log("\ncase: switching away from bubble drops the pill");
+  const t = loadApp();
+  t.setStyle({ ...BASE, motion: "bubble", pill: true });
+  t.setMode("hinglish");
+  t.syncStyleEditor();
+  t.applyCaptionStyleToVideo();
+  const pill = t.document.getElementById("captionPill");
+  check("bubble shows the pill", t.getOverlay().classList.contains("recess"));
+
+  t.applyStyleMotion("reveal");
+  t.applyCaptionStyleToVideo();
+  check("reveal hides it", !t.getOverlay().classList.contains("recess"));
+  check("the pill is transparent", String(pill.style.opacity) === "0", pill.style.opacity);
+}
+
 console.log(
   failures === 0
     ? "\nAll style editor checks passed."
     : `\n${failures} style editor check(s) failed.`
 );
 process.exit(failures === 0 ? 0 : 1);
+
