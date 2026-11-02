@@ -12,7 +12,14 @@ import re
 from functools import lru_cache
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
-from caption_styles import DEFAULT_STYLE_ID, PRESETS, aspect_profile, hex_to_ass, resolve_style
+from caption_styles import (
+    DEFAULT_STYLE_ID,
+    PRESETS,
+    aspect_profile,
+    bubble_style,
+    hex_to_ass,
+    resolve_style,
+)
 
 try:  # Pillow is already a project dependency, but keep the generator importable.
     from PIL import ImageFont
@@ -54,10 +61,10 @@ _SENTENCE_END = (".", "?", "!", "\u0964")
 _CLOSING_CHARS = "\"'”’)]}»"
 
 # --- Recess (gradient pill) renderer ---------------------------------------
-# libass maps Arial Black's \fs through the font's ascent/descent, so it lands
-# at roughly 0.72x the nominal size Pillow uses. The ratios below were measured
-# by rendering probes with this FFmpeg/libass build at 1920x1080 and comparing
-# against the reference frames.
+# libass sizes a face so its ascent+descent fills \fs, while Pillow draws at the
+# nominal em. How far apart those land depends on the face: Arial Black comes
+# out at ~0.71x, Impact at ~0.82x. The ratios below are Recess's own, measured
+# against its reference frames, and stay pinned so the preset does not move.
 _RECESS_INK_RATIO = 0.640        # rendered ink width / Pillow ink width
 _RECESS_ADVANCE_RATIO = 0.652    # rendered advance width / Pillow advance width
 _RECESS_CAP_RATIO = 0.520        # rendered cap height / emitted \fs
@@ -68,6 +75,22 @@ _RECESS_LINE_PITCH_EM = 0.915    # cap top to cap top, in emitted \fs units
 # The reference face is ~0.70 cap/em; Arial Black is ~0.52. The pill's padding
 # is authored in reference ems, so map emitted \fs -> reference em.
 _RECESS_PILL_EM_RATIO = 0.775
+# Arial Black's own ascent+descent ratio, i.e. the face the numbers above were
+# measured on. Modes that adapt to the look's font scale their offsets by it.
+_RECESS_REFERENCE_SCALE = 0.709
+# Recess keeps the pinned numbers above so its frames never move. Other motions
+# read the face's own metrics through `_recess_metrics`.
+_RECESS_METRICS = {
+    "ink": _RECESS_INK_RATIO,
+    "advance": _RECESS_ADVANCE_RATIO,
+    "cap": _RECESS_CAP_RATIO,
+    "pitch": _RECESS_LINE_PITCH_EM,
+    "anchor": _RECESS_INK_ANCHOR_OFFSET,
+}
+# libass's own rounding sits a little under the pure ascent+descent fit; this
+# was measured across the eight fonts the app offers (worst case 3%).
+_FONT_SCALE_CORRECTION = 0.983
+_FONT_SCALE_CACHE: Dict[str, float] = {}
 
 # Short English/Hinglish function words stay white. Content words become the
 # gold "punch" words seen in the reference. Accent overrides are interjections.
@@ -929,14 +952,66 @@ def _measure_kinetic_ink(text: str, size: float, font_name: str) -> float:
     return max(0.0, right - left)
 
 
-def _recess_ink(text: str, size: float, font_name: str) -> float:
-    """Rendered ink width in canvas pixels (used for wrapping and pills)."""
-    return _measure_kinetic_ink(text, size, font_name) * _RECESS_INK_RATIO
+def _rendered_font_scale(font_name: str) -> float:
+    """How much smaller libass draws `font_name` than Pillow measures it.
+
+    libass fits the face's ascent+descent into `\\fs`, so a face with tall
+    metrics renders below the nominal em. Reading those metrics is the only way
+    to place words for a look whose font is not Recess's Arial Black.
+    """
+    cached = _FONT_SCALE_CACHE.get(font_name)
+    if cached is not None:
+        return cached
+    # Fallback: the ratio Recess was calibrated with. A font without a readable
+    # table renders at the old behaviour rather than at an unknown scale.
+    scale = _RECESS_REFERENCE_SCALE
+    path = _font_path(font_name)
+    if path:
+        try:
+            from fontTools.ttLib import TTFont
+
+            font = TTFont(path, fontNumber=0, lazy=True)
+            try:
+                upem = float(font["head"].unitsPerEm)
+                hhea = font["hhea"]
+                span = hhea.ascender - hhea.descender + hhea.lineGap
+            finally:
+                font.close()
+            if span > 0:
+                scale = upem / span
+        except Exception:
+            pass
+    scale *= _FONT_SCALE_CORRECTION
+    _FONT_SCALE_CACHE[font_name] = scale
+    return scale
 
 
-def _recess_advance(text: str, size: float, font_name: str) -> float:
-    """Rendered advance width in canvas pixels (used for word placement)."""
-    return _measure_kinetic_text(text, size, font_name) * _RECESS_ADVANCE_RATIO
+def _recess_metrics(font_name: str) -> Dict[str, float]:
+    """Rendered-vs-Pillow ratios for the face a style is using."""
+    scale = _rendered_font_scale(font_name)
+    path = _font_path(font_name)
+    cap_em = 0.72
+    if path:
+        font = _load_pillow_font(path, 1000)
+        if font is not None:
+            try:
+                box = font.getmask("H").getbbox()
+                if box:
+                    cap_em = (box[3] - box[1]) / 1000.0
+            except Exception:
+                pass
+    # Arial Black, the face Recess was measured on, scales every other offset.
+    reference = scale / _RECESS_REFERENCE_SCALE
+    # The styles condense X, and the pinned ratios were measured through that
+    # condensation, so horizontal metrics carry it too.
+    horizontal = scale * _KINETIC_ASS_SCALE_X / 100.0
+    return {
+        "ink": horizontal,
+        "advance": horizontal,
+        "cap": scale * cap_em,
+        "pitch": _RECESS_LINE_PITCH_EM * reference,
+        "anchor": _RECESS_INK_ANCHOR_OFFSET * reference,
+    }
 
 
 def _recess_layout(
@@ -947,6 +1022,7 @@ def _recess_layout(
     font_name: str,
     centre_x: float,
     centre_y: float,
+    metrics: Dict[str, float],
 ) -> List[Dict[str, Any]]:
     """Wrap a card and place every word with an explicit \\an5 anchor.
 
@@ -954,22 +1030,28 @@ def _recess_layout(
     around its own centre and the line pitch stays exact regardless of the
     tallest glyph in the line.
     """
+    def measure_word(text: str, size: float, name: str) -> float:
+        return _measure_kinetic_ink(text, size, name) * metrics["ink"]
+
+    def advance_of(text: str, size: float, name: str) -> float:
+        return _measure_kinetic_text(text, size, name) * metrics["advance"]
+
     lines = _kinetic_lines(
         phrase,
         scales,
         base_em,
         max_width,
         font_name,
-        measure=_recess_ink,
+        measure=measure_word,
     )
-    pitch = base_em * _RECESS_LINE_PITCH_EM
+    pitch = base_em * metrics["pitch"]
     count = max(1, len(lines))
-    space = _recess_advance(" ", base_em, font_name)
+    space = advance_of(" ", base_em, font_name)
     placed: List[Dict[str, Any]] = []
     for line_index, line in enumerate(lines):
         line_y = centre_y + (line_index - (count - 1) / 2.0) * pitch
         advances = [
-            _recess_advance(word["text"], size, font_name)
+            advance_of(word["text"], size, font_name)
             for word, _scale, size, _index in line
         ]
         total = sum(advances) + space * max(0, len(line) - 1)
@@ -980,7 +1062,7 @@ def _recess_layout(
             centre = cursor + advance / 2.0
             # The pill should hug the ink, not the advance box; the two centres
             # differ by the glyph's asymmetric side bearings.
-            ink_shift = (((left + right) / 2.0) - measured / 2.0) * _RECESS_ADVANCE_RATIO
+            ink_shift = (((left + right) / 2.0) - measured / 2.0) * metrics["advance"]
             placed.append(
                 {
                     "word": word,
@@ -990,8 +1072,8 @@ def _recess_layout(
                     "ink_x": centre + ink_shift,
                     # Shift up so the cap centre, not the font-box centre,
                     # lands on the line.
-                    "y": line_y - size * _RECESS_INK_ANCHOR_OFFSET,
-                    "ink": (right - left) * _RECESS_INK_RATIO,
+                    "y": line_y - size * metrics["anchor"],
+                    "ink": (right - left) * metrics["ink"],
                     "line": line_index,
                 }
             )
@@ -1003,6 +1085,7 @@ def _recess_pill_box(
     item: Dict[str, Any],
     resolved: Dict[str, Any],
     pill_em: float,
+    metrics: Dict[str, float],
 ) -> Tuple[float, float, float, float, float]:
     """Return (x0, y0, width, height, radius) for a word's pill."""
     pad_x = float(resolved["pill_pad_x"]) * pill_em
@@ -1011,8 +1094,8 @@ def _recess_pill_box(
     width = item["ink"] + 2.0 * pad_x
     # The padding is identical for normal and punch words in the reference,
     # so only the cap height follows the word's own em.
-    height = item["em"] * _RECESS_CAP_RATIO + 2.0 * pad_y
-    ink_centre_y = item["y"] + item["em"] * _RECESS_INK_ANCHOR_OFFSET
+    height = item["em"] * metrics["cap"] + 2.0 * pad_y
+    ink_centre_y = item["y"] + item["em"] * metrics["anchor"]
     ink_centre_x = item.get("ink_x", item["x"])
     return ink_centre_x - width / 2.0, ink_centre_y - height / 2.0, width, height, radius
 
@@ -1159,6 +1242,17 @@ def _generate_recess_ass(
     base_em = _recess_base_em(play_res_x, play_res_y, resolved)
     pill_em = base_em * _RECESS_PILL_EM_RATIO
     font_name = str(resolved["font"])
+    # `bubble` is a motion any look can carry, so it measures the look's own
+    # face and draws at the same em as the other kinetic modes; Recess keeps the
+    # numbers it was calibrated with.
+    is_bubble = resolved.get("motion") == "bubble"
+    if is_bubble:
+        base_em = (
+            _kinetic_base_size(play_res_y, int(resolved["font_size"]), play_res_x)
+            * _KINETIC_ASS_FONT_SCALE
+        )
+        pill_em = base_em * _RECESS_PILL_EM_RATIO
+    metrics = _recess_metrics(font_name) if is_bubble else _RECESS_METRICS
     centre_x = play_res_x / 2.0
     centre_y = play_res_y * float(resolved["anchor_y"]) / 100.0
     max_width = _kinetic_max_width(play_res_x, play_res_y, int(resolved["max_width"]))
@@ -1219,7 +1313,14 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
         scales = _kinetic_scales(phrase, resolved)
         placed = _recess_layout(
-            phrase, scales, base_em, max_width, font_name, centre_x, centre_y
+            phrase,
+            scales,
+            base_em,
+            max_width,
+            font_name,
+            centre_x,
+            centre_y,
+            metrics,
         )
         for position, item in enumerate(placed):
             word = item["word"]
@@ -1249,7 +1350,9 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 (start, 1, dialogue("RecessKinetic", 1, start, display_end, reveal + word["text"]))
             )
 
-            x0, y0, width, height, radius = _recess_pill_box(item, resolved, pill_em)
+            x0, y0, width, height, radius = _recess_pill_box(
+                item, resolved, pill_em, metrics
+            )
             if (
                 previous is not None
                 and pill_slide > 0
@@ -1355,6 +1458,10 @@ def generate_karaoke_ass(
         play_res_y = profile["play_res_y"]
 
     if resolved.get("motion") in ("word-pop", "reveal", "punch", "bubble"):
+        # `bubble` is the recess emitter, so it brings its own pill geometry
+        # rather than making the caller also set `pill`.
+        if resolved.get("motion") == "bubble":
+            resolved = bubble_style(resolved)
         if resolved.get("pill"):
             return _generate_recess_ass(
                 cards,

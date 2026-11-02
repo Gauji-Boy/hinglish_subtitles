@@ -118,6 +118,42 @@ function sizes(t) {
   check("the active word is not", px[0] === px[1], px);
 }
 
+// --- bubble: a pill follows the spoken word, without the style asking ------
+{
+  console.log("\ncase: bubble draws its own pill");
+  const t = show({ ...STYLE, motion: "bubble", pill: false, accent_scale: 100 }, 0.2);
+  const pill = t.document.getElementById("captionPill");
+  check("the pill element is visible", !pill.hidden, pill.hidden);
+  check(
+    "the pill has a width",
+    Number.parseFloat(pill.style.width) > 0,
+    pill.style.width
+  );
+  const px = sizes(t);
+  check("bubble type stays flat", new Set(px).size === 1, px);
+  // Switching motion must not resize the type: bubble draws at the same em as
+  // the other kinetic modes.
+  const revealEm = Number.parseFloat(
+    show({ ...STYLE, motion: "reveal" }, 0.2).getCaptionText().style.fontSize
+  );
+  check(
+    "bubble draws at the reveal em",
+    Math.abs(px[0] - revealEm) < 0.01,
+    `${px[0]} vs ${revealEm}`
+  );
+  // The pill must follow the face's cap height, not Recess's Arial Black
+  // ratio (0.52/0.652). The stub reports a 0.72 cap.
+  const em = Number.parseFloat(t.getCaptionText().style.fontSize);
+  const padY = 0.32 * 0.775 * em / 0.652;
+  const expectedHeight = 0.72 * em + 2 * padY;
+  const height = Number.parseFloat(pill.style.height);
+  check(
+    "the pill covers the face's cap height",
+    Math.abs(height - expectedHeight) < em * 0.02,
+    `${height} vs ${expectedHeight}`
+  );
+}
+
 console.log(
   failures === 0
     ? "\nAll motion overlay checks passed."

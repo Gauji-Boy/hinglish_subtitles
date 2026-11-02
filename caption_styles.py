@@ -45,6 +45,37 @@ _ASPECT_ALIASES = {
     "square": "1:1",
 }
 
+# Motion-owned geometry for the `bubble` mode. Type and paint come from the
+# look; the pill, its reveal and the one-word-per-line layout belong to the
+# motion. These are the calibrated Recess values, so bubble burns the same way
+# with any look paired to it.
+BUBBLE_MOTION: Dict[str, Any] = {
+    "kinetic_grouping": "punch",
+    "kinetic_layout": "middle",
+    "pill_pad_x": 0.16,
+    "pill_pad_y": 0.32,
+    "pill_radius": 0.26,
+    "pill_alpha": 1.0,
+    "pill_fade_ms": 65,
+    "pill_slide_ms": 130,
+    "reveal_fade_ms": 65,
+    "reveal_spring_ms": 130,
+    "reveal_spring_scale": 1.1,
+}
+
+
+def bubble_style(resolved: Dict[str, Any]) -> Dict[str, Any]:
+    """Return `resolved` with the bubble mode's own geometry applied."""
+    return {
+        **resolved,
+        **BUBBLE_MOTION,
+        "pill": True,
+        # A bubble is the look's accent colour, not Recess's gradient.
+        "pill_gradient_start": resolved["highlight_color"],
+        "pill_gradient_end": resolved["highlight_color"],
+    }
+
+
 PRESETS: Dict[str, Dict[str, Any]] = {
     "hormozi": {
         "id": "hormozi",

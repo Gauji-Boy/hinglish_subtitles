@@ -19,9 +19,11 @@ from karaoke_ass import (
     _kinetic_scales,
     _recess_base_em,
     _recess_layout,
+    _recess_metrics,
     _recess_pill_box,
     _recess_pill_events,
     _recess_strips,
+    _RECESS_METRICS,
     escape_ass_text,
     format_ass_time,
     generate_karaoke_ass,
@@ -783,6 +785,7 @@ def test_recess_ass_pill_bands_are_contiguous_and_rounded():
         {"em": 197.0, "x": 960.0, "ink": 1181.0, "y": 535.0},
         resolved,
         197.0 * 0.775,
+        _RECESS_METRICS,
     )
     x0, y0, width, height, radius = box
     assert width == pytest.approx(1181.0 + 2 * 0.16 * 197.0 * 0.775)

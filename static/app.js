@@ -1316,7 +1316,7 @@ function kineticBaseSize(style) {
   const height = rect.height || (videoPlayer && videoPlayer.clientHeight) || 600;
   const width = rect.width || (videoPlayer && videoPlayer.clientWidth) || 456;
   const isPortrait = height > width * 1.15;
-  if (style && style.pill) {
+  if (style && style.pill && style.motion !== "bubble") {
     // Mirror karaoke_ass._recess_base_em: the emitted em is the style size
     // scaled by kinetic_size_scale, shrunk on portrait canvases, then
     // converted from libass units to a CSS font-size.
@@ -1491,6 +1491,16 @@ function kineticAdvance(text, size, font, bold) {
   return ctx.measureText(String(text || "")).width || 0;
 }
 
+// Cap height of the face actually being drawn. `bubble` can carry any look, so
+// the pill cannot assume Arial Black's 0.52 cap ratio.
+function kineticCapHeight(size, font, bold) {
+  const ctx = kineticMeasureFont(size, font, bold);
+  if (!ctx) return size * 0.72;
+  const metrics = ctx.measureText("H");
+  const ascent = Number(metrics.actualBoundingBoxAscent);
+  return ascent > 0 ? ascent : size * 0.72;
+}
+
 function kineticOffsetWithin(element, ancestor) {
   // Layout coordinates: offsetLeft/offsetTop ignore the reveal transform, which
   // would otherwise move the pill while a word springs.
@@ -1529,7 +1539,12 @@ function placeRecessPill(style, state, activeLocal, baseSize) {
   const padY = RECESS_PILL_PAD_Y * RECESS_PILL_EM_RATIO * typeEm;
   const radius = Number(style.pill_radius ?? 0.26) * RECESS_PILL_EM_RATIO * typeEm;
   const width = ink.width + padX * 2;
-  const height = wordSize * (RECESS_CAP_RATIO / RECESS_LIVE_EM) + padY * 2;
+  // Recess's pill follows its calibrated cap ratio; `bubble` can carry any
+  // look, so it asks the browser for the face's real cap height instead.
+  const capPx = style.motion === "bubble"
+    ? kineticCapHeight(wordSize, style.font, style.bold)
+    : wordSize * (RECESS_CAP_RATIO / RECESS_LIVE_EM);
+  const height = capPx + padY * 2;
   // The glyph's ink centre, not the advance box, is what the reference hugs.
   const centreX = spot.x + (ink.right - ink.left) / 2;
   const centreY = spot.y + (span.offsetHeight || wordSize) / 2 + wordSize * RECESS_PILL_Y_NUDGE;
@@ -1595,7 +1610,9 @@ function updateKineticCaption() {
     return;
   }
 
-  const style = activeCaptionStyle;
+  const style = activeCaptionStyle.motion === "bubble" && !activeCaptionStyle.pill
+    ? { ...activeCaptionStyle, pill: true }
+    : activeCaptionStyle;
   ensureKineticOverlay(style, state);
   const signature = kineticStyleSignature(style);
   if (signature !== kineticStyleKey) {
