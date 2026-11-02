@@ -372,8 +372,15 @@
                 <span class="editor-section-title">CAPTION PRESETS</span>
                 <span class="editor-scope">GLOBAL</span>
               </div>
-              <p class="editor-section-note">Choose a look for every caption in this export.</p>
-              <div class="style-preset-grid" id="editorStylePresetGrid"></div>
+              <p class="editor-section-note">Every style previews itself. Open the list to compare them without applying.</p>
+              <div class="style-picker" id="editorStylePicker">
+                <button type="button" class="style-picker-trigger" id="editorStylePickerTrigger" aria-haspopup="listbox" aria-expanded="false" aria-controls="editorStylePickerList">
+                  <span class="style-picker-aa" id="editorStylePickerAa">Aa</span>
+                  <span class="style-picker-name" id="editorStylePickerName">Choose a style</span>
+                  <span class="style-picker-chev" aria-hidden="true">▾</span>
+                </button>
+                <div class="style-picker-list" id="editorStylePickerList" role="listbox" aria-label="Caption presets" hidden></div>
+              </div>
             </section>
 
             <section class="editor-style-section">

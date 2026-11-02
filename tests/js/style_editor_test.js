@@ -146,6 +146,73 @@ function check(label, ok, detail) {
   check("the pill is transparent", String(pill.style.opacity) === "0", pill.style.opacity);
 }
 
+// Case 7: the picker lists every style and draws each one in its own paint.
+{
+  console.log("\ncase: the picker previews each style");
+  const t = loadApp();
+  t.setStyles([
+    { ...BASE, id: "one", name: "One", font: "Impact", highlight_color: "#FFC700", box: false },
+    { ...BASE, id: "two", name: "Two", font: "Georgia", highlight_color: "#38BDF8", box: true, back_color: "#101010" },
+  ]);
+  const p = t.picker();
+  const rows = p.list.childNodes;
+  check("one row per style", rows.length === 2, rows.length);
+  const aa1 = rows[0].childNodes[0];
+  const aa2 = rows[1].childNodes[0];
+  check("row one draws in Impact", /Impact/.test(aa1.style.fontFamily), aa1.style.fontFamily);
+  check("row one uses its accent", aa1.style.color === "#FFC700", aa1.style.color);
+  check("row two draws in Georgia", /Georgia/.test(aa2.style.fontFamily), aa2.style.fontFamily);
+  check("row two uses its accent", aa2.style.color === "#38BDF8", aa2.style.color);
+  check("a boxed style paints its backdrop", aa2.style.background === "#101010", aa2.style.background);
+}
+
+// Case 8: the trigger shows the style you are on.
+{
+  console.log("\ncase: the trigger shows the active style");
+  const t = loadApp();
+  t.setStyle({ ...BASE, name: "Neon", font: "Segoe UI", highlight_color: "#F08AB5" });
+  t.syncStylePicker();
+  const p = t.picker();
+  check("name", p.name.textContent === "Neon", p.name.textContent);
+  check("type", /Segoe UI/.test(p.aa.style.fontFamily), p.aa.style.fontFamily);
+  check("accent", p.aa.style.color === "#F08AB5", p.aa.style.color);
+}
+
+// Case 9: choosing a row applies it, updates the trigger and closes the list.
+{
+  console.log("\ncase: choosing a row applies the style");
+  const t = loadApp();
+  t.setStyles([
+    { ...BASE, id: "one", name: "One" },
+    { ...BASE, id: "two", name: "Two" },
+  ]);
+  t.setStyle({ ...BASE, id: "one", name: "One" });
+  t.syncStylePicker();
+  t.setStylePickerOpen(true);
+  const p = t.picker();
+  p.list.childNodes[1].dispatch("click");
+  check("the style changed", t.getStyle().id === "two", t.getStyle().id);
+  check("the list closed", p.list.hidden === true);
+  check("the trigger follows", p.name.textContent === "Two", p.name.textContent);
+}
+
+// Case 10: open, close and Escape.
+{
+  console.log("\ncase: the list opens and closes");
+  const t = loadApp();
+  t.setStyles([{ ...BASE, id: "one", name: "One" }]);
+  const p = t.picker();
+  t.setStylePickerOpen(true);
+  check("open", p.list.hidden === false);
+  check("trigger marked open", p.trigger.classList.contains("is-open"));
+  p.list.dispatch("keydown", { key: "Escape", preventDefault() {} });
+  check("Escape closes", p.list.hidden === true);
+  p.trigger.dispatch("click");
+  check("the trigger opens it", p.list.hidden === false);
+  p.trigger.dispatch("click");
+  check("and closes it again", p.list.hidden === true);
+}
+
 console.log(
   failures === 0
     ? "\nAll style editor checks passed."

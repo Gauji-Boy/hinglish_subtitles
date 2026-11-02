@@ -4276,6 +4276,111 @@ body::-webkit-scrollbar-button,
   overflow: hidden;
 }
 
+/* Visual preset picker: a listbox whose rows are the styles themselves. */
+.style-picker {
+  position: relative;
+}
+
+.style-picker-trigger {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  background: var(--panel-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+}
+
+.style-picker-trigger:hover,
+.style-picker-trigger.is-open {
+  border-color: var(--yellow);
+}
+
+.style-picker-aa {
+  min-width: 34px;
+  text-align: center;
+  font-size: 20px;
+  line-height: 1.1;
+}
+
+.style-picker-name {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.style-picker-chev {
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.style-picker-list {
+  /* Fixed, not absolute: .editor-style-scroll clips an in-flow popover. */
+  position: fixed;
+  z-index: 1000;
+  max-height: 320px;
+  overflow: auto;
+  padding: 4px;
+  background: var(--panel-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.55);
+}
+
+.style-picker-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 6px 8px;
+  background: none;
+  border: 0;
+  border-radius: 5px;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+}
+
+.style-picker-row:hover,
+.style-picker-row.active {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.style-picker-row .style-picker-aa {
+  width: 42px;
+  font-size: 19px;
+}
+
+.style-picker-meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.style-picker-meta b {
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.style-picker-meta small {
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  color: var(--muted);
+}
+
 .style-sample-note {
   margin-top: 6px;
   font-family: var(--font-mono);

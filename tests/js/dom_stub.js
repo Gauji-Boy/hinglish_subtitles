@@ -328,6 +328,19 @@ function loadApp() {
   syncStyleEditor,
   queueEditorStyleSave,
   applyStyleMotion,
+  renderCaptionPresets,
+  renderStylePicker,
+  syncStylePicker,
+  setStylePickerOpen,
+  setStyles(list) { captionStyles = list; renderCaptionPresets(); },
+  picker() {
+    return {
+      trigger: document.getElementById("editorStylePickerTrigger"),
+      aa: document.getElementById("editorStylePickerAa"),
+      name: document.getElementById("editorStylePickerName"),
+      list: document.getElementById("editorStylePickerList"),
+    };
+  },
   motionRow() { return editorStyleMotionRow; },
   getEditor() {
     return {

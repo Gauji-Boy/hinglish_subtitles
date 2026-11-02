@@ -1095,7 +1095,7 @@ class TestPacingModeProperties:
         assert 'id="editorSearchInput"' in html
         assert 'id="editorCollapseBtn"' in html
         assert 'id="editorExpandBtn"' in html
-        assert 'id="editorStylePresetGrid"' in html
+        assert 'id="editorStylePicker"' in html
         assert 'id="editorStyleFont"' in html
         assert 'id="editorStyleFontSize"' in html
         assert 'id="editorStyleBaseColor"' in html
@@ -1141,7 +1141,7 @@ class TestPacingModeProperties:
         assert "saveEditorSegment" in js
         assert "srtTimestamp" in js
         assert "queueEditorStyleSave" in js
-        assert "editorStylePresetGrid" in js
+        assert "editorStylePicker" in js
         assert "subtitle_editor_collapsed" in js
         assert 'document.body.classList.add("editor-open")' in js
         assert "openSubtitleEditor();" in js

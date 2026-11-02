@@ -52,7 +52,10 @@ const styleExportBtn = document.getElementById("styleExportBtn");
 const styleImportBtn = document.getElementById("styleImportBtn");
 const styleImportFile = document.getElementById("styleImportFile");
 const styleEditor = document.getElementById("styleEditor");
-const editorStylePresetGrid = document.getElementById("editorStylePresetGrid");
+const editorStylePickerTrigger = document.getElementById("editorStylePickerTrigger");
+const editorStylePickerAa = document.getElementById("editorStylePickerAa");
+const editorStylePickerName = document.getElementById("editorStylePickerName");
+const editorStylePickerList = document.getElementById("editorStylePickerList");
 const editorStyleFont = document.getElementById("editorStyleFont");
 const editorStyleFontSize = document.getElementById("editorStyleFontSize");
 const editorStyleBaseColor = document.getElementById("editorStyleBaseColor");
@@ -977,7 +980,7 @@ function compactStyleName(style) {
 
 function renderCaptionPresets() {
   renderPresetGrid(stylePresetGrid, false);
-  renderPresetGrid(editorStylePresetGrid, false);
+  renderStylePicker();
   applyCaptionSample();
 }
 
@@ -1008,6 +1011,138 @@ function renderPresetGrid(grid, compact) {
     btn.addEventListener("click", () => selectCaptionStyle(style));
     grid.appendChild(btn);
   });
+}
+
+// A preset picker that shows the style instead of describing it. A native
+// <select> cannot render HTML options, so this is a listbox: each row is the
+// preset's own "Aa", drawn with its font, colours, outline and box.
+const STYLE_PICKER_MOTIONS = new Set(["word-pop", "reveal", "punch", "bubble", "static"]);
+
+function paintStyleAa(el, style) {
+  if (!el || !style) return;
+  el.style.fontFamily = `'${style.font}', sans-serif`;
+  el.style.color = style.highlight_color;
+  el.style.textShadow = style.outline_width
+    ? `0 0 1px ${style.base_color}, 0 0 2px ${style.base_color}`
+    : "none";
+  el.style.background = style.box ? style.back_color : "transparent";
+}
+
+function renderStylePicker() {
+  if (!editorStylePickerList) return;
+  editorStylePickerList.textContent = "";
+  captionStyles.forEach(style => {
+    const row = document.createElement("button");
+    row.type = "button";
+    row.className = "style-picker-row";
+    row.dataset.styleId = style.id;
+    row.setAttribute("role", "option");
+    row.setAttribute("aria-selected", String(!!activeCaptionStyle && style.id === activeCaptionStyle.id));
+
+    const aa = document.createElement("span");
+    aa.className = "style-picker-aa";
+    aa.textContent = "Aa";
+    paintStyleAa(aa, style);
+
+    const meta = document.createElement("span");
+    meta.className = "style-picker-meta";
+    const name = document.createElement("b");
+    name.textContent = style.name;
+    const detail = document.createElement("small");
+    detail.textContent = STYLE_PICKER_MOTIONS.has(style.motion)
+      ? `${style.font} · ${style.motion}`
+      : style.font;
+    meta.append(name, detail);
+
+    row.append(aa, meta);
+    row.addEventListener("click", () => {
+      selectCaptionStyle(style);
+      setStylePickerOpen(false);
+    });
+    editorStylePickerList.appendChild(row);
+  });
+  syncStylePicker();
+}
+
+function syncStylePicker() {
+  if (!editorStylePickerTrigger) return;
+  const style = activeCaptionStyle;
+  if (editorStylePickerName) {
+    editorStylePickerName.textContent = style ? style.name : "Choose a style";
+  }
+  if (editorStylePickerAa) {
+    if (style) paintStyleAa(editorStylePickerAa, style);
+    else editorStylePickerAa.removeAttribute("style");
+  }
+  if (editorStylePickerList) {
+    editorStylePickerList.querySelectorAll("[data-style-id]").forEach(row => {
+      const on = !!(style && row.dataset.styleId === style.id);
+      row.setAttribute("aria-selected", String(on));
+      row.classList.toggle("active", on);
+    });
+  }
+}
+
+function setStylePickerOpen(open, { restoreFocus = false } = {}) {
+  if (!editorStylePickerList || !editorStylePickerTrigger) return;
+  const next = Boolean(open);
+  editorStylePickerList.hidden = !next;
+  editorStylePickerTrigger.setAttribute("aria-expanded", String(next));
+  editorStylePickerTrigger.classList.toggle("is-open", next);
+  if (next) {
+    // .subtitle-editor carries a transform, which would make position:fixed
+    // resolve against it instead of the viewport. Move the list to <body> so
+    // its coordinates are real viewport pixels and no scroll container clips it.
+    if (editorStylePickerList.parentElement !== document.body) {
+      document.body.appendChild(editorStylePickerList);
+    }
+    positionStylePicker();
+    // The panel scrolls, so a fixed list must follow or close with it.
+    window.addEventListener("scroll", closeStylePickerOnScroll, true);
+    window.addEventListener("resize", positionStylePicker);
+    const rows = editorStylePickerList.querySelectorAll("[data-style-id]");
+    const selected = editorStylePickerList.querySelector('[aria-selected="true"]');
+    (selected || rows[0] || { focus() {} }).focus();
+  } else {
+    window.removeEventListener("scroll", closeStylePickerOnScroll, true);
+    window.removeEventListener("resize", positionStylePicker);
+    if (restoreFocus) editorStylePickerTrigger.focus();
+  }
+}
+
+function positionStylePicker() {
+  if (!editorStylePickerTrigger || !editorStylePickerList) return;
+  const rect = editorStylePickerTrigger.getBoundingClientRect();
+  const viewportH = window.innerHeight || 800;
+  const list = editorStylePickerList;
+  const below = viewportH - rect.bottom - 12;
+  const above = rect.top - 12;
+  const flip = below < 240 && above > below;
+  list.style.position = "fixed";
+  list.style.left = `${Math.round(rect.left)}px`;
+  list.style.right = "auto";
+  list.style.width = `${Math.round(rect.width)}px`;
+  if (flip) {
+    list.style.top = "auto";
+    list.style.bottom = `${Math.round(viewportH - rect.top + 6)}px`;
+  } else {
+    list.style.bottom = "auto";
+    list.style.top = `${Math.round(rect.bottom + 6)}px`;
+  }
+  list.style.maxHeight = `${Math.min(320, Math.max(120, Math.round(flip ? above : below)))}px`;
+}
+
+function closeStylePickerOnScroll(event) {
+  if (event && event.target === editorStylePickerList) return;
+  setStylePickerOpen(false);
+}
+
+function moveStylePickerFocus(step) {
+  const rows = Array.from(editorStylePickerList.querySelectorAll("[data-style-id]"));
+  if (!rows.length) return;
+  const current = rows.indexOf(document.activeElement);
+  const next = Math.max(0, Math.min(rows.length - 1, (current < 0 ? 0 : current) + step));
+  rows[next].focus();
 }
 
 function selectCaptionStyle(style, { persist = true } = {}) {
@@ -2123,15 +2258,15 @@ function queueEditorStyleSave(event) {
 }
 
 function markActiveStyle() {
-  [stylePresetGrid, editorStylePresetGrid].forEach(grid => {
-    if (!grid) return;
+  if (stylePresetGrid) {
     const activeId = activeCaptionStyle && activeCaptionStyle.id;
-    grid.querySelectorAll("[data-style-id]").forEach(btn => {
+    stylePresetGrid.querySelectorAll("[data-style-id]").forEach(btn => {
       const isActive = btn.dataset.styleId === activeId;
       btn.classList.toggle("active", isActive);
       btn.setAttribute("aria-pressed", String(isActive));
     });
-  });
+  }
+  syncStylePicker();
 }
 
 function detectAspect() {
@@ -2258,6 +2393,44 @@ if (editorStyleMotionRow) {
     if (btn) applyStyleMotion(btn.dataset.motion);
   });
 }
+
+if (editorStylePickerTrigger) {
+  editorStylePickerTrigger.addEventListener("click", () => {
+    setStylePickerOpen(Boolean(editorStylePickerList && editorStylePickerList.hidden));
+  });
+  editorStylePickerTrigger.addEventListener("keydown", (event) => {
+    if (event.key === "ArrowDown" || event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      setStylePickerOpen(true);
+    } else if (event.key === "Escape") {
+      setStylePickerOpen(false);
+    }
+  });
+}
+
+if (editorStylePickerList) {
+  editorStylePickerList.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      setStylePickerOpen(false, { restoreFocus: true });
+    } else if (event.key === "ArrowDown") {
+      event.preventDefault();
+      moveStylePickerFocus(1);
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      moveStylePickerFocus(-1);
+    }
+  });
+}
+
+document.addEventListener("click", (event) => {
+  if (!editorStylePickerList || editorStylePickerList.hidden) return;
+  const host = document.getElementById("editorStylePicker");
+  const target = event.target;
+  if (host && target && host.contains(target)) return;
+  if (target && editorStylePickerList.contains(target)) return;
+  setStylePickerOpen(false);
+});
 
 if (editorStyleResetBtn) {
   editorStyleResetBtn.addEventListener("click", () => {
