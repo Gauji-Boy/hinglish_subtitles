@@ -57,6 +57,10 @@
   .presets{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
   .preset{padding:5px 4px;font-size:9px;color:var(--muted);background:var(--panel-2);
     border:1px solid var(--line);border-radius:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .presets.is-strip{grid-template-columns:repeat(8,1fr);gap:3px}
+  .presets.is-strip .preset{padding:4px 2px;font-size:7.5px;background:none;border-color:transparent;
+    text-align:center;letter-spacing:.02em}
+  .presets.is-strip .preset:hover{border-color:var(--line);color:var(--ink)}
   .more{display:flex;gap:6px;align-items:center}
   .more select{flex:1;background:var(--panel-2);color:var(--ink);border:1px solid var(--line);
     border-radius:6px;padding:6px;font:11px "Segoe UI",sans-serif}
@@ -79,6 +83,7 @@
   <div class="switch" role="group" aria-label="Layout">
     <button type="button" data-layout="a" aria-pressed="true">A - LOOKS ABOVE PRESETS</button>
     <button type="button" data-layout="b" aria-pressed="false">B - LOOKS REPLACE PRESETS</button>
+    <button type="button" data-layout="c" aria-pressed="false">C - LOOKS + COMPACT STRIP</button>
   </div>
 
   <div class="grid">
@@ -111,7 +116,7 @@
 
 <script>
 var LOOKS = [{"id": "techwave", "name": "Techwave", "font": "Arial Black", "base": "#FFFFFF", "hi": "#FFFFFF", "outline": 6, "shadow": 4, "box": false, "upper": true}, {"id": "hormozi", "name": "Hormozi Kinetic", "font": "Impact", "base": "#FFFFFF", "hi": "#FFC700", "outline": 5, "shadow": 2, "box": false, "upper": true}, {"id": "vox", "name": "Vox Clean", "font": "Segoe UI", "base": "#FFFFFF", "hi": "#38BDF8", "outline": 3, "shadow": 1, "box": false, "upper": false}, {"id": "cyber", "name": "Cyber Lime", "font": "Consolas", "base": "#E5E7EB", "hi": "#BEF264", "outline": 4, "shadow": 2, "box": false, "upper": true}, {"id": "editorial", "name": "Editorial Serif", "font": "Georgia", "base": "#F5F1E8", "hi": "#E7C873", "outline": 2, "shadow": 3, "box": false, "upper": false}, {"id": "buzz", "name": "Buzz", "font": "Arial Black", "base": "#FFFFFF", "hi": "#C0B0F0", "outline": 0, "shadow": 4, "box": false, "upper": true}, {"id": "blackout", "name": "Blackout Box", "font": "Arial Black", "base": "#FFFFFF", "hi": "#FFD400", "outline": 18, "shadow": 0, "box": true, "upper": true}, {"id": "neon", "name": "Neon", "font": "Segoe UI", "base": "#FFFFFF", "hi": "#F08AB5", "outline": 0, "shadow": 4, "box": false, "upper": false}];
-var PRESETS = [{"id": "hormozi", "name": "Hormozi Kinetic"}, {"id": "vox", "name": "Vox Clean"}, {"id": "cyber", "name": "Cyber Lime"}, {"id": "blackout", "name": "Blackout Box"}, {"id": "editorial", "name": "Editorial Serif"}, {"id": "buzz", "name": "Buzz"}, {"id": "medusa", "name": "Medusa"}, {"id": "cartwheel", "name": "Cartwheel Black"}, {"id": "heat", "name": "Heat"}, {"id": "neon", "name": "Neon"}, {"id": "magazine", "name": "Magazine"}, {"id": "techwave", "name": "Techwave"}, {"id": "minima", "name": "Minima"}, {"id": "honeypunch", "name": "123 Honey Punch"}, {"id": "recess", "name": "Recess"}, {"id": "blank", "name": "Blank (Start From Scratch)"}];
+var PRESETS = [{"id": "hormozi", "name": "Hormozi Kinetic", "short": "Hormozi"}, {"id": "vox", "name": "Vox Clean", "short": "Vox"}, {"id": "cyber", "name": "Cyber Lime", "short": "Cyber"}, {"id": "blackout", "name": "Blackout Box", "short": "Blackout"}, {"id": "editorial", "name": "Editorial Serif", "short": "Editorial"}, {"id": "buzz", "name": "Buzz", "short": "Buzz"}, {"id": "medusa", "name": "Medusa", "short": "Medusa"}, {"id": "cartwheel", "name": "Cartwheel Black", "short": "Cartwheel"}, {"id": "heat", "name": "Heat", "short": "Heat"}, {"id": "neon", "name": "Neon", "short": "Neon"}, {"id": "magazine", "name": "Magazine", "short": "Magazine"}, {"id": "techwave", "name": "Techwave", "short": "Techwave"}, {"id": "minima", "name": "Minima", "short": "Minima"}, {"id": "honeypunch", "name": "123 Honey Punch", "short": "Honey"}, {"id": "recess", "name": "Recess", "short": "Recess"}, {"id": "blank", "name": "Blank (Start From Scratch)", "short": "Blank"}];
 
 var SENTENCE = ["aaj", "hum", "banayenge", "ek", "naya", "ghar"];
 var state = { layout: "a", look: "techwave", motion: "karaoke" };
@@ -165,6 +170,8 @@ function buildPresets() {
   PRESETS.forEach(function (p) {
     var d = document.createElement("div");
     d.className = "preset";
+    d.dataset.full = p.name;
+    d.dataset.short = p.short;
     d.textContent = p.name;
     host.appendChild(d);
   });
@@ -180,12 +187,20 @@ function setLayout(id) {
     b.setAttribute("aria-pressed", String(b.dataset.layout === id));
   });
   var a = id === "a";
-  $("presets").classList.toggle("hidden", !a);
-  $("more").classList.toggle("hidden", a);
-  $("presetTitle").textContent = a ? "Presets" : "More presets";
-  $("presetNote").textContent = a
-    ? "Every shipped style, unchanged."
-    : "The sixteen tiles fold into a menu; the eight looks cover the common case.";
+  var c = id === "c";
+  $("presets").classList.toggle("hidden", id === "b");
+  $("presets").classList.toggle("is-strip", c);
+  $("more").classList.toggle("hidden", id !== "b");
+  $("presetTitle").textContent = id === "b" ? "More presets" : "Presets";
+  $("presetNote").textContent = id === "b"
+    ? "The sixteen tiles fold into a menu; the eight looks cover the common case."
+    : c
+      ? "A quiet strip: all sixteen names, two rows. The look row does the visual browsing."
+      : "Every shipped style, unchanged.";
+  document.querySelectorAll(".preset").forEach(function (p) {
+    p.textContent = c ? p.dataset.short : p.dataset.full;
+    p.title = p.dataset.full;
+  });
 }
 
 function render() {
