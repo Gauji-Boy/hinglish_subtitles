@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Look row - two layouts</title>
+<style>
+  :root{
+    --bg:#0a0b0d; --panel:#101113; --panel-2:#15171a; --panel-3:#1b1d21;
+    --line:#24262b; --ink:#e9eaec; --muted:#8b8f97; --accent:#ffd400;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:13px/1.45 "Segoe UI",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1040px;margin:0 auto;padding:22px 20px 40px}
+  header{display:flex;align-items:baseline;gap:12px;margin-bottom:6px}
+  .kicker{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+  h1{margin:0;font-size:17px;letter-spacing:.02em}
+  .tag{font-size:10px;padding:2px 6px;border:1px solid var(--line);border-radius:4px;color:var(--muted)}
+  .sub{color:var(--muted);margin:0 0 18px;max-width:70ch}
+
+  .switch{display:inline-flex;gap:4px;padding:3px;background:var(--panel);border:1px solid var(--line);border-radius:8px;margin-bottom:18px}
+  .switch button{padding:6px 12px;font:800 10px/1 "Consolas",monospace;letter-spacing:.06em;
+    color:var(--muted);background:none;border:0;border-radius:6px;cursor:pointer}
+  .switch button[aria-pressed="true"]{background:var(--accent);color:#000}
+
+  .grid{display:grid;grid-template-columns:1fr 380px;gap:22px;align-items:start}
+  @media (max-width:900px){.grid{grid-template-columns:1fr}}
+
+  .stage{position:relative;aspect-ratio:9/16;max-height:520px;background:#141518;border:1px solid var(--line);
+    border-radius:12px;overflow:hidden;display:flex;align-items:flex-end;justify-content:center}
+  .stage::before{content:"";position:absolute;inset:0;
+    background:radial-gradient(120% 80% at 50% 20%,#22252b 0%,#0d0e11 70%)}
+  .caption{position:relative;margin-bottom:14%;padding:0 8%;text-align:center;line-height:1.15}
+  .caption span{display:inline-block;margin:0 .12em;transition:transform .12s ease}
+  .caption .pill{position:absolute;z-index:-1;border-radius:.22em;opacity:0}
+
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px}
+  .panel + .panel{margin-top:14px}
+  .panel h2{margin:0 0 2px;font-size:11px;letter-spacing:.1em;color:var(--accent);text-transform:uppercase}
+  .panel p{margin:0 0 10px;font-size:11px;color:var(--muted)}
+
+  .looks{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+  .look{background:var(--panel-2);border:1px solid var(--line);border-radius:7px;padding:7px 4px 5px;
+    cursor:pointer;text-align:center}
+  .look .aa{display:block;font-size:20px;line-height:1.1}
+  .look .nm{display:block;margin-top:3px;font-size:8px;letter-spacing:.04em;color:var(--muted);
+    text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .look[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+  .look[aria-pressed="true"] .nm{color:var(--ink)}
+
+  .modes{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+  .mode{padding:6px 2px;font:800 8px/1 "Consolas",monospace;letter-spacing:.03em;color:var(--muted);
+    background:var(--panel-2);border:1px solid var(--line);border-radius:5px;cursor:pointer}
+  .mode[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#000}
+
+  .presets{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+  .preset{padding:5px 4px;font-size:9px;color:var(--muted);background:var(--panel-2);
+    border:1px solid var(--line);border-radius:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .more{display:flex;gap:6px;align-items:center}
+  .more select{flex:1;background:var(--panel-2);color:var(--ink);border:1px solid var(--line);
+    border-radius:6px;padding:6px;font:11px "Segoe UI",sans-serif}
+  .note{margin-top:8px;font:9px/1.5 "Consolas",monospace;color:var(--muted);opacity:.8}
+
+  .hidden{display:none}
+  .cap{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="kicker">Caption style</span>
+    <h1>Look row: two layouts</h1>
+    <span class="tag">real look data</span>
+  </header>
+  <p class="sub">Same eight looks and five motions in both. The only question is what happens to the
+    sixteen preset tiles: stay below the look row, or fold into a menu.</p>
+
+  <div class="switch" role="group" aria-label="Layout">
+    <button type="button" data-layout="a" aria-pressed="true">A - LOOKS ABOVE PRESETS</button>
+    <button type="button" data-layout="b" aria-pressed="false">B - LOOKS REPLACE PRESETS</button>
+  </div>
+
+  <div class="grid">
+    <div class="stage"><div class="caption" id="caption"></div></div>
+
+    <div>
+      <div class="panel">
+        <h2>Look</h2>
+        <p>Type and paint. Picking one never changes the motion.</p>
+        <div class="looks" id="looks"></div>
+      </div>
+
+      <div class="panel">
+        <h2>Motion</h2>
+        <p>Independent of the look.</p>
+        <div class="modes" id="modes"></div>
+      </div>
+
+      <div class="panel" id="presetPanel">
+        <h2 id="presetTitle">Presets</h2>
+        <p id="presetNote">Every shipped style, unchanged.</p>
+        <div class="presets" id="presets"></div>
+        <div class="more hidden" id="more">
+          <select id="presetSelect"></select>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+var LOOKS = [{"id": "techwave", "name": "Techwave", "font": "Arial Black", "base": "#FFFFFF", "hi": "#FFFFFF", "outline": 6, "shadow": 4, "box": false, "upper": true}, {"id": "hormozi", "name": "Hormozi Kinetic", "font": "Impact", "base": "#FFFFFF", "hi": "#FFC700", "outline": 5, "shadow": 2, "box": false, "upper": true}, {"id": "vox", "name": "Vox Clean", "font": "Segoe UI", "base": "#FFFFFF", "hi": "#38BDF8", "outline": 3, "shadow": 1, "box": false, "upper": false}, {"id": "cyber", "name": "Cyber Lime", "font": "Consolas", "base": "#E5E7EB", "hi": "#BEF264", "outline": 4, "shadow": 2, "box": false, "upper": true}, {"id": "editorial", "name": "Editorial Serif", "font": "Georgia", "base": "#F5F1E8", "hi": "#E7C873", "outline": 2, "shadow": 3, "box": false, "upper": false}, {"id": "buzz", "name": "Buzz", "font": "Arial Black", "base": "#FFFFFF", "hi": "#C0B0F0", "outline": 0, "shadow": 4, "box": false, "upper": true}, {"id": "blackout", "name": "Blackout Box", "font": "Arial Black", "base": "#FFFFFF", "hi": "#FFD400", "outline": 18, "shadow": 0, "box": true, "upper": true}, {"id": "neon", "name": "Neon", "font": "Segoe UI", "base": "#FFFFFF", "hi": "#F08AB5", "outline": 0, "shadow": 4, "box": false, "upper": false}];
+var PRESETS = [{"id": "hormozi", "name": "Hormozi Kinetic"}, {"id": "vox", "name": "Vox Clean"}, {"id": "cyber", "name": "Cyber Lime"}, {"id": "blackout", "name": "Blackout Box"}, {"id": "editorial", "name": "Editorial Serif"}, {"id": "buzz", "name": "Buzz"}, {"id": "medusa", "name": "Medusa"}, {"id": "cartwheel", "name": "Cartwheel Black"}, {"id": "heat", "name": "Heat"}, {"id": "neon", "name": "Neon"}, {"id": "magazine", "name": "Magazine"}, {"id": "techwave", "name": "Techwave"}, {"id": "minima", "name": "Minima"}, {"id": "honeypunch", "name": "123 Honey Punch"}, {"id": "recess", "name": "Recess"}, {"id": "blank", "name": "Blank (Start From Scratch)"}];
+
+var SENTENCE = ["aaj", "hum", "banayenge", "ek", "naya", "ghar"];
+var state = { layout: "a", look: "techwave", motion: "karaoke" };
+
+var $ = function (id) { return document.getElementById(id); };
+
+function look() {
+  return LOOKS.filter(function (l) { return l.id === state.look; })[0];
+}
+
+function buildLooks() {
+  var host = $("looks");
+  host.innerHTML = "";
+  LOOKS.forEach(function (l) {
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "look";
+    b.dataset.look = l.id;
+    b.setAttribute("aria-pressed", String(l.id === state.look));
+    b.innerHTML =
+      '<span class="aa" style="font-family:\'' + l.font + '\',sans-serif;color:' + l.hi +
+      ';text-shadow:0 0 1px ' + l.base + ',0 0 2px ' + l.base + '">Aa</span>' +
+      '<span class="nm">' + l.name + '</span>';
+    b.addEventListener("click", function () { state.look = l.id; buildLooks(); render(); });
+    host.appendChild(b);
+  });
+}
+
+function buildModes() {
+  var host = $("modes");
+  var MODES = [
+    ["static", "STATIC"], ["karaoke", "KARAOKE"], ["reveal", "REVEAL"],
+    ["punch", "PUNCH"], ["bubble", "BUBBLE"]
+  ];
+  host.innerHTML = "";
+  MODES.forEach(function (m) {
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "mode";
+    b.dataset.mode = m[0];
+    b.textContent = m[1];
+    b.setAttribute("aria-pressed", String(m[0] === state.motion));
+    b.addEventListener("click", function () { state.motion = m[0]; buildModes(); render(); });
+    host.appendChild(b);
+  });
+}
+
+function buildPresets() {
+  var host = $("presets");
+  host.innerHTML = "";
+  PRESETS.forEach(function (p) {
+    var d = document.createElement("div");
+    d.className = "preset";
+    d.textContent = p.name;
+    host.appendChild(d);
+  });
+  var sel = $("presetSelect");
+  sel.innerHTML = PRESETS.map(function (p) {
+    return '<option>' + p.name + '</option>';
+  }).join("");
+}
+
+function setLayout(id) {
+  state.layout = id;
+  document.querySelectorAll(".switch button").forEach(function (b) {
+    b.setAttribute("aria-pressed", String(b.dataset.layout === id));
+  });
+  var a = id === "a";
+  $("presets").classList.toggle("hidden", !a);
+  $("more").classList.toggle("hidden", a);
+  $("presetTitle").textContent = a ? "Presets" : "More presets";
+  $("presetNote").textContent = a
+    ? "Every shipped style, unchanged."
+    : "The sixteen tiles fold into a menu; the eight looks cover the common case.";
+}
+
+function render() {
+  var l = look();
+  var cap = $("caption");
+  var spoken = 2;
+  cap.style.fontFamily = "'" + l.font + "',sans-serif";
+  cap.style.fontSize = "34px";
+  cap.style.fontWeight = "700";
+  cap.style.textTransform = l.upper ? "uppercase" : "none";
+  cap.innerHTML = "";
+
+  SENTENCE.forEach(function (word, i) {
+    var span = document.createElement("span");
+    span.textContent = word;
+    var isSpoken = i <= spoken;
+    var isCurrent = i === spoken;
+    span.style.color = isSpoken ? l.hi : l.base;
+    span.style.webkitTextStroke = l.outline ? (l.outline / 2) + "px #000" : "0";
+    span.style.paintOrder = "stroke fill";
+    span.style.textShadow = l.shadow ? "0 " + (l.shadow / 2) + "px " + l.shadow + "px rgba(0,0,0,.75)" : "none";
+    if (l.box) {
+      span.style.background = "#000";
+      span.style.padding = ".08em .18em";
+      span.style.borderRadius = ".1em";
+    }
+    if (state.motion === "punch" && isCurrent) span.style.transform = "scale(1.5)";
+    if (state.motion === "bubble" && isCurrent) {
+      span.style.background = l.hi;
+      span.style.color = "#000";
+      span.style.padding = ".1em .22em";
+      span.style.borderRadius = ".24em";
+      span.style.webkitTextStroke = "0";
+    }
+    if (state.motion === "static") span.style.color = l.base;
+    if (state.motion === "reveal") span.style.color = isSpoken ? l.hi : l.base;
+    cap.appendChild(span);
+  });
+}
+
+buildLooks();
+buildModes();
+buildPresets();
+setLayout("a");
+render();
+document.querySelectorAll(".switch button").forEach(function (b) {
+  b.addEventListener("click", function () { setLayout(b.dataset.layout); });
+});
+</script>
+</body>
+</html>
