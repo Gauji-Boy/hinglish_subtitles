@@ -439,6 +439,65 @@ PRESETS: Dict[str, Dict[str, Any]] = {
 }
 
 
+# ---------------------------------------------------------------------------
+# Composable styles: look x motion.
+#
+# The sixteen presets above flatten four independent axes into tiles, so most
+# of them differ by a colour and a font while repeating the same motion data.
+# The panel edits the axes separately. A look is type and paint only; a motion
+# owns grouping, layout and (for bubble) the pill. Pairing them is additive:
+# the presets stay exactly as shipped and every look below is read straight
+# from its same-named preset, so nothing drifts between the two views.
+# ---------------------------------------------------------------------------
+
+# Type + paint. Deliberately no font_size, margin_v or motion keys: size and
+# position belong to the layout controls, motion to the motion picker.
+LOOK_FIELDS = (
+    "font",
+    "bold",
+    "uppercase",
+    "base_color",
+    "highlight_color",
+    "outline_color",
+    "back_color",
+    "outline_width",
+    "shadow",
+    "box",
+)
+
+LOOK_IDS = (
+    "techwave",
+    "hormozi",
+    "vox",
+    "cyber",
+    "editorial",
+    "buzz",
+    "blackout",
+    "neon",
+)
+
+LOOKS: Dict[str, Dict[str, Any]] = {
+    look_id: {key: PRESETS[look_id][key] for key in LOOK_FIELDS if key in PRESETS[look_id]}
+    for look_id in LOOK_IDS
+}
+
+# The pickable motions, in panel order. `karaoke` is the schema's `none`: one
+# card per phrase with \k tags. `word-pop` is not here on purpose - it is the
+# legacy emitter Honey Punch and Recess still ship, not a user choice.
+MOTIONS: Dict[str, Dict[str, Any]] = {
+    "static": {"motion": "static"},
+    "karaoke": {"motion": "none"},
+    "reveal": {"motion": "reveal"},
+    "punch": {"motion": "punch"},
+    "bubble": {"motion": "bubble"},
+}
+
+MOTION_KEYS = tuple(MOTIONS)
+
+DEFAULT_LOOK_ID = "techwave"
+DEFAULT_MOTION_ID = "karaoke"
+
+
 def hex_to_ass(value: str, fallback: str = "&H00FFFFFF") -> str:
     """Convert #RRGGBB or #RRGGBBAA to ASS &HAABBGGRR (alpha is inverted)."""
     match = _HEX_RE.match(str(value or "").strip())
@@ -585,6 +644,31 @@ def resolve_style(style: Optional[Any] = None) -> Dict[str, Any]:
     grouping = str(base.get("kinetic_grouping") or "flow").strip().lower()
     base["kinetic_grouping"] = grouping if grouping in ("flow", "punch", "poster") else "flow"
     return base
+
+
+def compose_style(
+    look_id: str = DEFAULT_LOOK_ID,
+    motion_id: str = DEFAULT_MOTION_ID,
+    **overrides: Any,
+) -> Dict[str, Any]:
+    """Build a style from a look, a motion and optional field overrides.
+
+    Unknown ids fall back to the defaults instead of raising: the panel sends
+    whatever the last session saved, and a stale id must not break a burn.
+    """
+    look = str(look_id or "").strip().lower()
+    motion = str(motion_id or "").strip().lower()
+    if look not in LOOKS:
+        look = DEFAULT_LOOK_ID
+    if motion not in MOTIONS:
+        motion = DEFAULT_MOTION_ID
+
+    style: Dict[str, Any] = {**PRESETS[look], **LOOKS[look], **MOTIONS[motion]}
+    style.update({key: value for key, value in overrides.items() if value is not None})
+    resolved = resolve_style(style)
+    if resolved["motion"] == "bubble":
+        resolved = bubble_style(resolved)
+    return resolved
 
 
 def list_presets() -> List[Dict[str, Any]]:
