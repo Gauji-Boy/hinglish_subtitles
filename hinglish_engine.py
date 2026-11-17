@@ -304,6 +304,7 @@ def generate_subtitles(
     emit_stage("extract", f"Extracted {audio_duration:.2f}s ({audio_duration/60:.2f} min) audio in {t_extract:.2f}s")
 
     whisper_lang = "hi" if language_choice in ("mixed", "hi", "hi-en") else ("en" if language_choice == "en" else None)
+    coverage: Dict[str, Any] = {}
 
     if model_size == "indic-conformer":
         if progress_callback:
@@ -403,9 +404,17 @@ def generate_subtitles(
             progress_callback(0.35, f"{mode_desc} on {target_device.upper()}...")
         emit_stage("whisper", f"Running Whisper {whisper_task} (language='{whisper_lang}', topic_hint='{topic_hint}')...")
 
-        words = transcribe_words(model, audio, language=whisper_lang, topic_hint=topic_hint, task=whisper_task)
+        words, coverage = transcribe_words(model, audio, language=whisper_lang, topic_hint=topic_hint, task=whisper_task)
 
     emit_stage("whisper", f"Transcribed {len(words)} raw acoustic tokens")
+
+    if coverage:
+        pct = coverage.get("covered_ratio", 1.0) * 100.0
+        n = coverage.get("gaps_filled", 0)
+        sec = coverage.get("seconds_recovered", 0.0)
+        k = coverage.get("gaps_skipped", 0)
+        emit_stage("coverage", f"Speech coverage {pct:.1f}% — filled {n} gap(s), "
+                               f"recovered {sec:.1f}s, skipped {k}")
 
     from hinglish_upgrades import words_to_cards, hint_keywords
     rec = get_recoverer()
@@ -482,7 +491,8 @@ def generate_subtitles(
         "speed_factor": speed_factor,
         "active_device": target_device,
         "active_compute": target_compute,
-        "detected_language": whisper_lang
+        "detected_language": whisper_lang,
+        "coverage": coverage or {}
     }
 
 

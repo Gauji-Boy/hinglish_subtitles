@@ -69,7 +69,7 @@ def measure_single_model(video_path: str, model_size: str, compute_type: str = "
 
     # 3. Transcribe 16-min audio
     t0 = time.time()
-    raw_words = transcribe_words(model, audio, language="hi", topic_hint="", beam_size=2)
+    raw_words, _ = transcribe_words(model, audio, language="hi", topic_hint="", beam_size=2)
     t_transcribe = time.time() - t0
     speed_factor = audio_dur / t_transcribe if t_transcribe > 0 else 0.0
     print(f"    Transcribed in {t_transcribe:.2f}s ({speed_factor:.1f}x real-time)")

@@ -150,7 +150,7 @@ def run_worker_mode(video_path: str, golden_tsv: str, model_size: str, compute_t
     t_load_cold = time.time() - t0
 
     t0 = time.time()
-    raw_words = transcribe_words(
+    raw_words, _ = transcribe_words(
         model, audio, language="hi", topic_hint="", beam_size=beam_size
     )
     t_transcribe_cold = time.time() - t0
@@ -164,7 +164,7 @@ def run_worker_mode(video_path: str, golden_tsv: str, model_size: str, compute_t
 
     # 2. Warmups (2 discarded)
     for _ in range(2):
-        _ = transcribe_words(model, audio, language="hi", topic_hint="", beam_size=beam_size)
+        _raw, _ = transcribe_words(model, audio, language="hi", topic_hint="", beam_size=beam_size)
         _ = words_to_cards(raw_words, convert_to_hinglish, recoverer=rec, pacing="short")
 
     # 3. Measured Warm Runs (3 runs)
@@ -180,7 +180,7 @@ def run_worker_mode(video_path: str, golden_tsv: str, model_size: str, compute_t
         t_a = time.time() - t0  # cached in RAM numpy array, ~0.00s
 
         t0 = time.time()
-        rw = transcribe_words(model, audio, language="hi", topic_hint="", beam_size=beam_size)
+        rw, _ = transcribe_words(model, audio, language="hi", topic_hint="", beam_size=beam_size)
         t_tr = time.time() - t0
 
         t0 = time.time()

@@ -254,6 +254,64 @@ class TestVariantUnification:
         assert texts[4] == "तौलिया"
 
 
+class TestVariantUnificationGuards:
+    def test_open_oven_survive(self):
+        words = [
+            {"start": 0.0, "end": 1.0, "text": "open"},
+            {"start": 2.0, "end": 3.0, "text": "oven"},
+        ]
+        unified = unify_variants(words)
+        texts = [w["text"] for w in unified]
+        assert texts == ["open", "oven"]
+
+    def test_plot_lot_survive(self):
+        words = [
+            {"start": 0.0, "end": 1.0, "text": "plot"},
+            {"start": 2.0, "end": 3.0, "text": "lot"},
+        ]
+        unified = unify_variants(words)
+        texts = [w["text"] for w in unified]
+        assert texts == ["plot", "lot"]
+
+    def test_duration_education_survive(self):
+        words = [
+            {"start": 0.0, "end": 1.0, "text": "duration"},
+            {"start": 2.0, "end": 3.0, "text": "education"},
+        ]
+        unified = unify_variants(words)
+        texts = [w["text"] for w in unified]
+        assert texts == ["duration", "education"]
+
+    def test_wham_what_survive(self):
+        words = [
+            {"start": 0.0, "end": 1.0, "text": "wham"},
+            {"start": 2.0, "end": 3.0, "text": "what"},
+        ]
+        unified = unify_variants(words)
+        texts = [w["text"] for w in unified]
+        assert texts == ["wham", "what"]
+
+    def test_desires_desire_unify(self):
+        words = [
+            {"start": 0.0, "end": 1.0, "text": "desires"},
+            {"start": 2.0, "end": 3.0, "text": "desire"},
+            {"start": 4.0, "end": 5.0, "text": "desire"},
+        ]
+        unified = unify_variants(words)
+        texts = [w["text"] for w in unified]
+        assert texts == ["desire", "desire", "desire"]
+
+    def test_detol_dtol_still_unify(self):
+        words = [
+            {"start": 0.0, "end": 1.0, "text": "Detol"},
+            {"start": 2.0, "end": 3.0, "text": "DTOL"},
+            {"start": 4.0, "end": 5.0, "text": "Detol"},
+        ]
+        unified = unify_variants(words)
+        texts = [w["text"] for w in unified]
+        assert texts == ["Detol", "Detol", "Detol"]
+
+
 
 # =============================================================================
 # 3. CASE NORMALIZATION TESTS

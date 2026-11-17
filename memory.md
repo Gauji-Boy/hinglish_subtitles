@@ -1,7 +1,7 @@
 # Project Memory & Long-Term Context
 
 > **Workspace:** `c:\Users\susha\Documents\General` & `c:\Users\susha\Documents\General\hinglish_subtitles`  
-> **Last Updated:** 2026-10-22
+> **Last Updated:** 2026-11-17
 > **Purpose:** Persistent cross-session knowledge base tracking architectural decisions, user preferences, hardware configuration, and project evolution.
 
 ---
@@ -107,11 +107,27 @@
 [Flat Word-Level Timestamps] (word_timestamps=True)
        â”‚
        â–¼
+[Speech Coverage Pass] (Silero VAD Gap Recovery)
+  â”œâ”€â”€ speech_regions(): Silero VAD (min_silence=400ms, speech_pad=0ms) detects voiced regions
+  â”œâ”€â”€ find_speech_gaps(): Detects gaps >= 0.6s containing >= 0.4s VAD speech
+  â”œâ”€â”€ fill_speech_gaps(): Re-transcribes slice with vad_filter=False and initial_prompt/hotwords
+  â”‚     â”œâ”€â”€ Sub-0.05s span drop: Rejects zero-length ghost tokens (e.g. 16.38 -> 16.38)
+  â”‚     â”œâ”€â”€ Duplicate span dedupe: Discards hallucinated repeated timestamps
+  â”‚     â”œâ”€â”€ Density guard: Rejects slices with > 6.0 words/second
+  â”‚     â”œâ”€â”€ Bounded retry budget: min(180s, duration * 30%), longest hole first
+  â”‚     â”œâ”€â”€ Rescue pass: holes still >= 2s get two more decodes, own budget min(60s, 10%)
+  â”‚     â”‚     â””â”€â”€ Round 0 = 2.0s pad + prompt; round 1 = 0.15s pad, initial_prompt=None
+  â”‚     â””â”€â”€ A hole counts as filled only when _covered_seconds() measures it closed
+  â””â”€â”€ merge_words(): Chronological merge dropping overlapping retry tokens (> 50% overlap)
+       â”‚
+       â–¼
 [Cross-Window Word Seam Stitching] (stitches 'reve' + 'nu' across 30s boundaries)
        â”‚
        â–¼
 [Global Unification & Cleaning]
   â”œâ”€â”€ unify_variants(): Clusters phonetic spelling variants (e.g. 'Detol' -> 'Dettol')
+  â”‚     â””â”€â”€ Real-Word Guard: Blocks clustering if zipf(a, "en") >= 2.5 and zipf(b, "en") >= 2.5
+  â”‚           (stops corruptions like open->oven, plot->lot, duration->education; preserves plurals like desires->desire)
   â”œâ”€â”€ LoanwordRecoverer: CMUdict + phonetic map recovers loanwords (e.g. 'à¤µà¥€à¤¡à¤¿à¤¯à¥‹' -> 'video')
   â””â”€â”€ normalize_case(): Rule-based casing (proper nouns preserved, mid-sentence common words lowercased)
        â”‚
