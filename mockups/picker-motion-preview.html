@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Style picker - motion preview</title>
+<style>
+  :root {
+    --bg: #0a0a0b; --panel: #121214; --panel-2: #191920; --line: #2a2a33;
+    --ink: #ececf1; --muted: #8b8b98; --accent: #facc15;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 20px; background: var(--bg); color: var(--ink);
+    font: 12px/1.4 "Segoe UI", system-ui, sans-serif;
+  }
+  .panel {
+    width: 340px; background: var(--panel); border: 1px solid var(--line);
+    border-radius: 8px; padding: 10px;
+  }
+  .head { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+  .head .label {
+    font: 800 8px/1 "Consolas", monospace; letter-spacing: .12em;
+    color: var(--muted); flex: 1;
+  }
+  .toggle {
+    font: 800 8px/1 "Consolas", monospace; letter-spacing: .05em;
+    padding: 4px 6px; border-radius: 4px; cursor: pointer;
+    background: var(--panel-2); color: var(--muted); border: 1px solid var(--line);
+  }
+  .toggle[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); }
+  .motions { display: flex; gap: 3px; margin-bottom: 7px; }
+  .motion {
+    flex: 1; font: 800 8px/1 "Consolas", monospace; letter-spacing: .04em;
+    padding: 5px 2px; border-radius: 4px; cursor: pointer;
+    background: var(--panel-2); color: var(--muted); border: 1px solid var(--line);
+  }
+  .motion[aria-pressed="true"] { background: rgba(250, 204, 21, .14); color: var(--accent); border-color: var(--accent); }
+  .trigger {
+    display: block; width: 100%; margin-bottom: 5px;
+    padding: 5px 6px 6px; background: var(--panel-2); border: 1px solid var(--accent);
+    border-radius: 5px; text-align: left; color: var(--ink); cursor: pointer;
+  }
+  .trigger .top { display: flex; align-items: baseline; gap: 6px; margin-bottom: 4px; }
+  .trigger .nm { flex: 1; font: 800 9px/1 "Consolas", monospace; letter-spacing: .04em; }
+  .trigger .chev { color: var(--muted); font-size: 8px; }
+  .list {
+    border: 1px solid var(--line); border-radius: 6px; padding: 2px;
+    background: #0e0e11; max-height: 330px; overflow: auto;
+  }
+  .row {
+    display: block; width: 100%;
+    padding: 5px 5px 6px; border: 0; border-radius: 4px; background: none;
+    color: var(--ink); text-align: left; cursor: pointer;
+  }
+  .row:hover, .row[aria-selected="true"] { background: rgba(255, 255, 255, .06); }
+  .row b {
+    display: block; margin-bottom: 4px;
+    font-size: 10.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  .stage {
+    --base: #fff; --accent: #ffc700; --back: #101010;
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+    width: 100%; height: 40px; padding: 0 10px;
+    overflow: hidden; white-space: nowrap;
+    border: 1px solid var(--line); border-radius: 4px; background: #07070a;
+  }
+  .word {
+    font-size: 15px; line-height: 1; padding: 2px 4px; border-radius: 3px;
+    color: var(--base);
+    background-image: linear-gradient(var(--accent), var(--accent));
+    background-repeat: no-repeat; background-position: 0 50%; background-size: 0 100%;
+  }
+  .row:hover .word,
+  .row[aria-selected="true"] .word,
+  body.always .word {
+    animation-name: var(--anim);
+    animation-duration: 2.6s;
+    animation-delay: calc(var(--i, 0) * .5s);
+    animation-iteration-count: infinite;
+    animation-fill-mode: both;
+  }
+  @keyframes picker-karaoke {
+    0% { color: var(--base); }
+    12%, 72% { color: var(--accent); }
+    88%, 100% { color: var(--base); }
+  }
+  @keyframes picker-word-pop {
+    0% { opacity: 0; transform: scale(.72); color: var(--accent); }
+    10% { opacity: 1; transform: scale(1.16); }
+    18%, 76% { opacity: 1; transform: scale(1); color: var(--accent); }
+    88%, 100% { opacity: 0; transform: scale(.96); color: var(--accent); }
+  }
+  @keyframes picker-reveal {
+    0% { opacity: 0; transform: translateY(6px) scale(.92); }
+    14%, 78% { opacity: 1; transform: none; }
+    90%, 100% { opacity: 0; transform: translateY(0) scale(.98); }
+  }
+  @keyframes picker-punch {
+    0%, 100% { transform: scale(1); color: var(--base); }
+    8% { transform: scale(1.32); color: var(--accent); }
+    22%, 74% { transform: scale(1); color: var(--accent); }
+    86% { color: var(--base); }
+  }
+  @keyframes picker-bubble {
+    0% { background-size: 0 100%; color: var(--base); }
+    12%, 76% { background-size: 100% 100%; color: var(--back); }
+    90%, 100% { background-size: 0 100%; color: var(--base); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .word { animation: none !important; }
+  }
+
+  .note { margin: 7px 2px 0; font: 8.5px/1.5 "Consolas", monospace; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="panel">
+  <div class="head">
+    <span class="label">MOTION</span>
+    <button class="toggle" id="always" type="button" aria-pressed="false">PLAY ALL</button>
+  </div>
+  <div class="motions" id="motions"></div>
+  <button class="trigger" type="button">
+    <span class="top">
+      <span class="nm" id="triggerName"></span>
+      <span class="chev">▾</span>
+    </span>
+    <span id="triggerStage"></span>
+  </button>
+  <div class="list" id="list" role="listbox" aria-label="Presets"></div>
+  <div class="note" id="facts"></div>
+</div>
+
+<script>
+var PRESETS = [{"id": "hormozi", "name": "Hormozi Kinetic", "font": "Impact", "base": "#FFFFFF", "accent": "#FFC700", "back": "#00000080", "bold": true, "upper": true, "motion": "static"}, {"id": "vox", "name": "Vox Clean", "font": "Segoe UI", "base": "#FFFFFF", "accent": "#38BDF8", "back": "#00000080", "bold": true, "upper": false, "motion": "static"}, {"id": "cyber", "name": "Cyber Lime", "font": "Consolas", "base": "#E5E7EB", "accent": "#BEF264", "back": "#00000080", "bold": true, "upper": true, "motion": "static"}, {"id": "blackout", "name": "Blackout Box", "font": "Arial Black", "base": "#FFFFFF", "accent": "#FFD400", "back": "#000000", "bold": true, "upper": true, "motion": "static"}, {"id": "editorial", "name": "Editorial Serif", "font": "Georgia", "base": "#F5F1E8", "accent": "#E7C873", "back": "#00000080", "bold": true, "upper": false, "motion": "static"}, {"id": "buzz", "name": "Buzz", "font": "Arial Black", "base": "#FFFFFF", "accent": "#C0B0F0", "back": "#00000080", "bold": true, "upper": true, "motion": "static"}, {"id": "medusa", "name": "Medusa", "font": "Arial Black", "base": "#FFFFFF", "accent": "#3BE80D", "back": "#000000E6", "bold": true, "upper": true, "motion": "static"}, {"id": "cartwheel", "name": "Cartwheel Black", "font": "Arial Black", "base": "#FFFFFF", "accent": "#8A16F0", "back": "#000000E6", "bold": true, "upper": true, "motion": "static"}, {"id": "heat", "name": "Heat", "font": "Arial Black", "base": "#FF1A1A", "accent": "#FF5A1F", "back": "#00000080", "bold": true, "upper": false, "motion": "static"}, {"id": "neon", "name": "Neon", "font": "Segoe UI", "base": "#FFFFFF", "accent": "#F08AB5", "back": "#00000080", "bold": true, "upper": false, "motion": "static"}, {"id": "magazine", "name": "Magazine", "font": "Segoe UI", "base": "#FFFFFF", "accent": "#F5E63D", "back": "#00000080", "bold": true, "upper": false, "motion": "static"}, {"id": "techwave", "name": "Techwave", "font": "Arial Black", "base": "#FFFFFF", "accent": "#FFFFFF", "back": "#00000080", "bold": true, "upper": true, "motion": "static"}, {"id": "minima", "name": "Minima", "font": "Segoe UI", "base": "#FFFFFF", "accent": "#FFFFFF", "back": "#00000080", "bold": true, "upper": false, "motion": "static"}, {"id": "honeypunch", "name": "123 Honey Punch", "font": "Arial", "base": "#FFFFFF", "accent": "#F6C83E", "back": "#00000080", "bold": true, "upper": false, "motion": "word-pop"}, {"id": "recess", "name": "Recess", "font": "Arial Black", "base": "#FFFFFF", "accent": "#FFFFFF", "back": "#00000000", "bold": true, "upper": true, "motion": "word-pop"}, {"id": "blank", "name": "Blank (Start From Scratch)", "font": "Segoe UI", "base": "#FFFFFF", "accent": "#FFFFFF", "back": "#00000080", "bold": true, "upper": false, "motion": "static"}];
+var MOTIONS = ["static", "karaoke", "reveal", "punch", "bubble"];
+var ANIM = {
+  "word-pop": "picker-word-pop",
+  karaoke: "picker-karaoke",
+  reveal: "picker-reveal",
+  punch: "picker-punch",
+  bubble: "picker-bubble"
+};
+var state = { motion: "karaoke", selected: "techwave" };
+
+var $ = function (id) { return document.getElementById(id); };
+
+function stageFor(preset, motion) {
+  var stage = document.createElement("span");
+  stage.className = "stage";
+  stage.style.setProperty("--base", preset.base);
+  stage.style.setProperty("--accent", preset.accent);
+  stage.style.setProperty("--back", preset.back);
+  stage.style.fontFamily = "'" + preset.font + "', sans-serif";
+  stage.style.fontWeight = preset.bold ? "900" : "700";
+  var sample = preset.upper ? "AAJ HUM" : "aaj hum";
+  var anim = ANIM[motion] || ANIM[preset.motion];
+  sample.split(" ").forEach(function (text, i) {
+    var w = document.createElement("span");
+    w.className = "word";
+    w.textContent = text;
+    w.style.setProperty("--i", String(i));
+    if (anim) w.style.setProperty("--anim", anim);
+    stage.appendChild(w);
+  });
+  return stage;
+}
+
+function buildMotions() {
+  var host = $("motions");
+  host.textContent = "";
+  MOTIONS.forEach(function (m) {
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "motion";
+    b.textContent = m;
+    b.setAttribute("aria-pressed", String(m === state.motion));
+    b.addEventListener("click", function () {
+      state.motion = m;
+      buildMotions();
+      buildList();
+      buildTrigger();
+    });
+    host.appendChild(b);
+  });
+}
+
+function buildList() {
+  var host = $("list");
+  host.textContent = "";
+  PRESETS.forEach(function (p) {
+    var row = document.createElement("button");
+    row.type = "button";
+    row.className = "row";
+    row.setAttribute("role", "option");
+    row.setAttribute("aria-selected", String(p.id === state.selected));
+    row.title = p.name + " - " + p.font;
+    var b = document.createElement("b");
+    b.textContent = p.name;
+    row.appendChild(b);
+    row.appendChild(stageFor(p, state.motion));
+    row.addEventListener("click", function () {
+      state.selected = p.id;
+      buildList();
+      buildTrigger();
+    });
+    host.appendChild(row);
+  });
+  var row = host.querySelector(".row");
+  $("facts").textContent =
+    PRESETS.length + " rows - row " + Math.round(row.getBoundingClientRect().height) +
+    "px - stage 62x22 - list " + Math.round(host.getBoundingClientRect().height) + "px";
+}
+
+function buildTrigger() {
+  var p = PRESETS.filter(function (x) { return x.id === state.selected; })[0];
+  var host = $("triggerStage");
+  host.textContent = "";
+  host.appendChild(stageFor(p, state.motion));
+  $("triggerName").textContent = p.name;
+}
+
+$("always").addEventListener("click", function () {
+  var on = document.body.classList.toggle("always");
+  this.setAttribute("aria-pressed", String(on));
+});
+
+buildMotions();
+buildList();
+buildTrigger();
+</script>
+</body>
+</html>

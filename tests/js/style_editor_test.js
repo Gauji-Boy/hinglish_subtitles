@@ -146,36 +146,47 @@ function check(label, ok, detail) {
   check("the pill is transparent", String(pill.style.opacity) === "0", pill.style.opacity);
 }
 
-// Case 7: the picker lists every style and draws each one in its own paint.
+// Case 7: the picker lists every style and plays it in its own paint.
 {
   console.log("\ncase: the picker previews each style");
   const t = loadApp();
   t.setStyles([
-    { ...BASE, id: "one", name: "One", font: "Impact", highlight_color: "#FFC700", box: false },
-    { ...BASE, id: "two", name: "Two", font: "Georgia", highlight_color: "#38BDF8", box: true, back_color: "#101010" },
+    { ...BASE, id: "one", name: "One", font: "Impact", highlight_color: "#FFC700", motion: "karaoke" },
+    { ...BASE, id: "two", name: "Two", font: "Georgia", highlight_color: "#38BDF8", motion: "none" },
   ]);
+  t.setStyle({ ...BASE, id: "one", name: "One", font: "Impact", highlight_color: "#FFC700", motion: "karaoke" });
+  t.renderStylePicker();
   const p = t.picker();
   const rows = p.list.childNodes;
   check("one row per style", rows.length === 2, rows.length);
-  const aa1 = rows[0].childNodes[0];
-  const aa2 = rows[1].childNodes[0];
-  check("row one draws in Impact", /Impact/.test(aa1.style.fontFamily), aa1.style.fontFamily);
-  check("row one uses its accent", aa1.style.color === "#FFC700", aa1.style.color);
-  check("row two draws in Georgia", /Georgia/.test(aa2.style.fontFamily), aa2.style.fontFamily);
-  check("row two uses its accent", aa2.style.color === "#38BDF8", aa2.style.color);
-  check("a boxed style paints its backdrop", aa2.style.background === "#101010", aa2.style.background);
+  const title1 = rows[0].querySelector(".style-picker-title");
+  const stage1 = rows[0].querySelector(".style-picker-stage");
+  const stage2 = rows[1].querySelector(".style-picker-stage");
+  check("the title sits above the preview", rows[0].childNodes[0] === title1);
+  check("the preview follows the title", rows[0].childNodes[1] === stage1);
+  check("row one draws in Impact", /Impact/.test(stage1.style.fontFamily), stage1.style.fontFamily);
+  check("row one uses its accent", stage1.style.getPropertyValue("--accent") === "#FFC700", stage1.style.getPropertyValue("--accent"));
+  check("row two draws in Georgia", /Georgia/.test(stage2.style.fontFamily), stage2.style.fontFamily);
+  check("row two uses its accent", stage2.style.getPropertyValue("--accent") === "#38BDF8", stage2.style.getPropertyValue("--accent"));
+  const words1 = stage1.querySelectorAll(".style-picker-word");
+  check("the stage shows a sample line", words1.length === 2, words1.length);
+  check("a karaoke row plays karaoke", words1[0].style.getPropertyValue("--picker-anim") === "picker-karaoke", words1[0].style.getPropertyValue("--picker-anim"));
+  check("the second word is delayed", words1[1].style.getPropertyValue("--i") === "1", words1[1].style.getPropertyValue("--i"));
+  const words2 = stage2.querySelectorAll(".style-picker-word");
+  check("a static row plays nothing", words2[0].style.getPropertyValue("--picker-anim") === "", words2[0].style.getPropertyValue("--picker-anim"));
 }
 
 // Case 8: the trigger shows the style you are on.
 {
   console.log("\ncase: the trigger shows the active style");
   const t = loadApp();
-  t.setStyle({ ...BASE, name: "Neon", font: "Segoe UI", highlight_color: "#F08AB5" });
+  t.setStyle({ ...BASE, name: "Neon", font: "Segoe UI", highlight_color: "#F08AB5", motion: "punch" });
   t.syncStylePicker();
   const p = t.picker();
   check("name", p.name.textContent === "Neon", p.name.textContent);
-  check("type", /Segoe UI/.test(p.aa.style.fontFamily), p.aa.style.fontFamily);
-  check("accent", p.aa.style.color === "#F08AB5", p.aa.style.color);
+  check("type", /Segoe UI/.test(p.stage.style.fontFamily), p.stage.style.fontFamily);
+  check("accent", p.stage.style.getPropertyValue("--accent") === "#F08AB5", p.stage.style.getPropertyValue("--accent"));
+  check("the trigger plays the motion", p.stage.querySelector(".style-picker-word").style.getPropertyValue("--picker-anim") === "picker-punch");
 }
 
 // Case 9: choosing a row applies it, updates the trigger and closes the list.

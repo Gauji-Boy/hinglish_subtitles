@@ -336,7 +336,7 @@ function loadApp() {
   picker() {
     return {
       trigger: document.getElementById("editorStylePickerTrigger"),
-      aa: document.getElementById("editorStylePickerAa"),
+      stage: document.getElementById("editorStylePickerStage"),
       name: document.getElementById("editorStylePickerName"),
       list: document.getElementById("editorStylePickerList"),
     };

@@ -53,8 +53,8 @@ const styleImportBtn = document.getElementById("styleImportBtn");
 const styleImportFile = document.getElementById("styleImportFile");
 const styleEditor = document.getElementById("styleEditor");
 const editorStylePickerTrigger = document.getElementById("editorStylePickerTrigger");
-const editorStylePickerAa = document.getElementById("editorStylePickerAa");
 const editorStylePickerName = document.getElementById("editorStylePickerName");
+const editorStylePickerStage = document.getElementById("editorStylePickerStage");
 const editorStylePickerList = document.getElementById("editorStylePickerList");
 const editorStyleFont = document.getElementById("editorStyleFont");
 const editorStyleFontSize = document.getElementById("editorStyleFontSize");
@@ -1014,18 +1014,58 @@ function renderPresetGrid(grid, compact) {
 }
 
 // A preset picker that shows the style instead of describing it. A native
-// <select> cannot render HTML options, so this is a listbox: each row is the
-// preset's own "Aa", drawn with its font, colours, outline and box.
+// <select> cannot render HTML options, so this is a listbox: each row holds a
+// tiny stage that plays the preset's own motion in its own font and colours.
 const STYLE_PICKER_MOTIONS = new Set(["word-pop", "reveal", "punch", "bubble", "static"]);
 
-function paintStyleAa(el, style) {
-  if (!el || !style) return;
-  el.style.fontFamily = `'${style.font}', sans-serif`;
-  el.style.color = style.highlight_color;
-  el.style.textShadow = style.outline_width
-    ? `0 0 1px ${style.base_color}, 0 0 2px ${style.base_color}`
-    : "none";
-  el.style.background = style.box ? style.back_color : "transparent";
+// The stage mirrors the burn's motion, not a new one: the same keyframe family
+// per motion id, and the same accent/base/back colours the preset carries.
+const STYLE_PICKER_ANIM = {
+  "word-pop": "picker-word-pop",
+  karaoke: "picker-karaoke",
+  reveal: "picker-reveal",
+  punch: "picker-punch",
+  bubble: "picker-bubble",
+};
+
+const STYLE_PICKER_SAMPLE = "aaj hum";
+
+// A row previews the style in the motion the export would use, so switching
+// the MOTION chip re-renders every row rather than showing a stale animation.
+function pickerMotionFor(style) {
+  const active = activeCaptionStyle && activeCaptionStyle.motion;
+  return STYLE_PICKER_MOTIONS.has(active) && active !== "static"
+    ? active
+    : (style.motion || "static");
+}
+
+function fillStyleStage(stage, style, motion) {
+  if (!stage || !style) return;
+  stage.textContent = "";
+  stage.dataset.motion = STYLE_PICKER_MOTIONS.has(motion) ? motion : "static";
+  stage.style.setProperty("--base", style.base_color || "#FFFFFF");
+  stage.style.setProperty("--accent", style.highlight_color || "#FFC700");
+  stage.style.setProperty("--back", style.back_color || "#101010");
+  stage.style.fontFamily = `'${style.font}', sans-serif`;
+  stage.style.fontWeight = style.bold ? "900" : "700";
+  const anim = STYLE_PICKER_ANIM[motion];
+  const sample = style.uppercase ? STYLE_PICKER_SAMPLE.toUpperCase() : STYLE_PICKER_SAMPLE;
+  sample.split(" ").forEach((text, i) => {
+    const word = document.createElement("span");
+    word.className = "style-picker-word";
+    word.textContent = text;
+    word.style.setProperty("--i", String(i));
+    if (anim) word.style.setProperty("--picker-anim", anim);
+    stage.appendChild(word);
+  });
+}
+
+function buildStyleStage(style, motion) {
+  const stage = document.createElement("span");
+  stage.className = "style-picker-stage";
+  stage.setAttribute("aria-hidden", "true");
+  fillStyleStage(stage, style, motion);
+  return stage;
 }
 
 function renderStylePicker() {
@@ -1038,23 +1078,13 @@ function renderStylePicker() {
     row.dataset.styleId = style.id;
     row.setAttribute("role", "option");
     row.setAttribute("aria-selected", String(!!activeCaptionStyle && style.id === activeCaptionStyle.id));
+    row.title = `${style.name} - ${style.font}`;
 
-    const aa = document.createElement("span");
-    aa.className = "style-picker-aa";
-    aa.textContent = "Aa";
-    paintStyleAa(aa, style);
-
-    const meta = document.createElement("span");
-    meta.className = "style-picker-meta";
     const name = document.createElement("b");
+    name.className = "style-picker-title";
     name.textContent = style.name;
-    const detail = document.createElement("small");
-    detail.textContent = STYLE_PICKER_MOTIONS.has(style.motion)
-      ? `${style.font} · ${style.motion}`
-      : style.font;
-    meta.append(name, detail);
 
-    row.append(aa, meta);
+    row.append(name, buildStyleStage(style, pickerMotionFor(style)));
     row.addEventListener("click", () => {
       selectCaptionStyle(style);
       setStylePickerOpen(false);
@@ -1070,9 +1100,9 @@ function syncStylePicker() {
   if (editorStylePickerName) {
     editorStylePickerName.textContent = style ? style.name : "Choose a style";
   }
-  if (editorStylePickerAa) {
-    if (style) paintStyleAa(editorStylePickerAa, style);
-    else editorStylePickerAa.removeAttribute("style");
+  if (editorStylePickerStage) {
+    if (style) fillStyleStage(editorStylePickerStage, style, pickerMotionFor(style));
+    else editorStylePickerStage.textContent = "";
   }
   if (editorStylePickerList) {
     editorStylePickerList.querySelectorAll("[data-style-id]").forEach(row => {
@@ -2187,6 +2217,7 @@ function applyStyleMotion(motionId) {
   // from them, so sync before saving. The emitter applies bubble's pill
   // geometry itself; the draft only carries the motion.
   syncStyleEditor();
+  renderStylePicker();
   queueEditorStyleSave();
 }
 
