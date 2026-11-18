@@ -216,6 +216,74 @@ GAP_ACCEPT_S = 2.0
 # A gap counts as closed when less than this much of it is still wordless. Below
 # 0.6 s nothing is left that a caption could be missing for.
 GAP_OPEN_TOL_S = 0.6
+# A separate, small budget for visible holes the density rule cannot see. It
+# cannot starve the main retries, which previously produced the best coverage.
+GAP_VISIBLE_CAP_S = 120.0
+GAP_VISIBLE_CAP_RATIO = 0.15
+# A short hole cannot be decoded from a short slice. Measured on a real 2.5 s
+# hole: 2 s of context gave 1 word, 20 s gave 3 words covering the hole.
+HOLE_CONTEXT_MID_S = 6.0
+HOLE_CONTEXT_WIDE_S = 20.0
+
+# Word-timeline hygiene. The first decode keeps zero-span tokens and retry words can
+# overlap; both corrupt the karaoke clock and can hide a visible caption hole.
+ZERO_SPAN_MAX_STRETCH = 1.5   # seconds on each side of a zero-span cluster
+ZERO_SPAN_MIN = 0.02          # shortest repaired word span
+ZERO_SPAN_PROB_DROP = 0.05    # zero-span tokens below this are dropped as junk
+OVERLAP_MIN_REMAINDER = 0.02  # below this, keep the later word instead of trimming
+
+# A first decode this far below full coverage has been derailed by its own hint.
+# Re-decode once without the hotwords and keep whichever pass covers more.
+COVERAGE_RESCUE_BELOW = 0.85
+# A first decode below this is unstable, not merely missing a pause. One more
+# independent pass gives each remaining hole a second chance to be transcribed.
+COVERAGE_ENSEMBLE_BELOW = 0.97
+
+
+def filter_music_regions(audio, regions: List[Tuple[float, float]],
+                         sampling_rate: int = 16000, frame_s: float = 0.1,
+                         rms_ratio: float = 0.35, flat_max: float = 0.55
+                         ) -> List[Tuple[float, float]]:
+    """Drop quiet, spectrally flat frames from VAD regions.
+
+    Silero labels music beds and laughter as speech. On a real clip a gap that
+    looked like 2.8 s of missing captions had RMS 0.015 (speech measured 0.055)
+    and spectral flatness 0.58 (speech 0.27-0.39): it was background music, and
+    Whisper was right not to transcribe it. Filtering at frame level keeps the
+    speech inside a mixed region instead of dropping the whole region.
+    """
+    if not regions:
+        return []
+    import numpy as np
+
+    hop = max(1, int(frame_s * sampling_rate))
+    clips = []
+    for start, end in regions:
+        a, b = int(start * sampling_rate), int(end * sampling_rate)
+        for i in range(a, b, hop):
+            seg = audio[i:min(i + hop, b)]
+            if len(seg) < hop // 2:
+                continue
+            rms = float(np.sqrt(np.mean(seg * seg)))
+            window = np.hanning(len(seg))
+            spec = np.abs(np.fft.rfft(seg * window)) + 1e-9
+            flat = float(np.exp(np.mean(np.log(spec))) / np.mean(spec))
+            clips.append((i / sampling_rate, min((i + hop) / sampling_rate, end), rms, flat))
+    if not clips:
+        return list(regions)
+    median_rms = float(np.median([c[2] for c in clips]))
+    if median_rms <= 0:
+        return list(regions)
+
+    kept = [(a, b) for a, b, rms, flat in clips
+            if rms >= rms_ratio * median_rms and flat <= flat_max]
+    merged: List[Tuple[float, float]] = []
+    for a, b in kept:
+        if merged and a - merged[-1][1] <= 0.2:
+            merged[-1] = (merged[-1][0], b)
+        else:
+            merged.append((a, b))
+    return [(round(a, 3), round(b, 3)) for a, b in merged if b - a >= 0.1]
 
 
 def speech_regions(audio, sampling_rate: int = 16000) -> List[Tuple[float, float]]:
@@ -224,14 +292,21 @@ def speech_regions(audio, sampling_rate: int = 16000) -> List[Tuple[float, float
         from faster_whisper.vad import get_speech_timestamps, VadOptions
         opts = VadOptions(**VAD_DETECT)
         chunks = get_speech_timestamps(audio, vad_options=opts, sampling_rate=sampling_rate)
-        return [(round(c["start"] / sampling_rate, 3), round(c["end"] / sampling_rate, 3)) for c in chunks]
+        raw = [(round(c["start"] / sampling_rate, 3), round(c["end"] / sampling_rate, 3)) for c in chunks]
+        return filter_music_regions(audio, raw, sampling_rate=sampling_rate)
     except Exception:
         return []
 
 
 def find_speech_gaps(words: List[dict], regions: List[Tuple[float, float]], duration: float,
-                     min_gap: float = GAP_MIN_S, min_speech: float = GAP_MIN_SPEECH_S) -> List[Tuple[float, float]]:
-    """Find gaps between words where VAD detects speech."""
+                     min_gap: float = GAP_MIN_S, min_speech: float = GAP_MIN_SPEECH_S,
+                     density: float = 0.4) -> List[Tuple[float, float]]:
+    """Find gaps between words where VAD detects speech.
+
+    `density` is the minimum voiced fraction of a gap. The default 0.4 keeps
+    music beds out of the retry budget. The visible-hole pass calls it with 0
+    so a real hole with speech split across two VAD regions can still be found.
+    """
     if not words:
         raw_gaps = [(0.0, float(duration))] if duration >= min_gap else []
     else:
@@ -262,7 +337,7 @@ def find_speech_gaps(words: List[dict], regions: List[Tuple[float, float]], dura
         for r_start, r_end in regions:
             overlap = max(0.0, min(g_end, r_end) - max(g_start, r_start))
             total_speech += overlap
-        if total_speech >= min_speech and total_speech >= 0.4 * gap_len:
+        if total_speech >= min_speech and total_speech >= density * gap_len:
             speech_gaps.append((round(g_start, 3), round(g_end, 3)))
 
     return speech_gaps
@@ -289,6 +364,39 @@ def _covered_seconds(words: List[dict], g0: float, g1: float) -> float:
     if cur_e is not None:
         total += cur_e - cur_s
     return total
+
+
+def _voiced_seconds(g0: float, g1: float, regions: List[Tuple[float, float]]) -> float:
+    """VAD speech inside [g0, g1] - the budget is spent on speech, not on silence."""
+    return sum(max(0.0, min(g1, r1) - max(g0, r0)) for r0, r1 in regions)
+
+
+def merge_alt_words_into_gaps(words: List[dict], alt_words: List[dict],
+                              regions: List[Tuple[float, float]], duration: float
+                              ) -> Tuple[List[dict], int]:
+    """Use a second independent decode as a word source for the first pass's holes.
+
+    Both passes use the same model and settings, so their failures are largely
+    independent: a 30 s window one decode drops is often present in the other.
+    Only words that land inside a still-open hole are considered, so a disagreeing
+    spelling elsewhere cannot leak into the captions.
+    """
+    current = list(words)
+    added = 0
+    gaps = find_speech_gaps(current, regions, duration,
+                            min_gap=GAP_ACCEPT_S, density=0.0)
+    for g0, g1 in sorted(gaps, key=lambda g: g[1] - g[0], reverse=True):
+        if (g1 - g0) - _covered_seconds(current, g0, g1) < GAP_OPEN_TOL_S:
+            continue
+        candidates = [w for w in alt_words
+                      if w["end"] > w["start"]
+                      and w["start"] >= g0 - 0.25 and w["end"] <= g1 + 0.25]
+        if not candidates:
+            continue
+        before = len(current)
+        current = merge_words(current, candidates)
+        added += len(current) - before
+    return current, added
 
 
 def merge_words(existing: List[dict], added: List[dict], overlap_ratio: float = 0.5) -> List[dict]:
@@ -395,6 +503,31 @@ def _retry_gap(model, audio, words: List[dict], g0: float, g1: float, *, pad: fl
     return merge_words(words, slice_words), decoded_s
 
 
+def retry_gap_by_regions(model, audio, words: List[dict], g0: float, g1: float,
+                         regions: List[Tuple[float, float]], *, sampling_rate: int,
+                         language: Optional[str], task: str, prompt: Optional[str],
+                         hotwords: Optional[str]) -> Tuple[List[dict], float]:
+    """Decode a large hole as its VAD speech regions, not as one long slice.
+
+    A 26 s hole made of eight short speech regions decoded to zero words as a
+    single slice, but each region decoded on its own produced real words (18
+    words from a 4 s sub-slice on the audit clip). Short slices keep the model
+    inside one acoustic event instead of a long music bed.
+    """
+    current = list(words)
+    spent_total = 0.0
+    sub_regions = [(max(g0, r0), min(g1, r1)) for r0, r1 in regions
+                   if min(g1, r1) - max(g0, r0) >= 0.4]
+    for a, b in sorted(sub_regions, key=lambda s: s[1] - s[0], reverse=True):
+        current, spent = _retry_gap(
+            model, audio, current, a, b, pad=GAP_PAD_S,
+            sampling_rate=sampling_rate, language=language, task=task,
+            prompt=prompt, hotwords=hotwords,
+        )
+        spent_total += spent
+    return current, spent_total
+
+
 def fill_speech_gaps(model, audio, words: List[dict], *, language: Optional[str] = "hi",
                      task: str = "transcribe", prompt: str = "", hotwords: Optional[str] = None,
                      sampling_rate: int = 16000, cap_s: Optional[float] = None,
@@ -408,6 +541,15 @@ def fill_speech_gaps(model, audio, words: List[dict], *, language: Optional[str]
     gaps = find_speech_gaps(words, regions, duration)
     gap_seconds = sum(g1 - g0 for g0, g1 in gaps)
 
+    # One record per gap, so a skipped gap is explainable instead of just a count.
+    gap_details = [{
+        "g0": round(g0, 3), "g1": round(g1, 3),
+        "voiced_s": round(_voiced_seconds(g0, g1, regions), 2),
+        "attempted": False, "filled": False,
+        "still_open_s": 0.0, "spent_s": 0.0,
+    } for g0, g1 in gaps]
+    detail_by_span = {(d["g0"], d["g1"]): d for d in gap_details}
+
     if cap_s is not None:
         budget = cap_s
     else:
@@ -419,21 +561,27 @@ def fill_speech_gaps(model, audio, words: List[dict], *, language: Optional[str]
     seconds_recovered = 0.0
     current_words = list(words)
 
-    # Spend the retry budget on the worst holes first. Whisper's skipped windows are
-    # not evenly sized, and a fixed budget spent in time order lets thirty 1 s pauses
-    # eat the budget before a 8 s dead zone is reached. Longest gap first bounds the
-    # residual by the budget instead of by where the big hole happens to sit.
+    # Spend the retry budget on the worst holes first. This ordering is measured:
+    # ranking by voiced seconds instead spent the whole budget on a few very long
+    # gaps and left dozens of short visible holes open (coverage fell to ~82% on
+    # the audit clip). Voiced seconds are reported per gap, not used for ranking.
     #
     # A gap is closed by measurement, not by "some word came back": a retry can return
     # words at the padded edge and leave the hole itself empty, which used to count as
     # filled while the burned caption still showed nothing.
     open_before = {}
-    for g0, g1 in sorted(gaps, key=lambda g: g[1] - g[0], reverse=True):
+    # Visible holes (>= 2 s) first, shortest of those first. Longest-first
+    # spent the 180 s budget on a dozen huge gaps and left short visible holes
+    # unattempted; sub-2 s pauses must not win budget before a visible hole, so
+    # they come last. The rescue pass still targets the biggest holes.
+    for g0, g1 in sorted(gaps, key=lambda g: (g[1] - g[0] < GAP_ACCEPT_S, g[1] - g[0])):
         gap_len = g1 - g0
         still_open = gap_len - _covered_seconds(current_words, g0, g1)
         if still_open < GAP_OPEN_TOL_S:
             continue
         open_before[(g0, g1)] = still_open
+        detail = detail_by_span[(round(g0, 3), round(g1, 3))]
+        detail["still_open_s"] = round(still_open, 2)
         if re_decoded_s >= budget:
             continue
         current_words, spent = _retry_gap(
@@ -441,6 +589,8 @@ def fill_speech_gaps(model, audio, words: List[dict], *, language: Optional[str]
             sampling_rate=sampling_rate, language=language, task=task,
             prompt=prompt, hotwords=hotwords,
         )
+        detail["attempted"] = True
+        detail["spent_s"] = round(spent, 2)
         re_decoded_s += spent
 
     # Rescue pass. Whatever is still a hole of 2 s or more gets a second decode with a
@@ -453,6 +603,7 @@ def fill_speech_gaps(model, audio, words: List[dict], *, language: Optional[str]
         # first pass left over.
         budget2 = min(budget2, max(0.0, cap_s - re_decoded_s))
     spent2 = 0.0
+    rescue_spans = set()
     for round_idx in range(GAP_RETRY2_ROUNDS):
         left = find_speech_gaps(current_words, regions, duration, min_gap=GAP_ACCEPT_S)
         if not left or spent2 >= budget2:
@@ -474,11 +625,116 @@ def fill_speech_gaps(model, audio, words: List[dict], *, language: Optional[str]
                 sampling_rate=sampling_rate, language=language, task=task,
                 prompt=use_prompt, hotwords=hotwords,
             )
+            rescue_spans.add((round(g0, 3), round(g1, 3)))
             spent2 += spent
+
+    # Visible-hole pass. The 40% density rule keeps music out of the main
+    # budget, but it can hide a real hole: one 3.8 s gap had 1.51 s of speech
+    # split across two VAD regions and was rejected by 0.01 s. This pass uses a
+    # separate, small budget and never re-decodes a gap the main or rescue pass
+    # already tried, so a handful of borderline holes cannot starve the retries
+    # that produced the best measured coverage.
+    budget3 = min(GAP_VISIBLE_CAP_S, duration * GAP_VISIBLE_CAP_RATIO)
+    if cap_s is not None:
+        # A caller that sets a cap gets one: the visible pass stays inside it.
+        budget3 = min(budget3, max(0.0, cap_s - re_decoded_s - spent2))
+    spent3 = 0.0
+    visible_found = visible_filled = 0
+    attempted_spans = ({(d["g0"], d["g1"]) for d in gap_details if d["attempted"]}
+                       | rescue_spans)
+    if budget3 > 0:
+        found = find_speech_gaps(current_words, regions, duration,
+                                 min_gap=GAP_ACCEPT_S, density=0.0)
+        # Keep only holes still open by measurement that no earlier pass tried.
+        # Spending the small budget on already-covered spans was why the first
+        # version of this pass filled none of its 13-17 candidates.
+        candidates = [(g0, g1) for g0, g1 in found
+                      if (round(g0, 3), round(g1, 3)) not in attempted_spans
+                      and (g1 - g0) - _covered_seconds(current_words, g0, g1) >= GAP_OPEN_TOL_S]
+        visible_found = len(candidates)
+        # Density first: a 2.8 s gap with 1 s of speech is a real borderline
+        # hole, while a 12 s music gap with 1 s of speech is not. Longest-first
+        # here spent the whole budget on music and never reached the holes.
+        for g0, g1 in sorted(candidates,
+                             key=lambda g: (_voiced_seconds(g[0], g[1], regions) / max(0.001, g[1] - g[0]),
+                                            g[1] - g[0]), reverse=True):
+            gap_len = g1 - g0
+            if gap_len > 8.0:
+                subs = [(max(g0, r0), min(g1, r1)) for r0, r1 in regions
+                        if min(g1, r1) - max(g0, r0) >= 0.4]
+                expected_regions = sum(min(duration, b + GAP_PAD_S) - max(0.0, a - GAP_PAD_S)
+                                       for a, b in subs)
+                if subs and spent3 + expected_regions <= budget3:
+                    current_words, spent = retry_gap_by_regions(
+                        model, audio, current_words, g0, g1, regions,
+                        sampling_rate=sampling_rate, language=language, task=task,
+                        prompt=prompt, hotwords=hotwords)
+                    spent3 += spent
+                    if gap_len - _covered_seconds(current_words, g0, g1) < GAP_OPEN_TOL_S:
+                        visible_filled += 1
+                        continue
+            for round_idx in range(3):
+                # No single slice size works for every hole. Measured on two
+                # real holes: a 2.5 s hole needed 20 s of context with no
+                # prompt; a 6 s hole needed 6 s of context with the prompt.
+                if round_idx == 0:
+                    pad, use_prompt, use_hot = GAP_PAD_S, prompt, hotwords
+                elif round_idx == 1:
+                    pad, use_prompt, use_hot = HOLE_CONTEXT_MID_S, prompt, hotwords
+                else:
+                    pad, use_prompt, use_hot = HOLE_CONTEXT_WIDE_S, None, None
+                expected = min(duration, g1 + pad) - max(0.0, g0 - pad)
+                if spent3 + expected > budget3:
+                    break
+                gap_len = g1 - g0
+                if gap_len - _covered_seconds(current_words, g0, g1) < GAP_OPEN_TOL_S:
+                    break
+                current_words, spent = _retry_gap(
+                    model, audio, current_words, g0, g1, pad=pad,
+                    sampling_rate=sampling_rate, language=language, task=task,
+                    prompt=use_prompt, hotwords=use_hot,
+                )
+                spent3 += spent
+                if gap_len - _covered_seconds(current_words, g0, g1) < GAP_OPEN_TOL_S:
+                    visible_filled += 1
+                    break
+
+    # Tail safety net. find_speech_gaps keeps a gap only when at least 40% of it
+    # is voiced, so a tail that is mostly music with speech in its last seconds
+    # is invisible to both passes - yet the viewer sees the captions stop early.
+    tail_attempted = False
+    tail_recovered_s = 0.0
+    tail_end = max((float(w["end"]) for w in current_words), default=0.0)
+    if cap_s is not None and re_decoded_s + spent2 + spent3 >= cap_s:
+        tail_end = duration  # a capped caller gets no extra decode
+    if duration - tail_end >= GAP_ACCEPT_S:
+        tail_regions = [r for r in regions if r[1] > tail_end + 0.05]
+        if tail_regions:
+            t0 = max(0.0, min(r[0] for r in tail_regions) - GAP_PAD_S)
+            t1 = min(duration, max(r[1] for r in tail_regions) + GAP_PAD_S)
+            if GAP_MIN_SPEECH_S <= t1 - t0 <= 30.0:
+                before_tail = _covered_seconds(current_words, t0, t1)
+                # Wide context before the first VAD region: a narrow slice
+                # decoded the speech but started 1.7 s late, leaving a visible
+                # hole at the head of the tail on two real runs.
+                current_words, spent = _retry_gap(
+                    model, audio, current_words, t0, t1, pad=GAP_PAD_WIDE_S,
+                    sampling_rate=sampling_rate, language=language, task=task,
+                    prompt=None, hotwords=None,
+                )
+                tail_attempted = True
+                spent2 += spent
+                after_tail = _covered_seconds(current_words, t0, t1)
+                tail_recovered_s = round(max(0.0, after_tail - before_tail), 2)
+
+    current_words = normalize_word_timeline(current_words, duration=duration)
 
     for (g0, g1), before in open_before.items():
         gap_len = g1 - g0
         after = gap_len - _covered_seconds(current_words, g0, g1)
+        detail = detail_by_span[(round(g0, 3), round(g1, 3))]
+        detail["filled"] = after < GAP_OPEN_TOL_S
+        detail["still_open_s"] = round(after, 2)
         if after < GAP_OPEN_TOL_S:
             gaps_filled += 1
             seconds_recovered += before
@@ -508,25 +764,28 @@ def fill_speech_gaps(model, audio, words: List[dict], *, language: Optional[str]
         "skipped_seconds": round(uncovered_seconds, 2),
         "speech_seconds": round(speech_seconds, 2),
         "covered_ratio": covered_ratio,
+        "gap_details": gap_details,
+        "visible_gaps_found": visible_found,
+        "visible_gaps_filled": visible_filled,
+        "visible_seconds_spent": round(spent3, 2),
+        "tail_attempted": tail_attempted,
+        "tail_recovered_s": tail_recovered_s,
     }
     return current_words, report
 
 
-def transcribe_words(model, audio, language: Optional[str] = "hi",
-                     topic_hint: str = "", extra_keywords: Iterable[str] = (),
-                     beam_size: int = 5, task: str = "transcribe",
-                     coverage: bool = True) -> Tuple[List[dict], dict]:
-    """Single transcription pass -> ONE flat word list across all segments (no per-segment reset)."""
-    prompt, hot = build_prompt(topic_hint, extra_keywords)
+def _decode_words(model, audio, language, task, prompt, hot, beam_size) -> List[dict]:
+    """One full-file decode -> sanitized flat word list."""
     params = inspect.signature(model.transcribe).parameters
+    use_prompt = prompt
     if "hotwords" not in params and hot:
         # Fallback for older faster-whisper versions that lack hotwords
-        prompt = f"{prompt} {hot}".strip()
+        use_prompt = f"{prompt} {hot}".strip()
 
     kw = _supported_kwargs(
         model,
         language=language,
-        initial_prompt=prompt,
+        initial_prompt=use_prompt,
         hotwords=hot or None,
         task=task,
         beam_size=beam_size,
@@ -548,14 +807,79 @@ def transcribe_words(model, audio, language: Optional[str] = "hi",
                     word["tail"] = tail
                 words.append(word)
 
-    # Sanitize before measuring coverage. A word that cannot be rendered is removed
-    # when the cards are built, so if it stays in the list used to find holes it
-    # anchors a stretch that has no caption and hides the hole from the retry pass.
-    words = sanitize_words(words)
+    # Normalize before measuring coverage. A word that cannot be rendered, has no
+    # span, or overlaps its neighbour is removed/repaired when cards are built, so
+    # leaving it here would anchor a stretch with no visible caption and hide the
+    # hole from the retry pass.
+    return normalize_word_timeline(words)
+
+
+def transcribe_words(model, audio, language: Optional[str] = "hi",
+                     topic_hint: str = "", extra_keywords: Iterable[str] = (),
+                     beam_size: int = 5, task: str = "transcribe",
+                     coverage: bool = True) -> Tuple[List[dict], dict]:
+    """Transcribe into ONE flat word list across all segments (no per-segment reset)."""
+    prompt, hot = build_prompt(topic_hint, extra_keywords)
+    words = _decode_words(model, audio, language, task, prompt, hot, beam_size)
     report = {}
     if coverage and words:
         words, report = fill_speech_gaps(model, audio, words, language=language,
                                          task=task, prompt=prompt, hotwords=hot or None)
+
+    if coverage and hot and report.get("covered_ratio", 0.0) < COVERAGE_RESCUE_BELOW:
+        # A hint is a spelling aid, not worth half the captions. Measured on this
+        # clip: hint "sex" gave 738 tokens / 42.0%, no hint gave ~1830 / 97.7%+.
+        # The gap retries cannot fix it - they get the same bad hotwords - so the
+        # only way out is one more full decode with the hint dropped.
+        first_ratio = report.get("covered_ratio", 0.0)
+        # No words means no measured ratio; keep the zero instead of letting the
+        # engine read a missing key as a perfect decode.
+        report.setdefault("covered_ratio", first_ratio)
+        alt_words = _decode_words(model, audio, language, task, prompt, "", beam_size)
+        alt_report = {}
+        if alt_words:
+            alt_words, alt_report = fill_speech_gaps(
+                model, audio, alt_words, language=language, task=task,
+                prompt=prompt, hotwords=None
+            )
+        if alt_report.get("covered_ratio", 0.0) > first_ratio:
+            words, report = alt_words, alt_report
+            report["rescued"] = True
+        else:
+            report["rescued"] = False
+        report["rescue_attempted"] = True
+        report["first_pass_ratio"] = round(first_ratio, 4)
+
+    # covered_ratio and skipped_seconds only count gaps that pass the 40%
+    # density rule, so they can read a perfect 100% while a visible hole sits
+    # in a mostly-muted stretch. Measure the visible holes directly instead.
+    visible_voiced = 0.0
+    if coverage:
+        regions = speech_regions(audio)
+        duration = len(audio) / 16000.0
+        visible_gaps = find_speech_gaps(words, regions, duration,
+                                        min_gap=GAP_ACCEPT_S, density=0.0)
+        visible_voiced = sum(_voiced_seconds(g0, g1, regions) for g0, g1 in visible_gaps)
+    unstable = (visible_voiced > max(2.0, 0.01 * report.get("speech_seconds", 0.0))
+                or report.get("covered_ratio", 0.0) < COVERAGE_ENSEMBLE_BELOW)
+    if coverage and not report.get("rescue_attempted") and unstable:
+        # Same model, same settings, different run: the word count on this
+        # 14-minute clip moves 1400-1500 and coverage 89-97% between identical
+        # decodes. A second pass is not a new guess for a hole - it is another
+        # sample of the same audio. Take only the words that fall in holes the
+        # first pass left open, so a disagreeing spelling elsewhere is ignored.
+        alt_words = _decode_words(model, audio, language, task, prompt, "", beam_size)
+        merged, added = merge_alt_words_into_gaps(words, alt_words, regions, duration)
+        report["ensemble_attempted"] = True
+        report["ensemble_words_added"] = added
+        if added:
+            # cap_s=0 measures the merged timeline without spending more decode
+            # time: the second pass already provided the missing words.
+            words, report = fill_speech_gaps(
+                model, audio, merged, language=language, task=task,
+                prompt=prompt, hotwords=None, cap_s=0.0, regions=regions)
+            report["ensemble_attempted"] = True
+            report["ensemble_words_added"] = added
     return words, report
 
 
@@ -1370,9 +1694,12 @@ def pad_display_times(cards: List[dict], min_dur: float = 1.0, hold: float = 0.3
     out = []
     for k, c in enumerate(cards):
         next_start = cards[k + 1]["start"] if k + 1 < len(cards) else None
-        limit = (next_start - gap) if next_start is not None else c["end"] + hold
+        # The cap limits the *hold*, never the spoken span. On the audit clip the
+        # 2.8 s cap cut 16 cards before their last word finished (worst 1210 ms).
+        limit = (max(c["end"], next_start - gap)
+                 if next_start is not None else c["end"] + hold)
         end = max(c["end"], min(c["end"] + hold, limit), min(c["start"] + min_dur, limit))
-        end = min(end, c["start"] + max_dur)
+        end = max(c["end"], min(end, c["start"] + max_dur))
         if next_start is not None:
             end = min(end, limit)
 
@@ -1388,6 +1715,47 @@ def pad_display_times(cards: List[dict], min_dur: float = 1.0, hold: float = 0.3
 
         out.append(dict(c, end=round(end, 3)))
     return out
+
+
+def repair_card_timeline(words: List[dict], cards: List[dict], *,
+                         max_chars: int = 42, max_dur: float = 2.8) -> List[dict]:
+    """Make sure every word is visible in some card, whatever the builder did.
+
+    The coverage pass measures the word timeline, but the viewer sees cards. On
+    one real decode the cards stopped at 855 s while the word timeline showed no
+    hole and the last 8.95 s had speech. A pure post-build check closes that
+    class of defect without another model call: any word not covered by a card
+    gets a card of its own (grouped with its neighbours when they fit).
+    """
+    spans = [(float(c["start"]), float(c["end"])) for c in cards]
+    orphans = []
+    for word in sorted(words, key=lambda x: (x["start"], x["end"])):
+        start, end = float(word["start"]), float(word["end"])
+        if end <= start:
+            continue
+        if any(min(end, ce) - max(start, cs) > 0.005 for cs, ce in spans):
+            continue
+        orphans.append(word)
+    if not orphans:
+        return list(cards)
+
+    groups: List[List[dict]] = [[orphans[0]]]
+    for word in orphans[1:]:
+        group = groups[-1]
+        chars = sum(len(str(x.get("text", ""))) + 1 for x in group) + len(str(word.get("text", ""))) + 1
+        dur = float(word["end"]) - float(group[0]["start"])
+        if word["start"] - group[-1]["end"] > 1.0 or chars > max_chars or dur > max_dur:
+            groups.append([word])
+        else:
+            group.append(word)
+
+    extra = [{
+        "start": group[0]["start"],
+        "end": group[-1]["end"],
+        "text": " ".join(str(x.get("text", "")) for x in group).strip(),
+        "words": group,
+    } for group in groups]
+    return sorted(list(cards) + extra, key=lambda c: (c["start"], c["end"]))
 
 
 
@@ -1418,6 +1786,81 @@ def sanitize_words(words: List[dict]) -> List[dict]:
     return cleaned
 
 
+def resolve_word_overlaps(words: List[dict]) -> List[dict]:
+    """Make the word timeline monotonic by trimming the earlier word on overlap.
+
+    Retry slices are padded by 150 ms, so a recovered word can start before the
+    word that precedes it ends. ``\\k`` is a running sum: if the karaoke clock is
+    allowed to move backwards, every later word in that card lights up late.
+    The later onset is the trusted one (it is the acoustic start), so the earlier
+    word's end is trimmed. When the earlier word would have less than
+    OVERLAP_MIN_REMAINDER left, it is dropped instead.
+    """
+    out: List[dict] = []
+    for word in sorted(words, key=lambda x: (x["start"], x["end"])):
+        while out and word["start"] < out[-1]["end"] - 1e-9:
+            prev = out[-1]
+            if word["start"] - prev["start"] < OVERLAP_MIN_REMAINDER:
+                out.pop()
+                continue
+            out[-1] = dict(prev, end=round(word["start"], 3))
+            break
+        out.append(word)
+    return out
+
+
+def repair_zero_spans(words: List[dict], duration: Optional[float] = None) -> List[dict]:
+    """Give zero-length words real spans inside the silence around them.
+
+    Whisper emits whole phrases ("to shoot for", "mein samay ke") pinned to one
+    timestamp at segment boundaries. Dropping them loses the text; keeping them
+    at zero length breaks the karaoke chain and masks visible holes. Spread a
+    cluster across the room between the previous word and the next one, bounded
+    to +/- ZERO_SPAN_MAX_STRETCH so a hallucinated cluster cannot paint a pause.
+    """
+    out: List[dict] = []
+    i, n = 0, len(words)
+    while i < n:
+        word = words[i]
+        if word["end"] > word["start"]:
+            out.append(word)
+            i += 1
+            continue
+
+        t = float(word["start"])
+        j = i
+        while (j < n and words[j]["end"] <= words[j]["start"]
+               and abs(float(words[j]["start"]) - t) < 1e-6):
+            j += 1
+        group = [g for g in words[i:j]
+                 if g.get("prob", 1.0) > ZERO_SPAN_PROB_DROP and str(g.get("text", "")).strip()]
+
+        if group:
+            prev_end = float(out[-1]["end"]) if out else max(0.0, t - ZERO_SPAN_MAX_STRETCH)
+            next_start = float(words[j]["start"]) if j < n else duration
+            lo = max(prev_end, t - ZERO_SPAN_MAX_STRETCH)
+            hi = t + ZERO_SPAN_MAX_STRETCH
+            if next_start is not None:
+                hi = min(hi, float(next_start))
+            if hi <= lo:
+                lo, hi = t, t + ZERO_SPAN_MIN * len(group)
+            widths = [max(1.0, len(str(g.get("text", "")))) for g in group]
+            total = sum(widths)
+            cur = lo
+            for g, width in zip(group, widths):
+                span = max((hi - lo) * width / total, ZERO_SPAN_MIN)
+                out.append({**g, "start": round(cur, 3), "end": round(cur + span, 3)})
+                cur += span
+        i = j
+    return out
+
+
+def normalize_word_timeline(words: List[dict], duration: Optional[float] = None) -> List[dict]:
+    """Sanitize, remove overlaps, repair zero spans, then remove any new touches."""
+    cleaned = resolve_word_overlaps(sanitize_words(words))
+    return resolve_word_overlaps(repair_zero_spans(cleaned, duration=duration))
+
+
 def words_to_cards(words: List[dict], to_hinglish: Callable[[str], str],
                    recoverer: Optional[LoanwordRecoverer] = None,
                    hint_terms: Iterable[str] = (),
@@ -1429,8 +1872,8 @@ def words_to_cards(words: List[dict], to_hinglish: Callable[[str], str],
     pacing       : 'short' (reels) or 'long' (youtube/16:9)
     Returns [{'start','end','original_text','hinglish_text'}]
     """
-    # 0. Nothing unrenderable reaches a caption (see sanitize_words)
-    words = sanitize_words(words)
+    # 0. Nothing unrenderable, zero-span or overlapping reaches a caption.
+    words = normalize_word_timeline(words)
 
     if hint_terms:
         words = snap_to_terms(words, hint_terms)
@@ -1445,8 +1888,10 @@ def words_to_cards(words: List[dict], to_hinglish: Callable[[str], str],
     # 3. Case normalization (eliminate stray capitals mid-sentence)
     words = normalize_case(words)
 
-    # 4. Semantic chunking and padding
+    # 4. Semantic chunking, padding, and a guarantee that no word is left unseen
     cards = pad_display_times(semantic_chunk(words, to_latin=to_hinglish, pacing=pacing), pacing=pacing)
+    cards = repair_card_timeline(words, cards, max_chars=76 if pacing == "long" else 42,
+                                 max_dur=5.0 if pacing == "long" else 2.8)
 
     # 5. Export decisions to TSV
     export_decisions(reel_name)

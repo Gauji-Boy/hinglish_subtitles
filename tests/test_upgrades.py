@@ -493,14 +493,17 @@ class TestSemanticChunker:
             assert dur <= 5.05, f"Long-form card exceeded 5.0s ceiling: {dur:.2f}s"
             assert dur >= 1.95, f"Long-form card under 2.0s min: {dur:.2f}s"
 
-    def test_pad_display_times_clamps_stretched_cards(self):
-        # Even if Whisper or audio pause produced a card spanning 12s, pad_display_times must clamp to max_dur
+    def test_pad_display_times_keeps_spoken_span_and_caps_hold(self):
+        # max_dur caps the extra hold, never the spoken span: cutting a card
+        # before its last word finishes leaves a visible hole (measured: 16
+        # cards, worst 1210 ms early on the audit clip).
         stretched = [
             {"start": 10.0, "end": 22.0, "text": "stuck word"},
             {"start": 25.0, "end": 26.0, "text": "next word"}
         ]
         padded = pad_display_times(stretched, max_dur=2.8, pacing="short")
-        assert padded[0]["end"] <= 12.8, f"Stretched card duration not clamped: {padded[0]}"
+        assert padded[0]["end"] >= 22.0, f"Spoken span was cut: {padded[0]}"
+        assert padded[0]["end"] < 22.3, f"Hold was not capped: {padded[0]}"
         assert padded[0]["end"] < padded[1]["start"], "Overlapped subsequent card"
 
 

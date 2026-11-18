@@ -1536,20 +1536,26 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             continue
 
         karaoke_parts = []
-        cur_t = card_start
+        # Emit \k from absolute centisecond offsets, not from per-token rounded
+        # durations. A retry word can start before the previous one ends; if the
+        # clock is allowed to move backwards, every later highlight in the card
+        # runs late (measured: up to 1850 ms on a real clip). Clamping the start
+        # to the emitted clock and emitting deltas makes the chain monotonic and
+        # keeps rounding error from accumulating across a card.
+        card_start_cs = int(round(card_start * 100))
+        elapsed_cs = 0
 
         for idx, w in enumerate(words):
-            w_start = w.get("start", cur_t)
-            w_end = w.get("end", w_start + 0.3)
+            w_start = max(float(w.get("start", card_start)), card_start)
+            w_end = max(float(w.get("end", w_start + 0.3)), w_start)
             w_text = w.get("hinglish" if use_hinglish else "word", "")
 
-            dur_cs = max(1, int(round((w_end - w_start) * 100)))
-
-            # Karaoke \k is a running sum, so every silence inside the card has
-            # to be emitted as its own empty \k. Skipping them (only the first
-            # word used to get a lead) made the highlight run early by the sum
-            # of the gaps, while the live overlay used absolute word starts.
-            gap_cs = int(round((w_start - cur_t) * 100))
+            start_cs = max(int(round((w_start - card_start) * 100)), elapsed_cs)
+            end_cs = max(int(round((w_end - card_start) * 100)), start_cs)
+            # Every silence inside the card is emitted as its own empty \k,
+            # otherwise the highlight runs early by the sum of the gaps.
+            gap_cs = start_cs - elapsed_cs
+            dur_cs = max(1, end_cs - start_cs)
             if gap_cs > 0 and not static:
                 karaoke_parts.append(f"{{\\k{gap_cs}}}")
 
@@ -1562,7 +1568,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 else:
                     karaoke_parts.append(f"{{\\k{dur_cs}}}{clean_word} ")
 
-            cur_t = w_end
+            elapsed_cs = start_cs + dur_cs
 
         dialogue_text = "".join(karaoke_parts).strip()
         if static:

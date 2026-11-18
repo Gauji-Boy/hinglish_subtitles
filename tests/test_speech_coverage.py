@@ -32,10 +32,12 @@ class StubModel:
         self.sequence = sequence
         self.call_count = 0
         self.prompts = []
+        self.hotwords = []
 
-    def transcribe(self, audio, initial_prompt=None, **kwargs):
+    def transcribe(self, audio, initial_prompt=None, hotwords=None, **kwargs):
         self.call_count += 1
         self.prompts.append(initial_prompt)
+        self.hotwords.append(hotwords)
         if self.sequence:
             idx = min(self.call_count - 1, len(self.sequence) - 1)
             return [StubSegment(self.sequence[idx])], None
@@ -393,3 +395,110 @@ def test_transcribe_words_measures_holes_after_sanitizing(monkeypatch):
     assert "\ufffd" not in texts
     assert "recovered" in texts, "the junk token hid a real hole from the retry pass"
     assert report["gaps_found"] >= 1
+
+
+def _ten_seconds(monkeypatch):
+    """Isolate transcribe_words: measure coverage without re-decoding any slices."""
+    import hinglish_upgrades as hu
+
+    monkeypatch.setattr(hu, "speech_regions", lambda audio, sampling_rate=16000: [(0.0, 10.0)])
+
+    def measure_only(model, audio, words, **kwargs):
+        covered = sum(max(0.0, min(10.0, w["end"]) - max(0.0, w["start"])) for w in words)
+        return words, {
+            "covered_ratio": min(1.0, covered / 10.0),
+            "gaps_found": 0,
+            "gaps_filled": 0,
+            "seconds_recovered": 0.0,
+            "gaps_skipped": 0,
+            "skipped_seconds": round(10.0 - covered, 2),
+            "speech_seconds": 10.0,
+        }
+
+    monkeypatch.setattr(hu, "fill_speech_gaps", measure_only)
+    return np.zeros(16000 * 10, dtype=np.float32)
+
+
+def test_transcribe_words_drops_hotwords_when_the_decode_collapses(monkeypatch):
+    # A one-word topic hint ("sex") is fed back as a hotword in every 30 s window.
+    # On the real 10:14 clip it collapsed the decode: 738 tokens and 42.0% coverage
+    # against 1818-1962 tokens and 97.7-99.1% with an empty hint. One extra decode
+    # without the hint is cheap next to a file that has lost half its captions.
+    import hinglish_upgrades as hu
+
+    thin = [StubWord(0.0, 2.0, "thin")]
+    full = [StubWord(i, i + 1, f"w{i}") for i in range(9)] + [StubWord(9.0, 9.5, "end")]
+    model = StubModel(sequence=[thin, full])
+
+    words, report = hu.transcribe_words(
+        model, _ten_seconds(monkeypatch), language="hi", topic_hint="sex"
+    )
+    assert model.hotwords[0] == "sex"
+    assert model.hotwords[1] is None, "the rescue decode must drop the hotwords"
+    assert report["rescued"] is True
+    assert report["first_pass_ratio"] < 0.85
+    assert report["covered_ratio"] > 0.9
+    assert "end" in [w["text"] for w in words]
+
+
+def test_transcribe_words_keeps_a_good_decode(monkeypatch):
+    # A decode that already covers the file must not pay for a second one.
+    import hinglish_upgrades as hu
+
+    full = [StubWord(i, i + 1, f"w{i}") for i in range(10)]
+    model = StubModel(sequence=[full])
+
+    words, report = hu.transcribe_words(
+        model, _ten_seconds(monkeypatch), language="hi", topic_hint="sex"
+    )
+    assert model.call_count == 1
+    assert not report.get("rescued")
+    assert len(words) == 10
+
+
+def test_transcribe_words_redecodes_when_unstable_without_hotwords(monkeypatch):
+    # No hint to drop, but a weak decode is unstable rather than merely short.
+    # One more full pass gives its open holes another chance to be transcribed.
+    import hinglish_upgrades as hu
+
+    thin = [StubWord(0.0, 2.0, "thin")]
+    model = StubModel(sequence=[thin])
+
+    words, report = hu.transcribe_words(
+        model, _ten_seconds(monkeypatch), language="hi", topic_hint=""
+    )
+    assert report.get("ensemble_attempted") is True
+    assert not report.get("rescued")
+
+
+def test_transcribe_words_keeps_first_pass_when_rescue_is_worse(monkeypatch):
+    # Dropping the hint is a bet, not a rule: keep whichever pass covers more.
+    import hinglish_upgrades as hu
+
+    thin = [StubWord(0.0, 2.0, "thin")]
+    worse = [StubWord(0.0, 0.5, "worse")]
+    model = StubModel(sequence=[thin, worse])
+
+    words, report = hu.transcribe_words(
+        model, _ten_seconds(monkeypatch), language="hi", topic_hint="sex"
+    )
+    assert report["rescued"] is False
+    assert [w["text"] for w in words] == ["thin"]
+
+
+def test_transcribe_words_reports_zero_when_both_passes_are_empty(monkeypatch):
+    # If both decodes come back empty the report still carries the rescue keys.
+    # The engine treats a missing covered_ratio as 1.0, so it would log 100%
+    # coverage for a file with no captions at all.
+    import hinglish_upgrades as hu
+
+    model = StubModel()
+
+    words, report = hu.transcribe_words(
+        model, _ten_seconds(monkeypatch), language="hi", topic_hint="sex"
+    )
+    assert words == []
+    assert model.call_count == 2
+    assert report["rescue_attempted"] is True
+    assert report["rescued"] is False
+    assert report["covered_ratio"] == 0.0

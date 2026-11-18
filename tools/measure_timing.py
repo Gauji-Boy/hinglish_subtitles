@@ -97,16 +97,17 @@ def _onsets(audio, hop=160):
 
 
 def _ass_chain_starts(card):
-    """Replay the \\k chain exactly as libass does."""
-    elapsed = float(card["start"])
+    """Replay the \\k chain exactly as karaoke_ass.py now emits it."""
+    card_start = float(card["start"])
+    elapsed_cs = 0
     starts = []
     for index, word in enumerate(card.get("words", [])):
-        dur = max(1, int(round((word["end"] - word["start"]) * 100)))
-        gap = int(round((word["start"] - elapsed) * 100))
-        if gap > 0:
-            elapsed += gap / 100.0
-        starts.append((index, elapsed, word["start"]))
-        elapsed += dur / 100.0
+        w_start = max(float(word.get("start", card_start)), card_start)
+        w_end = max(float(word.get("end", w_start)), w_start)
+        start_cs = max(int(round((w_start - card_start) * 100)), elapsed_cs)
+        end_cs = max(int(round((w_end - card_start) * 100)), start_cs)
+        elapsed_cs = start_cs + max(1, end_cs - start_cs)
+        starts.append((index, card_start + start_cs / 100.0, word["start"]))
     return starts
 
 

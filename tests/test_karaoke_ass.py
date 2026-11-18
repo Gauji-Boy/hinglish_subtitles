@@ -855,3 +855,64 @@ def test_honey_punch_still_uses_the_plain_kinetic_renderer():
     assert not any(r"\p1" in line for line in ass.splitlines())
     assert "HoneyPunchKinetic,,0,0,0,," in ass
 
+
+# --------------------------------------------------------------------------- audit fixes
+
+def _replay_karaoke(cards):
+    r"""Return (word highlight starts in seconds, all \k values, dialogue line)."""
+    ass = generate_karaoke_ass(cards)
+    line = next(l for l in ass.splitlines() if l.startswith("Dialogue:"))
+    elapsed = float(cards[0]["start"])
+    starts, tags = [], []
+    for tag, text in re.findall(r"\{\\k(\d+)\}([^\\{}]*)", line):
+        tags.append(int(tag))
+        if text.strip():
+            starts.append(round(elapsed, 3))
+        elapsed += int(tag) / 100.0
+    return starts, tags, line
+
+
+def test_chain_matches_word_starts_with_overlapping_words():
+    card = {
+        "start": 1.0, "end": 4.0, "original_text": "a b c", "hinglish_text": "a b c",
+        "words": [
+            {"start": 1.0, "end": 2.15, "word": "a", "hinglish": "a"},
+            {"start": 2.0, "end": 3.0, "word": "b", "hinglish": "b"},
+            {"start": 3.2, "end": 4.0, "word": "c", "hinglish": "c"},
+        ],
+    }
+    starts, _, line = _replay_karaoke([card])
+    # The 150 ms overlap must not push b or c late: b's onset is clamped to a's end.
+    assert starts == [1.0, 2.15, 3.2], line
+
+
+def test_chain_never_moves_backwards():
+    card = {
+        "start": 1.0, "end": 4.0, "original_text": "a b c d", "hinglish_text": "a b c d",
+        "words": [
+            {"start": 1.0, "end": 1.0, "word": "a", "hinglish": "a"},
+            {"start": 1.0, "end": 2.0, "word": "b", "hinglish": "b"},
+            {"start": 1.9, "end": 3.0, "word": "c", "hinglish": "c"},
+            {"start": 3.5, "end": 4.0, "word": "d", "hinglish": "d"},
+        ],
+    }
+    starts, tags, line = _replay_karaoke([card])
+    assert all(t >= 0 for t in tags), line
+    assert starts == sorted(starts), line
+
+
+def test_chain_uses_absolute_offsets():
+    starts_in = [1.004, 1.506, 2.008, 2.511, 3.014]
+    card = {
+        "start": 1.0, "end": 3.5,
+        "original_text": " ".join("w%d" % i for i in range(5)),
+        "hinglish_text": " ".join("w%d" % i for i in range(5)),
+        "words": [
+            {"start": t, "end": t + 0.4, "word": "w%d" % i, "hinglish": "w%d" % i}
+            for i, t in enumerate(starts_in)
+        ],
+    }
+    replayed, _, line = _replay_karaoke([card])
+    assert len(replayed) == 5, line
+    assert max(abs(a - b) for a, b in zip(replayed, starts_in)) <= 0.011
+

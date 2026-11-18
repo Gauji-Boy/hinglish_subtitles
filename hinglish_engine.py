@@ -413,8 +413,13 @@ def generate_subtitles(
         n = coverage.get("gaps_filled", 0)
         sec = coverage.get("seconds_recovered", 0.0)
         k = coverage.get("gaps_skipped", 0)
-        emit_stage("coverage", f"Speech coverage {pct:.1f}% — filled {n} gap(s), "
-                               f"recovered {sec:.1f}s, skipped {k}")
+        line = (f"Speech coverage {pct:.1f}% — filled {n} gap(s), "
+                f"recovered {sec:.1f}s, skipped {k}")
+        if coverage.get("rescue_attempted"):
+            first = coverage.get("first_pass_ratio", 0.0) * 100.0
+            line += (f" (hint dropped: {first:.1f}% -> {pct:.1f}%, "
+                     f"{'kept' if coverage.get('rescued') else 'rejected'} rescue)")
+        emit_stage("coverage", line)
 
     from hinglish_upgrades import words_to_cards, hint_keywords
     rec = get_recoverer()
