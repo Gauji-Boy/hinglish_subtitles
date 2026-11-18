@@ -1,7 +1,9 @@
 """API tests for caption presets, style passthrough, and preference persistence."""
 
 import json
+import shutil
 
+import pytest
 from fastapi.testclient import TestClient
 
 import server
@@ -34,6 +36,30 @@ def test_caption_styles_endpoint_lists_presets():
     ]
     assert "custom" in data
     assert "Impact" in data["fonts"]
+
+
+@pytest.mark.skipif(shutil.which("ffmpeg") is None, reason="ffmpeg is not on PATH")
+def test_preview_style_endpoint_returns_a_real_png_frame():
+    res = client.get("/api/preview-style", params={
+        "style_id": "hormozi", "aspect": "16:9", "format": "png",
+    })
+    assert res.status_code == 200
+    assert res.headers["content-type"].startswith("image/png")
+    assert res.content[:8] == b"\x89PNG\r\n\x1a\n"
+
+
+def test_preview_style_endpoint_rejects_unknown_preset():
+    res = client.get("/api/preview-style", params={"style_id": "not-a-style"})
+    assert res.status_code == 404
+
+
+@pytest.mark.skipif(shutil.which("ffmpeg") is None, reason="ffmpeg is not on PATH")
+def test_preview_style_endpoint_still_serves_motion_clips():
+    res = client.get("/api/preview-style", params={
+        "style_id": "hormozi", "aspect": "16:9", "format": "mp4",
+    })
+    assert res.status_code == 200
+    assert res.content[4:8] == b"ftyp"
 
 
 def test_export_ass_accepts_style_and_aspect():

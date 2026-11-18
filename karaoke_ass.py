@@ -1542,7 +1542,6 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         # runs late (measured: up to 1850 ms on a real clip). Clamping the start
         # to the emitted clock and emitting deltas makes the chain monotonic and
         # keeps rounding error from accumulating across a card.
-        card_start_cs = int(round(card_start * 100))
         elapsed_cs = 0
 
         for idx, w in enumerate(words):

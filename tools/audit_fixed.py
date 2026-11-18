@@ -71,8 +71,10 @@ def audit(name, model, out_dir, run_idx, seconds=None, hint=""):
             if index > 0 and abs((replay - true_start) * 1000) > 20:
                 ass_outliers.append(round((replay - true_start) * 1000))
 
-    word_holes = hu.find_speech_gaps(words, regions, duration, min_gap=2.0)
-    card_holes = hu.find_speech_gaps(cards, regions, duration, min_gap=2.0)
+    # The production visible-hole pass uses density=0. The 40% default would
+    # hide a real 3.8 s hole with 1.51 s of speech, so the gate must match it.
+    word_holes = hu.find_speech_gaps(words, regions, duration, min_gap=2.0, density=0.0)
+    card_holes = hu.find_speech_gaps(cards, regions, duration, min_gap=2.0, density=0.0)
     voiced_fractions = []
     for c in cards:
         voiced = sum(max(0.0, min(c["end"], b) - max(c["start"], a)) for a, b in regions)

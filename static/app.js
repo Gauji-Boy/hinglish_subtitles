@@ -26,6 +26,10 @@ let captionFonts = [];
 let defaultCaptionStyleId = "hormozi";
 let stylePreviewTimer = null;
 let stylePreviewUrl = null;
+let triggerPreviewTimer = null;
+// null means "follow the loaded video, else landscape". A manual switch pins
+// one canvas so comparison does not change when the video changes.
+let previewAspect = null;
 
 if (selectedLanguage === "hi-en" && !["small", "medium", "large-v3"].includes(selectedModel)) {
   selectedModel = (selectedModel === "large-v3-turbo") ? "large-v3" : "medium";
@@ -56,6 +60,7 @@ const editorStylePickerTrigger = document.getElementById("editorStylePickerTrigg
 const editorStylePickerName = document.getElementById("editorStylePickerName");
 const editorStylePickerStage = document.getElementById("editorStylePickerStage");
 const editorStylePickerList = document.getElementById("editorStylePickerList");
+const editorStyleAspect = document.getElementById("editorStyleAspect");
 const editorStyleFont = document.getElementById("editorStyleFont");
 const editorStyleFontSize = document.getElementById("editorStyleFontSize");
 const editorStyleBaseColor = document.getElementById("editorStyleBaseColor");
@@ -1013,59 +1018,72 @@ function renderPresetGrid(grid, compact) {
   });
 }
 
-// A preset picker that shows the style instead of describing it. A native
-// <select> cannot render HTML options, so this is a listbox: each row holds a
-// tiny stage that plays the preset's own motion in its own font and colours.
-const STYLE_PICKER_MOTIONS = new Set(["word-pop", "reveal", "punch", "bubble", "static"]);
-
-// The stage mirrors the burn's motion, not a new one: the same keyframe family
-// per motion id, and the same accent/base/back colours the preset carries.
-const STYLE_PICKER_ANIM = {
-  "word-pop": "picker-word-pop",
-  karaoke: "picker-karaoke",
-  reveal: "picker-reveal",
-  punch: "picker-punch",
-  bubble: "picker-bubble",
-};
-
-const STYLE_PICKER_SAMPLE = "aaj hum";
-
-// A row previews the style in the motion the export would use, so switching
-// the MOTION chip re-renders every row rather than showing a stale animation.
-function pickerMotionFor(style) {
-  const active = activeCaptionStyle && activeCaptionStyle.motion;
-  return STYLE_PICKER_MOTIONS.has(active) && active !== "static"
-    ? active
-    : (style.motion || "static");
+// The picker shows a real frame from the same libass render the burner uses.
+// DOM text cannot reproduce font size, line wrapping, karaoke highlight or the
+// outline, so each row gets a cached PNG and a short MP4 for hover motion.
+function activePreviewAspect() {
+  if (previewAspect) return previewAspect;
+  return videoPlayer && videoPlayer.videoWidth ? detectAspect() : "16:9";
 }
 
-function fillStyleStage(stage, style, motion) {
+function previewQuery(style, fmt, exact) {
+  const parts = [
+    `aspect=${encodeURIComponent(activePreviewAspect())}`,
+    `format=${fmt}`,
+  ];
+  if (style && style.id && style.id !== "custom" && !exact) {
+    parts.push(`style_id=${encodeURIComponent(style.id)}`);
+  } else if (style) {
+    // The active style may have edited sliders. Send the whole object so the
+    // trigger shows what will be exported, not the stock preset.
+    parts.push(`style=${encodeURIComponent(JSON.stringify(style))}`);
+  }
+  return `/api/preview-style?${parts.join("&")}`;
+}
+
+function fillStyleStage(stage, style, exact) {
   if (!stage || !style) return;
   stage.textContent = "";
-  stage.dataset.motion = STYLE_PICKER_MOTIONS.has(motion) ? motion : "static";
-  stage.style.setProperty("--base", style.base_color || "#FFFFFF");
-  stage.style.setProperty("--accent", style.highlight_color || "#FFC700");
-  stage.style.setProperty("--back", style.back_color || "#101010");
-  stage.style.fontFamily = `'${style.font}', sans-serif`;
-  stage.style.fontWeight = style.bold ? "900" : "700";
-  const anim = STYLE_PICKER_ANIM[motion];
-  const sample = style.uppercase ? STYLE_PICKER_SAMPLE.toUpperCase() : STYLE_PICKER_SAMPLE;
-  sample.split(" ").forEach((text, i) => {
-    const word = document.createElement("span");
-    word.className = "style-picker-word";
-    word.textContent = text;
-    word.style.setProperty("--i", String(i));
-    if (anim) word.style.setProperty("--picker-anim", anim);
-    stage.appendChild(word);
-  });
+  const frame = document.createElement("img");
+  frame.className = "style-picker-frame";
+  frame.alt = "";
+  frame.src = previewQuery(style, "png", exact);
+  stage.appendChild(frame);
+  const motion = document.createElement("video");
+  motion.className = "style-picker-motion";
+  motion.muted = true;
+  motion.loop = true;
+  motion.playsInline = true;
+  motion.preload = "none";
+  motion.dataset.src = previewQuery(style, "mp4", exact);
+  // A <video> paints black until its first frame arrives. Keep the PNG
+  // underneath until then, so hover never shows an empty black rectangle.
+  motion.addEventListener("loadeddata", () => motion.classList.add("has-frame"));
+  motion.addEventListener("error", () => motion.classList.remove("has-frame"));
+  stage.appendChild(motion);
 }
 
-function buildStyleStage(style, motion) {
+function buildStyleStage(style) {
   const stage = document.createElement("span");
   stage.className = "style-picker-stage";
   stage.setAttribute("aria-hidden", "true");
-  fillStyleStage(stage, style, motion);
+  fillStyleStage(stage, style);
   return stage;
+}
+
+function playPickerMotion(row) {
+  const video = row && row.querySelector ? row.querySelector(".style-picker-motion") : null;
+  if (!video) return;
+  if (!video.src) video.src = video.dataset.src;
+  if (video.readyState >= 2) video.classList.add("has-frame");
+  if (video.play) video.play().catch(() => {});
+}
+
+function stopPickerMotion(row) {
+  const video = row && row.querySelector ? row.querySelector(".style-picker-motion") : null;
+  if (!video) return;
+  if (video.pause) video.pause();
+  video.classList.remove("has-frame");
 }
 
 function renderStylePicker() {
@@ -1084,7 +1102,11 @@ function renderStylePicker() {
     name.className = "style-picker-title";
     name.textContent = style.name;
 
-    row.append(name, buildStyleStage(style, pickerMotionFor(style)));
+    row.append(name, buildStyleStage(style));
+    row.addEventListener("mouseenter", () => playPickerMotion(row));
+    row.addEventListener("mouseleave", () => stopPickerMotion(row));
+    row.addEventListener("focus", () => playPickerMotion(row));
+    row.addEventListener("blur", () => stopPickerMotion(row));
     row.addEventListener("click", () => {
       selectCaptionStyle(style);
       setStylePickerOpen(false);
@@ -1101,8 +1123,27 @@ function syncStylePicker() {
     editorStylePickerName.textContent = style ? style.name : "Choose a style";
   }
   if (editorStylePickerStage) {
-    if (style) fillStyleStage(editorStylePickerStage, style, pickerMotionFor(style));
-    else editorStylePickerStage.textContent = "";
+    // Sliders fire `input` on every tick. Without a debounce each tick would
+    // rebuild the trigger image URL and trigger a fresh ffmpeg render. Draw
+    // the first style immediately; coalesce later changes.
+    const draw = () => {
+      if (style) fillStyleStage(editorStylePickerStage, style, true);
+      else editorStylePickerStage.textContent = "";
+    };
+    clearTimeout(triggerPreviewTimer);
+    if (!editorStylePickerStage.childNodes.length) {
+      draw();
+    } else {
+      triggerPreviewTimer = setTimeout(draw, 250);
+    }
+  }
+  if (editorStyleAspect) {
+    const canvas = activePreviewAspect();
+    editorStyleAspect.querySelectorAll("button").forEach(btn => {
+      const on = btn.dataset.aspect === canvas;
+      btn.classList.toggle("active", on);
+      btn.setAttribute("aria-pressed", String(on));
+    });
   }
   if (editorStylePickerList) {
     editorStylePickerList.querySelectorAll("[data-style-id]").forEach(row => {
@@ -1111,6 +1152,20 @@ function syncStylePicker() {
       row.classList.toggle("active", on);
     });
   }
+}
+
+if (editorStyleAspect) {
+  editorStyleAspect.addEventListener("click", event => {
+    const aspect = event.target && event.target.dataset && event.target.dataset.aspect;
+    if (aspect !== "9:16" && aspect !== "16:9") return;
+    previewAspect = aspect;
+    editorStyleAspect.querySelectorAll("button").forEach(btn => {
+      const on = btn.dataset.aspect === aspect;
+      btn.classList.toggle("active", on);
+      btn.setAttribute("aria-pressed", String(on));
+    });
+    renderStylePicker();
+  });
 }
 
 function setStylePickerOpen(open, { restoreFocus = false } = {}) {
@@ -1159,11 +1214,21 @@ function positionStylePicker() {
     list.style.bottom = "auto";
     list.style.top = `${Math.round(rect.bottom + 6)}px`;
   }
-  list.style.maxHeight = `${Math.min(320, Math.max(120, Math.round(flip ? above : below)))}px`;
+  list.style.maxHeight = `${Math.min(480, Math.max(120, Math.round(flip ? above : below)))}px`;
 }
 
 function closeStylePickerOnScroll(event) {
   if (event && event.target === editorStylePickerList) return;
+  if (!editorStylePickerTrigger || !editorStylePickerList) return;
+  // Wheel scrolling inside the list also emits a document scroll. Following
+  // the trigger keeps the list open and anchored; close only once the control
+  // it belongs to has actually left the viewport.
+  const rect = editorStylePickerTrigger.getBoundingClientRect();
+  const viewportH = window.innerHeight || 800;
+  if (rect.bottom > 0 && rect.top < viewportH) {
+    positionStylePicker();
+    return;
+  }
   setStylePickerOpen(false);
 }
 
@@ -2320,7 +2385,7 @@ async function requestStylePreview() {
     const res = await fetch("/api/preview-style", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ style: activeCaptionStyle, aspect: detectAspect() })
+      body: JSON.stringify({ style: activeCaptionStyle, aspect: detectAspect(), format: "mp4" })
     });
     if (!res.ok) {
       const detail = await res.text();

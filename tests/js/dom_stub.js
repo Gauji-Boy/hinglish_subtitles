@@ -332,6 +332,7 @@ function loadApp() {
   renderStylePicker,
   syncStylePicker,
   setStylePickerOpen,
+  closeStylePickerOnScroll,
   setStyles(list) { captionStyles = list; renderCaptionPresets(); },
   picker() {
     return {
@@ -339,6 +340,7 @@ function loadApp() {
       stage: document.getElementById("editorStylePickerStage"),
       name: document.getElementById("editorStylePickerName"),
       list: document.getElementById("editorStylePickerList"),
+      aspect: document.getElementById("editorStyleAspect"),
     };
   },
   motionRow() { return editorStyleMotionRow; },

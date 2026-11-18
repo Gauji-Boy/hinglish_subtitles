@@ -4277,6 +4277,31 @@ body::-webkit-scrollbar-button,
 }
 
 /* Visual preset picker: a listbox whose rows are the styles themselves. */
+.style-aspect-row {
+  display: flex;
+  gap: 5px;
+  margin: 0 0 8px;
+}
+
+.style-aspect-row button {
+  flex: 1;
+  padding: 4px 6px;
+  background: var(--panel-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--muted);
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.style-aspect-row button.active {
+  border-color: var(--yellow);
+  color: var(--yellow);
+}
+
 .style-picker {
   position: relative;
 }
@@ -4326,7 +4351,7 @@ body::-webkit-scrollbar-button,
   /* Fixed, not absolute: .editor-style-scroll clips an in-flow popover. */
   position: fixed;
   z-index: 1000;
-  max-height: 330px;
+  max-height: 480px;
   overflow: auto;
   padding: 3px;
   background: var(--panel-bg);
@@ -4362,85 +4387,53 @@ body::-webkit-scrollbar-button,
   text-overflow: ellipsis;
 }
 
-/* The stage is the preview: the style's own type and colours, playing its
-   motion. Only the hovered or selected row animates, so the list stays calm. */
+/* The stage is a real libass frame from the export renderer, not styled DOM
+   text: a CSS chip cannot show the burned size, wrapping or karaoke highlight. */
 .style-picker-stage {
-  --base: #ffffff;
-  --accent: #ffc700;
-  --back: #101010;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
+  position: relative;
+  display: block;
   width: 100%;
-  height: 40px;
-  padding: 0 10px;
+  aspect-ratio: 16 / 9;
   overflow: hidden;
-  white-space: nowrap;
   background: #07070a;
   border: 1px solid var(--border-color);
   border-radius: 4px;
 }
 
-.style-picker-word {
-  padding: 2px 4px;
-  border-radius: 3px;
-  color: var(--base);
-  font-size: 15px;
-  line-height: 1;
-  background-image: linear-gradient(var(--accent), var(--accent));
-  background-repeat: no-repeat;
-  background-position: 0 50%;
-  background-size: 0 100%;
+.style-picker-trigger .style-picker-stage {
+  aspect-ratio: auto;
+  height: 84px;
 }
 
-.style-picker-trigger .style-picker-word,
-.style-picker-row:hover .style-picker-word,
-.style-picker-row:focus-visible .style-picker-word,
-.style-picker-row.active .style-picker-word {
-  animation-name: var(--picker-anim);
-  animation-duration: 2.6s;
-  animation-delay: calc(var(--i, 0) * 0.5s);
-  animation-iteration-count: infinite;
-  animation-fill-mode: both;
+.style-picker-trigger .style-picker-frame,
+.style-picker-trigger .style-picker-motion {
+  object-fit: cover;
+  object-position: center;
 }
 
-@keyframes picker-karaoke {
-  0% { color: var(--base); }
-  12%, 72% { color: var(--accent); }
-  88%, 100% { color: var(--base); }
+.style-picker-frame,
+.style-picker-motion {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
-@keyframes picker-word-pop {
-  0% { opacity: 0; transform: scale(.72); color: var(--accent); }
-  10% { opacity: 1; transform: scale(1.16); }
-  18%, 76% { opacity: 1; transform: scale(1); color: var(--accent); }
-  88%, 100% { opacity: 0; transform: scale(.96); color: var(--accent); }
+.style-picker-motion {
+  opacity: 0;
+  pointer-events: none;
 }
 
-@keyframes picker-reveal {
-  0% { opacity: 0; transform: translateY(6px) scale(.92); }
-  14%, 78% { opacity: 1; transform: none; }
-  90%, 100% { opacity: 0; transform: translateY(0) scale(.98); }
-}
-
-@keyframes picker-punch {
-  0%, 100% { transform: scale(1); color: var(--base); }
-  8% { transform: scale(1.32); color: var(--accent); }
-  22%, 74% { transform: scale(1); color: var(--accent); }
-  86% { color: var(--base); }
-}
-
-@keyframes picker-bubble {
-  0% { background-size: 0 100%; color: var(--base); }
-  12%, 76% { background-size: 100% 100%; color: var(--back); }
-  90%, 100% { background-size: 0 100%; color: var(--base); }
+/* Only the hovered or focused row plays its motion, and only once a frame has
+   loaded. Until then the PNG stays on top instead of a black placeholder. */
+.style-picker-row:hover .style-picker-motion.has-frame,
+.style-picker-row:focus-visible .style-picker-motion.has-frame {
+  opacity: 1;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .style-picker-word {
-    animation: none !important;
-  }
+  .style-picker-motion { display: none !important; }
 }
 
 .style-sample-note {

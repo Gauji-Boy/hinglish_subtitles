@@ -9,7 +9,7 @@
  * Run with: node tests/js/style_editor_test.js
  */
 
-const { loadApp } = require("./dom_stub.js");
+const { loadApp, El } = require("./dom_stub.js");
 
 const BASE = {
   name: "Test",
@@ -146,13 +146,13 @@ function check(label, ok, detail) {
   check("the pill is transparent", String(pill.style.opacity) === "0", pill.style.opacity);
 }
 
-// Case 7: the picker lists every style and plays it in its own paint.
+// Case 7: the picker lists every style and shows its real burned frame.
 {
   console.log("\ncase: the picker previews each style");
   const t = loadApp();
   t.setStyles([
     { ...BASE, id: "one", name: "One", font: "Impact", highlight_color: "#FFC700", motion: "karaoke" },
-    { ...BASE, id: "two", name: "Two", font: "Georgia", highlight_color: "#38BDF8", motion: "none" },
+    { ...BASE, id: "two", name: "Two", font: "Georgia", highlight_color: "#38BDF8", motion: "word-pop" },
   ]);
   t.setStyle({ ...BASE, id: "one", name: "One", font: "Impact", highlight_color: "#FFC700", motion: "karaoke" });
   t.renderStylePicker();
@@ -164,29 +164,35 @@ function check(label, ok, detail) {
   const stage2 = rows[1].querySelector(".style-picker-stage");
   check("the title sits above the preview", rows[0].childNodes[0] === title1);
   check("the preview follows the title", rows[0].childNodes[1] === stage1);
-  check("row one draws in Impact", /Impact/.test(stage1.style.fontFamily), stage1.style.fontFamily);
-  check("row one uses its accent", stage1.style.getPropertyValue("--accent") === "#FFC700", stage1.style.getPropertyValue("--accent"));
-  check("row two draws in Georgia", /Georgia/.test(stage2.style.fontFamily), stage2.style.fontFamily);
-  check("row two uses its accent", stage2.style.getPropertyValue("--accent") === "#38BDF8", stage2.style.getPropertyValue("--accent"));
-  const words1 = stage1.querySelectorAll(".style-picker-word");
-  check("the stage shows a sample line", words1.length === 2, words1.length);
-  check("a karaoke row plays karaoke", words1[0].style.getPropertyValue("--picker-anim") === "picker-karaoke", words1[0].style.getPropertyValue("--picker-anim"));
-  check("the second word is delayed", words1[1].style.getPropertyValue("--i") === "1", words1[1].style.getPropertyValue("--i"));
-  const words2 = stage2.querySelectorAll(".style-picker-word");
-  check("a static row plays nothing", words2[0].style.getPropertyValue("--picker-anim") === "", words2[0].style.getPropertyValue("--picker-anim"));
+  const frame1 = stage1.querySelector(".style-picker-frame");
+  const frame2 = stage2.querySelector(".style-picker-frame");
+  check("each row shows a rendered frame", !!frame1 && !!frame2, [!!frame1, !!frame2]);
+  check("the frame is a PNG preview", /format=png/.test(frame1.src) && /format=png/.test(frame2.src), [frame1.src, frame2.src]);
+  check("the frame comes from the preset", /style_id=one/.test(frame1.src) && /style_id=two/.test(frame2.src), [frame1.src, frame2.src]);
+  const motion1 = stage1.querySelector(".style-picker-motion");
+  check("a motion clip is ready on hover", /format=mp4/.test(motion1.dataset.src), motion1.dataset.src);
+  check("frames stay full-frame, no crop flags", !/focus=1/.test(frame1.src) && !/focus=1/.test(frame2.src));
+  const clip = stage1.querySelector(".style-picker-motion");
+  check("a video starts with no frame", !clip.classList.contains("has-frame"));
+  clip.dispatch("loadeddata");
+  check("a loaded video may cover the PNG", clip.classList.contains("has-frame"));
+  clip.dispatch("error");
+  check("a failed video falls back to the PNG", !clip.classList.contains("has-frame"));
+  check("no CSS word chips remain", stage1.querySelectorAll(".style-picker-word").length === 0, stage1.childNodes.length);
 }
 
 // Case 8: the trigger shows the style you are on.
 {
   console.log("\ncase: the trigger shows the active style");
   const t = loadApp();
-  t.setStyle({ ...BASE, name: "Neon", font: "Segoe UI", highlight_color: "#F08AB5", motion: "punch" });
+  t.setStyle({ ...BASE, id: "hormozi", name: "Neon", font: "Segoe UI", highlight_color: "#F08AB5", motion: "punch" });
   t.syncStylePicker();
   const p = t.picker();
   check("name", p.name.textContent === "Neon", p.name.textContent);
-  check("type", /Segoe UI/.test(p.stage.style.fontFamily), p.stage.style.fontFamily);
-  check("accent", p.stage.style.getPropertyValue("--accent") === "#F08AB5", p.stage.style.getPropertyValue("--accent"));
-  check("the trigger plays the motion", p.stage.querySelector(".style-picker-word").style.getPropertyValue("--picker-anim") === "picker-punch");
+  const frame = p.stage.querySelector(".style-picker-frame");
+  check("the trigger shows a rendered frame", !!frame && /format=png/.test(frame.src), frame && frame.src);
+  check("the trigger carries edited settings, not a stock preset id",
+    /style=/.test(frame.src) && !/style_id=/.test(frame.src), frame.src);
 }
 
 // Case 9: choosing a row applies it, updates the trigger and closes the list.
@@ -207,7 +213,41 @@ function check(label, ok, detail) {
   check("the trigger follows", p.name.textContent === "Two", p.name.textContent);
 }
 
-// Case 10: open, close and Escape.
+// Case 10: scrolling the page must not close a list anchored to a visible
+// control; scrolling the list itself was already ignored by the handler.
+{
+  console.log("\ncase: page scroll keeps the open list anchored");
+  const t = loadApp();
+  t.setStyles([{ ...BASE, id: "one", name: "One" }]);
+  t.setStylePickerOpen(true);
+  const p = t.picker();
+  t.closeStylePickerOnScroll({ target: {} });
+  check("a document scroll leaves it open", p.list.hidden === false);
+  p.trigger.getBoundingClientRect = () => ({ top: -900, bottom: -700, left: 0,
+    right: 300, width: 300, height: 200 });
+  t.closeStylePickerOnScroll({ target: {} });
+  check("it closes once the trigger is off screen", p.list.hidden === true);
+}
+
+// Case 11: the canvas switch changes what the renderer is asked for.
+{
+  console.log("\ncase: the portrait/landscape switch");
+  const t = loadApp();
+  t.setStyles([{ ...BASE, id: "one", name: "One", motion: "none" }]);
+  t.renderStylePicker();
+  const p = t.picker();
+  const frameBefore = p.list.querySelector(".style-picker-frame");
+  check("landscape is the default", /aspect=16%3A9/.test(frameBefore.src), frameBefore.src);
+  const portrait = new El("button");
+  portrait.dataset.aspect = "9:16";
+  p.aspect.appendChild(portrait);
+  p.aspect.dispatch("click", { target: portrait });
+  const frameAfter = p.list.querySelector(".style-picker-frame");
+  check("portrait is requested after the switch", /aspect=9%3A16/.test(frameAfter.src), frameAfter.src);
+  check("portrait frames are requested full-frame", !/focus=1/.test(frameAfter.src), frameAfter.src);
+}
+
+// Case 12: open, close and Escape.
 {
   console.log("\ncase: the list opens and closes");
   const t = loadApp();

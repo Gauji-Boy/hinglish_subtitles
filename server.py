@@ -525,20 +525,58 @@ def api_caption_styles():
     }
 
 
-@app.post("/api/preview-style")
-def api_preview_style(payload: Dict[str, Any]):
-    """Renders a short true libass preview MP4 for a caption style."""
-    from preview_renderer import render_preview
-    try:
-        path = render_preview(payload.get("style"), payload.get("aspect", "9:16"))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Preview render failed: {e}")
+def _style_from_preview_request(style: Any, style_id: str) -> Any:
+    """Resolve a preset id or a full style object from a preview request."""
+    if style_id:
+        for preset in list_presets():
+            if preset.get("id") == style_id:
+                return preset
+        raise HTTPException(status_code=404, detail=f"Unknown caption style: {style_id}")
+    if isinstance(style, str) and style:
+        try:
+            return json.loads(style)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid style JSON")
+    return style
+
+
+def _preview_file_response(path: str, fmt: str) -> FileResponse:
     return FileResponse(
         path,
-        media_type="video/mp4",
-        filename="caption-preview.mp4",
-        headers={"Cache-Control": "no-store"}
+        media_type="image/png" if fmt == "png" else "video/mp4",
+        filename="caption-preview.png" if fmt == "png" else "caption-preview.mp4",
+        headers={"Cache-Control": "no-store"},
     )
+
+
+@app.get("/api/preview-style")
+def api_preview_style_get(style_id: str = "", style: str = "",
+                          aspect: str = "9:16", format: str = "png"):
+    """Return a real libass preview frame or clip for a preset or full style."""
+    from preview_renderer import render_preview
+    fmt = "mp4" if format == "mp4" else "png"
+    resolved = _style_from_preview_request(style, style_id)
+    try:
+        path = render_preview(resolved, aspect, fmt)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Preview render failed: {e}")
+    return _preview_file_response(path, fmt)
+
+
+@app.post("/api/preview-style")
+def api_preview_style(payload: Dict[str, Any]):
+    """
+    Renders a true libass preview for a caption style. Defaults to PNG, like
+    the GET endpoint; callers wanting the motion clip pass format="mp4".
+    """
+    from preview_renderer import render_preview
+    fmt = "mp4" if payload.get("format") == "mp4" else "png"
+    resolved = _style_from_preview_request(payload.get("style"), payload.get("style_id", ""))
+    try:
+        path = render_preview(resolved, payload.get("aspect", "9:16"), fmt)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Preview render failed: {e}")
+    return _preview_file_response(path, fmt)
 
 
 @app.post("/api/export/ass")
