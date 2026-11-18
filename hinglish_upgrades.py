@@ -620,6 +620,14 @@ def fill_speech_gaps(model, audio, words: List[dict], *, language: Optional[str]
                 # (it recovers a long hole by giving the decoder more context), so the
                 # two rescue rounds use one lever each.
                 pad, use_prompt = GAP_PAD_S, None
+            # Check the slice against the caller's cap before decoding it. With
+            # 0.35 s left, checking only "spent2 >= budget2" still allowed a 7 s
+            # wide slice, so a caller asking for 5.5 s got 12.15 s of decoding.
+            # The built-in soft ratio must not block a rescue on a short clip.
+            if cap_s is not None:
+                expected = min(duration, g1 + pad) - max(0.0, g0 - pad)
+                if spent2 + expected > cap_s - re_decoded_s:
+                    continue
             current_words, spent = _retry_gap(
                 model, audio, current_words, g0, g1, pad=pad,
                 sampling_rate=sampling_rate, language=language, task=task,
@@ -1718,7 +1726,8 @@ def pad_display_times(cards: List[dict], min_dur: float = 1.0, hold: float = 0.3
 
 
 def repair_card_timeline(words: List[dict], cards: List[dict], *,
-                         max_chars: int = 42, max_dur: float = 2.8) -> List[dict]:
+                         max_chars: int = 42, max_dur: float = 2.8,
+                         hold: float = 0.3, gap: float = 0.04) -> List[dict]:
     """Make sure every word is visible in some card, whatever the builder did.
 
     The coverage pass measures the word timeline, but the viewer sees cards. On
@@ -1755,7 +1764,21 @@ def repair_card_timeline(words: List[dict], cards: List[dict], *,
         "text": " ".join(str(x.get("text", "")) for x in group).strip(),
         "words": group,
     } for group in groups]
-    return sorted(list(cards) + extra, key=lambda c: (c["start"], c["end"]))
+    merged = sorted(list(cards) + extra, key=lambda c: (c["start"], c["end"]))
+    # Inserted cards bypassed pad_display_times, so they vanished the instant
+    # the word ended while every other card held for 0.3 s. Give them the same
+    # bounded hold, never overlapping the next card and never cutting a span.
+    inserted = {id(c) for c in extra}
+    for i, card in enumerate(merged):
+        if id(card) not in inserted:
+            continue
+        nxt = merged[i + 1]["start"] if i + 1 < len(merged) else None
+        limit = (max(card["end"], nxt - gap) if nxt is not None
+                 else card["end"] + hold)
+        end = max(card["end"], min(card["end"] + hold, limit))
+        end = max(card["end"], min(end, card["start"] + max_dur))
+        card["end"] = round(end, 3)
+    return merged
 
 
 

@@ -187,8 +187,19 @@ def test_repair_card_timeline_adds_orphan_tail():
     out = hu.repair_card_timeline(words, cards)
     assert len(out) == 2
     assert out[1]["start"] == pytest.approx(5.0)
-    assert out[1]["end"] == pytest.approx(6.0)
+    assert out[1]["end"] == pytest.approx(6.3)  # same 0.3 s hold as normal cards
     assert [x["text"] for x in out[1]["words"]] == ["b"]
+
+
+def test_repair_card_timeline_hold_stops_before_next_card():
+    words = [w(0.0, 1.0, "a"), w(5.0, 6.0, "b"), w(6.1, 7.0, "c")]
+    cards = [
+        {"start": 0.0, "end": 1.0, "text": "a", "words": [words[0]]},
+        {"start": 6.1, "end": 7.0, "text": "c", "words": [words[2]]},
+    ]
+    out = hu.repair_card_timeline(words, cards)
+    assert out[1]["end"] == pytest.approx(6.06)  # hold stops 0.04 s before next
+    assert out[1]["end"] <= out[2]["start"]
 
 
 def test_repair_card_timeline_is_idempotent():
@@ -211,6 +222,19 @@ def test_gap_budget_ranks_shortest_gap_first():
     # With a fixed budget, attempting the short 5 s tail gap first reaches
     # more holes than spending the budget on the 10 s head gap.
     assert model.audio_lengths[0] < 100000
+
+
+def test_capped_caller_does_not_overspend_on_rescue():
+    audio = np.zeros(25 * 16000, dtype=np.float32)
+    words = [w(10.0, 20.0, "mid")]
+    regions = [(0.0, 4.0), (20.0, 24.9)]
+    model = StubModel()
+    hu.fill_speech_gaps(model, audio, words, regions=regions,
+                        cap_s=5.5, sampling_rate=16000)
+    # The two first-pass slices use the cap. Before the guard a third, 7 s wide
+    # rescue slice ran anyway after only 0.35 s was left. It must not run.
+    assert len(model.audio_lengths) == 2
+    assert sum(model.audio_lengths) / 16000.0 <= 16.0
 
 
 def test_report_records_per_gap_outcomes():
